@@ -81,6 +81,45 @@ export interface PlaywrightPageService {
     selector: string,
     options?: Parameters<Page["locator"]>[1],
   ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given role.
+   *
+   * @see {@link Page.getByRole}
+   * @since 0.1.0
+   */
+  readonly getByRole: (
+    role: Parameters<Page["getByRole"]>[0],
+    options?: Parameters<Page["getByRole"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given text.
+   *
+   * @see {@link Page.getByText}
+   * @since 0.1.0
+   */
+  readonly getByText: (
+    text: Parameters<Page["getByText"]>[0],
+    options?: Parameters<Page["getByText"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given label.
+   *
+   * @see {@link Page.getByLabel}
+   * @since 0.1.0
+   */
+  readonly getByLabel: (
+    label: Parameters<Page["getByLabel"]>[0],
+    options?: Parameters<Page["getByLabel"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given test id.
+   *
+   * @see {@link Page.getByTestId}
+   * @since 0.1.0
+   */
+  readonly getByTestId: (
+    testId: Parameters<Page["getByTestId"]>[0],
+  ) => typeof PlaywrightLocator.Service;
 
   /**
    * Reloads the page.
@@ -151,6 +190,20 @@ export class PlaywrightPage extends Context.Tag(
         use((p) => p.evaluate(f, arg as Arg)),
       locator: (selector: string, options?: Parameters<Page["locator"]>[1]) =>
         PlaywrightLocator.make(page.locator(selector, options)),
+      getByRole: (
+        role: Parameters<Page["getByRole"]>[0],
+        options?: Parameters<Page["getByRole"]>[1],
+      ) => PlaywrightLocator.make(page.getByRole(role, options)),
+      getByText: (
+        text: Parameters<Page["getByText"]>[0],
+        options?: Parameters<Page["getByText"]>[1],
+      ) => PlaywrightLocator.make(page.getByText(text, options)),
+      getByLabel: (
+        label: Parameters<Page["getByLabel"]>[0],
+        options?: Parameters<Page["getByLabel"]>[1],
+      ) => PlaywrightLocator.make(page.getByLabel(label, options)),
+      getByTestId: (testId: Parameters<Page["getByTestId"]>[0]) =>
+        PlaywrightLocator.make(page.getByTestId(testId)),
       url: Effect.sync(() => page.url()),
       reload: use((p) => p.reload()),
       close: use((p) => p.close()),

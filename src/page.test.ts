@@ -1,9 +1,10 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
+import { chromium } from "playwright-core";
 import { PlaywrightBrowser } from "./browser";
-import { PlaywrightManager } from "./experimental/manager";
+import { PlaywrightEnvironment } from "./experimental";
 
-layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
+layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
   it.scoped("goto should navigate to a URL", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
@@ -14,7 +15,7 @@ layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
       yield* page.goto("about:blank");
       const url = yield* page.use((p) => Promise.resolve(p.url()));
       assert(url === "about:blank");
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("title should return the page title", () =>
@@ -25,7 +26,7 @@ layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
       yield* page.goto("data:text/html,<title>Test Page</title>");
       const title = yield* page.title;
       assert(title === "Test Page");
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("click should click an element", () =>
@@ -46,7 +47,7 @@ layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
         () => (window as Window & { clicked?: boolean }).clicked,
       );
       assert(clicked === true);
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("goto should work with options", () =>
@@ -57,7 +58,7 @@ layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
       yield* page.goto("about:blank", { waitUntil: "domcontentloaded" });
       const url = yield* page.use((p) => Promise.resolve(p.url()));
       assert(url === "about:blank");
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped(
@@ -72,7 +73,7 @@ layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
           [10, 20] as const,
         );
         assert(result === 30);
-      }).pipe(PlaywrightManager.provideBrowser),
+      }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("evaluate should run code with a single value arg", () =>
@@ -82,7 +83,7 @@ layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
 
       const result = yield* page.evaluate((val: number) => val * 2, 21);
       assert(result === 42);
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("click should work with options", () =>
@@ -111,7 +112,7 @@ layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
             .clickCoords,
       );
       assert(coords !== null);
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("use should allow accessing raw playwright page", () =>
@@ -121,7 +122,7 @@ layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
 
       const content = yield* page.use((p) => p.content());
       assert(typeof content === "string");
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("locator should work with options", () =>
@@ -142,6 +143,35 @@ layer(PlaywrightManager.Default)("PlaywrightPage", (it) => {
 
       const attr = yield* locator.getAttribute("data-id");
       assert(attr === "target");
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("getBy* methods should work", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.evaluate(() => {
+        document.body.innerHTML = `
+          <button role="button">Click Me</button>
+          <span>Hello World</span>
+          <label for="input">Label Text</label>
+          <input id="input" />
+          <div data-testid="test-id">Test Content</div>
+        `;
+      });
+
+      const byRole = yield* page.getByRole("button").textContent();
+      assert(byRole === "Click Me");
+
+      const byText = yield* page.getByText("Hello World").textContent();
+      assert(byText === "Hello World");
+
+      const byLabel = yield* page.getByLabel("Label Text").getAttribute("id");
+      assert(byLabel === "input");
+
+      const byTestId = yield* page.getByTestId("test-id").textContent();
+      assert(byTestId === "Test Content");
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });

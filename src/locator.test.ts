@@ -1,20 +1,22 @@
 /// <reference lib="dom" />
 import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
+import { chromium } from "playwright-core";
 import { PlaywrightBrowser } from "./browser";
-import { PlaywrightManager } from "./experimental/manager";
+import { PlaywrightEnvironment } from "./experimental";
 
-layer(PlaywrightManager.Default)("PlaywrightLocator", (it) => {
+layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
   it.scoped("should work", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
-      const page = yield* browser.newPage({ baseURL: "about:blank" });
+      const page = yield* browser.newPage();
+      yield* page.goto("data:text/html,<title>Blank</title>");
 
       const title = page.locator("title");
 
       const titleText = yield* title.textContent();
       assert(titleText === "Blank", "Expected title to be 'Blank'");
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("evaluate", () =>
@@ -36,7 +38,7 @@ layer(PlaywrightManager.Default)("PlaywrightLocator", (it) => {
       });
 
       assert(result === "red");
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("kitchensink", () =>
@@ -121,6 +123,6 @@ layer(PlaywrightManager.Default)("PlaywrightLocator", (it) => {
         .first()
         .use((l) => l.evaluate((el) => el.id));
       assert(useResult === "btn-1");
-    }).pipe(PlaywrightManager.provideBrowser),
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });
