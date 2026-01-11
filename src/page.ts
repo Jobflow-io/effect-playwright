@@ -1,4 +1,4 @@
-import { Context, Effect, Stream } from "effect";
+import { Context, Effect } from "effect";
 import type { Page } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightLocator } from "./locator";
@@ -110,10 +110,6 @@ export interface PlaywrightPageService {
    */
   readonly url: Effect.Effect<string, PlaywrightError>;
 
-  readonly subscribe: (
-    event: "request",
-  ) => Stream.Stream<unknown, PlaywrightError>;
-
   /**
    * Clicks an element matching the given selector.
    *
@@ -158,10 +154,6 @@ export class PlaywrightPage extends Context.Tag(
       url: Effect.sync(() => page.url()),
       reload: use((p) => p.reload()),
       close: use((p) => p.close()),
-      subscribe: (event: "request") =>
-        Stream.async((emit) => {
-          page.on(event, (r) => emit.single(Effect.succeed(r)));
-        }),
       click: (selector: string, options?: ClickOptions) =>
         use((p) => p.click(selector, options)),
       use,
