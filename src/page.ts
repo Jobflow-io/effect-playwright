@@ -1,9 +1,42 @@
-import { Context, Effect } from "effect";
-import type { Page } from "playwright-core";
+import { Context, Effect, Stream } from "effect";
+import type {
+  ConsoleMessage,
+  Dialog,
+  Download,
+  FileChooser,
+  Frame,
+  Page,
+  Request,
+  Response,
+  WebSocket,
+  Worker,
+} from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightLocator } from "./locator";
 import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
+
+interface PlaywrightPageEvents {
+  close: Page;
+  console: ConsoleMessage;
+  crash: Page;
+  dialog: Dialog;
+  domcontentloaded: Page;
+  download: Download;
+  filechooser: FileChooser;
+  frameattached: Frame;
+  framedetached: Frame;
+  framenavigated: Frame;
+  load: Page;
+  pageerror: Error;
+  popup: Page;
+  request: Request;
+  requestfailed: Request;
+  requestfinished: Request;
+  response: Response;
+  websocket: WebSocket;
+  worker: Worker;
+}
 
 export interface PlaywrightPageService {
   /**
@@ -38,7 +71,6 @@ export interface PlaywrightPageService {
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Evaluates a function in the context of the page.
-   * See [Playwright Docs](https://playwright.dev/docs/api/class-page#page-evaluate) for more information.
    *
    * @example
    * ```ts
@@ -57,7 +89,6 @@ export interface PlaywrightPageService {
   ) => Effect.Effect<R, PlaywrightError>;
   /**
    * Returns the page title.
-   * See [Playwright Docs](https://playwright.dev/docs/api/class-page#page-title) for more information.
    *
    * @example
    * ```ts
@@ -162,6 +193,21 @@ export interface PlaywrightPageService {
   readonly url: Effect.Effect<string, PlaywrightError>;
 
   /**
+   * Creates a stream of the given event from the page.
+   *
+   * @example
+   * ```ts
+   * const consoleStream = page.eventStream("console");
+   * ```
+   *
+   * @see {@link Page.on}
+   * @since 0.1.0
+   */
+  readonly eventStream: <K extends keyof PlaywrightPageEvents>(
+    event: K,
+  ) => Stream.Stream<PlaywrightPageEvents[K]>;
+
+  /**
    * Clicks an element matching the given selector.
    *
    * @example
@@ -213,6 +259,15 @@ export class PlaywrightPage extends Context.Tag(
       reload: use((p) => p.reload()),
       close: use((p) => p.close()),
       click: (selector, options) => use((p) => p.click(selector, options)),
+      eventStream: (event) =>
+        Stream.asyncPush((emit) =>
+          Effect.acquireRelease(
+            // biome-ignore lint/suspicious/noExplicitAny: implementation only
+            Effect.sync(() => page.on(event as any, emit.single as any)),
+            // biome-ignore lint/suspicious/noExplicitAny: implementation only
+            () => Effect.sync(() => page.off(event as any, emit.single as any)),
+          ),
+        ),
       use,
     });
   }
