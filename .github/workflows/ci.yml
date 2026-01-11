@@ -1,0 +1,38 @@
+name: CI
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint
+        run: pnpm biome ci .
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Test
+        run: pnpm test
