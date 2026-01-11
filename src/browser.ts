@@ -96,20 +96,19 @@ export class PlaywrightBrowser extends Context.Tag(
     const use = useHelper(browser);
 
     return PlaywrightBrowser.of({
-      newPage: (options?: NewPageOptions) =>
+      newPage: (options) =>
         use((browser) => browser.newPage(options).then(PlaywrightPage.make)),
       close: use((browser) => browser.close()),
       contexts: Effect.sync(() =>
         browser.contexts().map(PlaywrightBrowserContext.make),
       ),
-      newContext: (options?: NewContextOptions) =>
-        Effect.gen(function* () {
-          const context = yield* Effect.acquireRelease(
-            use((browser) => browser.newContext(options)),
-            (context) => Effect.promise(() => context.close()),
-          );
-          return PlaywrightBrowserContext.make(context);
-        }),
+      newContext: (options) =>
+        Effect.acquireRelease(
+          use((browser) =>
+            browser.newContext(options).then(PlaywrightBrowserContext.make),
+          ),
+          (context) => context.close.pipe(Effect.ignoreLogged),
+        ),
       browserType: Effect.sync(() => browser.browserType()),
       version: Effect.sync(() => browser.version()),
       isConnected: Effect.sync(() => browser.isConnected()),

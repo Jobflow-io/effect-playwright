@@ -5,8 +5,6 @@ import { PlaywrightLocator } from "./locator";
 import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
 
-export type ClickOptions = Parameters<Page["click"]>[1];
-
 export interface PlaywrightPageService {
   /**
    * Navigates the page to the given URL.
@@ -163,7 +161,7 @@ export interface PlaywrightPageService {
    */
   readonly click: (
     selector: string,
-    options?: ClickOptions,
+    options?: Parameters<Page["click"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
 }
 
@@ -183,32 +181,23 @@ export class PlaywrightPage extends Context.Tag(
     const use = useHelper(page);
 
     return PlaywrightPage.of({
-      goto: (url: string, options?: Parameters<Page["goto"]>[1]) =>
-        use((p) => p.goto(url, options)),
+      goto: (url, options) => use((p) => p.goto(url, options)),
       title: use((p) => p.title()),
       evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
         use((p) => p.evaluate(f, arg as Arg)),
-      locator: (selector: string, options?: Parameters<Page["locator"]>[1]) =>
+      locator: (selector, options) =>
         PlaywrightLocator.make(page.locator(selector, options)),
-      getByRole: (
-        role: Parameters<Page["getByRole"]>[0],
-        options?: Parameters<Page["getByRole"]>[1],
-      ) => PlaywrightLocator.make(page.getByRole(role, options)),
-      getByText: (
-        text: Parameters<Page["getByText"]>[0],
-        options?: Parameters<Page["getByText"]>[1],
-      ) => PlaywrightLocator.make(page.getByText(text, options)),
-      getByLabel: (
-        label: Parameters<Page["getByLabel"]>[0],
-        options?: Parameters<Page["getByLabel"]>[1],
-      ) => PlaywrightLocator.make(page.getByLabel(label, options)),
-      getByTestId: (testId: Parameters<Page["getByTestId"]>[0]) =>
-        PlaywrightLocator.make(page.getByTestId(testId)),
+      getByRole: (role, options) =>
+        PlaywrightLocator.make(page.getByRole(role, options)),
+      getByText: (text, options) =>
+        PlaywrightLocator.make(page.getByText(text, options)),
+      getByLabel: (label, options) =>
+        PlaywrightLocator.make(page.getByLabel(label, options)),
+      getByTestId: (testId) => PlaywrightLocator.make(page.getByTestId(testId)),
       url: Effect.sync(() => page.url()),
       reload: use((p) => p.reload()),
       close: use((p) => p.close()),
-      click: (selector: string, options?: ClickOptions) =>
-        use((p) => p.click(selector, options)),
+      click: (selector, options) => use((p) => p.click(selector, options)),
       use,
     });
   }
