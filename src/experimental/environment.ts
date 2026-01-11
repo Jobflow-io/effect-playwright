@@ -1,0 +1,96 @@
+import { Playwright, PlaywrightBrowser } from "@jobflow/effect-playwright";
+import { Context, Effect, Layer } from "effect";
+import type { Scope } from "effect/Scope";
+import type { BrowserType, LaunchOptions } from "playwright-core";
+import type { PlaywrightError } from "../errors";
+
+/**
+ * Most of the time you want to use the same kind of browser and configuration every time you use playwright.
+ * `PlaywrightEnvironment` is a service that allows you to configure how browsers are launched once. You can then
+ * use {@link PlaywrightEnvironment.browser} to start browsers scoped to the current lifetime. They will be closed when the scope is closed.
+ *
+ * You can use {@link PlaywrightEnvironment.withBrowser} to provide the `PlaywrightBrowser` service to the wrapped effect. This
+ * also allows you to re-use the same browser how many times you want.
+ *
+ * @since 0.1.0
+ * @category tag
+ */
+export class PlaywrightEnvironment extends Context.Tag(
+  "@jobflow/effect-playwright/experimental/PlaywrightEnvironment",
+)<
+  PlaywrightEnvironment,
+  {
+    browser: Effect.Effect<
+      typeof PlaywrightBrowser.Service,
+      PlaywrightError,
+      Scope
+    >;
+  }
+>() {}
+
+/**
+ * Creates a Layer that initializes the `PlaywrightEnvironment`.
+ *
+ * @example
+ *
+ * ```ts
+ * import { PlaywrightEnvironment } from "@jobflow/effect-playwright/experimental";
+ * import { chromium } from "playwright-core";
+ *
+ * const playwrightEnv = PlaywrightEnvironment.layer(chromium);
+ *
+ * // use the layer
+ * const program = Effect.gen(function* () {
+ *   const browser = yield* PlaywrightEnvironment.browser;
+ *   const page = yield* browser.newPage();
+ *   yield* page.goto("https://example.com");
+ * }).pipe(PlaywrightEnvironment.withBrowser, Effect.provide(playwrightEnv));
+ * ```
+ *
+ * @param browser - The Playwright BrowserType implementation (e.g. `chromium`, `firefox`, `webkit`).
+ * @param launchOptions - Optional configuration for launching the browser (e.g. headless, args).
+ *
+ * @since 0.1.0
+ * @category layer
+ */
+export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) => {
+  return Layer.effect(
+    PlaywrightEnvironment,
+    Playwright.pipe(
+      Effect.map((playwright) => {
+        return PlaywrightEnvironment.of({
+          browser: playwright.launchScoped(browser, launchOptions),
+        });
+      }),
+    ).pipe(Effect.provide(Playwright.layer)),
+  );
+};
+
+/**
+ * Provides a scoped `PlaywrightBrowser` service, allowing you to access the browser from the context (eg. by yielding `PlaywrightBrowser`).
+ *
+ * You will need to provide the `PlaywrightEnvironment` layer first.
+ *
+ * @example
+ *
+ * ```ts
+ * import { PlaywrightEnvironment } from "@jobflow/effect-playwright/experimental";
+ * import { chromium } from "playwright-core";
+ *
+ * const layer = PlaywrightEnvironment.layer(chromium);
+ * const program = Effect.gen(function* () {
+ *     const browser = yield* PlaywrightBrowser;
+ *     const page = yield* browser.newPage();
+ *     yield* page.goto("https://example.com");
+ * }).pipe(PlaywrightEnvironment.withBrowser);
+ * ```
+ *
+ * @since 0.1.0
+ */
+export const withBrowser = Effect.provide(
+  PlaywrightEnvironment.pipe(
+    Effect.map((e) => e.browser),
+    Effect.flatten,
+    Layer.scoped(PlaywrightBrowser),
+  ),
+);

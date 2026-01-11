@@ -1,0 +1,61 @@
+{
+  "name": "@jobflow/effect-playwright",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "A effect based Playwright library.",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "author": "Jobflow GmbH",
+  "license": "ISC",
+  "homepage": "https://github.com/jobflow/effect-playwright",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jobflow/effect-playwright.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jobflow/effect-playwright/issues"
+  },
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./experimental": "./dist/experimental/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "effect",
+    "effect-ts",
+    "playwright",
+    "browser",
+    "automation"
+  ],
+  "packageManager": "pnpm@10.27.0",
+  "dependencies": {
+    "playwright-core": "^1.42.0"
+  },
+  "peerDependencies": {
+    "@effect/platform": "^0.93.3",
+    "effect": "^3.19.6"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.10",
+    "@effect/language-service": "^0.62.5",
+    "@effect/platform": "^0.94.0",
+    "@effect/platform-node": "^0.104.0",
+    "@effect/vitest": "^0.27.0",
+    "effect": "^3.19.13",
+    "playwright": "^1.57.0",
+    "tsdown": "^0.18.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  },
+  "types": "./dist/index.d.mts"
+}
