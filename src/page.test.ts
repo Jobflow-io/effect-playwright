@@ -174,4 +174,20 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert(byTestId === "Test Content");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("waitForURL should work with History API", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("about:blank");
+      yield* page.evaluate(() => {
+        history.pushState({}, "", "#test-history");
+      });
+
+      yield* page.waitForURL((url) => url.hash === "#test-history");
+      const url = yield* page.url;
+      assert(url.endsWith("#test-history"));
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });

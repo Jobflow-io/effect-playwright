@@ -7,6 +7,7 @@ export default defineConfig({
     includeSource: ["src/**/*.ts"],
     alias: {
       "@jobflow/effect-playwright": "src/index.ts",
+      "@jobflow/effect-playwright/experimental": "src/experimental/index.ts",
     },
     sequence: {
       concurrent: true,

@@ -38,21 +38,21 @@
   ],
   "packageManager": "pnpm@10.27.0",
   "dependencies": {
-    "playwright-core": "^1.42.0"
+    "playwright-core": "^1.57.0"
   },
   "peerDependencies": {
     "@effect/platform": "^0.93.3",
     "effect": "^3.19.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.10",
-    "@effect/language-service": "^0.62.5",
-    "@effect/platform": "^0.94.0",
+    "@biomejs/biome": "2.3.11",
+    "@effect/language-service": "^0.64.1",
+    "@effect/platform": "^0.94.1",
     "@effect/platform-node": "^0.104.0",
     "@effect/vitest": "^0.27.0",
-    "effect": "^3.19.13",
+    "effect": "^3.19.14",
     "playwright": "^1.57.0",
-    "tsdown": "^0.18.3",
+    "tsdown": "^0.19.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"

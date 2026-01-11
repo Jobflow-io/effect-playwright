@@ -8,7 +8,6 @@ import { useHelper } from "./utils";
 export interface PlaywrightPageService {
   /**
    * Navigates the page to the given URL.
-   * See [Playwright Docs](https://playwright.dev/docs/api/class-page#page-goto) for more information.
    *
    * @example
    * ```ts
@@ -21,6 +20,21 @@ export interface PlaywrightPageService {
   readonly goto: (
     url: string,
     options?: Parameters<Page["goto"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Waits for the page to navigate to the given URL.
+   *
+   * @example
+   * ```ts
+   * yield* page.waitForURL("https://google.com");
+   * ```
+   *
+   * @see {@link Page.waitForURL}
+   * @since 0.1.0
+   */
+  readonly waitForURL: (
+    url: Parameters<Page["waitForURL"]>[0],
+    options?: Parameters<Page["waitForURL"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Evaluates a function in the context of the page.
@@ -182,6 +196,7 @@ export class PlaywrightPage extends Context.Tag(
 
     return PlaywrightPage.of({
       goto: (url, options) => use((p) => p.goto(url, options)),
+      waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
       title: use((p) => p.title()),
       evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
         use((p) => p.evaluate(f, arg as Arg)),

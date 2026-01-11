@@ -3,3 +3,7 @@ src/scratchpad.ts
 dist
 docs
 context
+
+## in scratchpad, we only track setup.ts
+src/scratchpad/*
+!src/scratchpad/setup.ts
