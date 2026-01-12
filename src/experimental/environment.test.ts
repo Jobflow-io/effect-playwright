@@ -91,4 +91,32 @@ layer(layerPlaywrightEnvironment(chromium))("PlaywrightEnvironment", (it) => {
       }),
     ),
   );
+
+  it.effect("withBrowser scope cleanup", () =>
+    Effect.gen(function* () {
+      let capturedBrowser: typeof PlaywrightBrowser.Service | undefined;
+
+      yield* withBrowser(
+        Effect.gen(function* () {
+          const browser = yield* PlaywrightBrowser;
+          capturedBrowser = browser;
+
+          yield* browser.newPage({ baseURL: "about:blank" });
+
+          yield* accessFirst;
+          yield* accessSecond;
+        }),
+      );
+
+      assert(capturedBrowser, "Expected browser");
+      const contexts = yield* capturedBrowser.contexts;
+      assert(contexts.length === 0, "Expected no contexts");
+
+      // actually not connected anymore
+      assert(
+        (yield* capturedBrowser.isConnected) === false,
+        "Expected not connected",
+      );
+    }),
+  );
 });
