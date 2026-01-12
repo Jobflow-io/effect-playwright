@@ -1,4 +1,4 @@
-# @jobflow/effect-playwright
+# effect-playwright
 
 [![GitHub License](https://img.shields.io/github/license/Jobflow-io/effect-playwright)](https://github.com/Jobflow-io/effect-playwright/blob/main/LICENSE)
 [![Effect: yes](https://img.shields.io/badge/effect-yes-blue)](https://effect.website/)
@@ -8,19 +8,19 @@ A Playwright wrapper for the Effect ecosystem. This library provides a set of se
 ## Installation
 
 ```bash
-pnpm add @jobflow/effect-playwright playwright-core
+pnpm add effect-playwright playwright-core
 ```
 
 or
 
 ```bash
-npm install @jobflow/effect-playwright playwright-core
+npm install effect-playwright playwright-core
 ```
 
 ## Quick Start
 
 ```ts
-import { Playwright } from "@jobflow/effect-playwright";
+import { Playwright } from "effect-playwright";
 import { Effect } from "effect";
 import { chromium } from "playwright-core";
 
@@ -56,8 +56,8 @@ The `PlaywrightEnvironment` simplifies setup by allowing you to configure the br
 ### Usage
 
 ```ts
-import { PlaywrightBrowser } from "@jobflow/effect-playwright";
-import { PlaywrightEnvironment } from "@jobflow/effect-playwright/experimental";
+import { PlaywrightBrowser } from "effect-playwright";
+import { PlaywrightEnvironment } from "effect-playwright/experimental";
 import { Effect } from "effect";
 import { chromium } from "playwright-core";
 
@@ -80,7 +80,7 @@ await Effect.runPromise(program.pipe(Effect.provide(liveLayer)));
 If you need to access functionality from the underlying Playwright objects that isn't directly exposed, you can use the `use` method available on most services (`PlaywrightBrowser`, `PlaywrightPage`, `PlaywrightLocator`).
 
 ```ts
-import { Playwright } from "@jobflow/effect-playwright";
+import { Playwright } from "effect-playwright";
 import { Effect } from "effect";
 import { chromium } from "playwright-core";
 

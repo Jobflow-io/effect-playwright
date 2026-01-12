@@ -16,8 +16,8 @@
     "skipLibCheck": true,
     "types": ["vitest/importMeta"],
     "paths": {
-      "@jobflow/effect-playwright": ["./src/index.ts"],
-      "@jobflow/effect-playwright/experimental": ["./src/experimental/index.ts"],
+      "effect-playwright": ["./src/index.ts"],
+      "effect-playwright/experimental": ["./src/experimental/index.ts"],
     },
     "plugins": [
       {

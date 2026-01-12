@@ -1,6 +1,6 @@
 import { assert, layer } from "@effect/vitest";
-import { Playwright } from "@jobflow/effect-playwright";
 import { Effect } from "effect";
+import { Playwright } from "effect-playwright";
 import { chromium } from "playwright-core";
 
 layer(Playwright.layer)("Playwright", (it) => {

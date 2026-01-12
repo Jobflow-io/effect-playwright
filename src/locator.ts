@@ -106,8 +106,8 @@ export interface PlaywrightLocatorService {
    *
    * @example
    * ```ts
-   * import { PlaywrightBrowser } from "@jobflow/effect-playwright";
-   * import { PlaywrightEnvironment } from "@jobflow/effect-playwright/experimental";
+   * import { PlaywrightBrowser } from "effect-playwright";
+   * import { PlaywrightEnvironment } from "effect-playwright/experimental";
    * import { chromium } from "@playwright/test";
    * import { Effect } from "effect";
    *
@@ -157,7 +157,7 @@ export interface PlaywrightLocatorService {
  * @category tag
  */
 export class PlaywrightLocator extends Context.Tag(
-  "@jobflow/effect-playwright/PlaywrightLocator",
+  "effect-playwright/PlaywrightLocator",
 )<PlaywrightLocator, PlaywrightLocatorService>() {
   /**
    * Creates a `PlaywrightLocator` from a Playwright `Locator` instance. This is mostly for internal use.

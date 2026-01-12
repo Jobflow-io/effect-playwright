@@ -229,7 +229,7 @@ export interface PlaywrightPageService {
  * @category tag
  */
 export class PlaywrightPage extends Context.Tag(
-  "@jobflow/effect-playwright/PlaywrightPage",
+  "effect-playwright/PlaywrightPage",
 )<PlaywrightPage, PlaywrightPageService>() {
   /**
    * Creates a `PlaywrightPage` from a Playwright `Page` instance.

@@ -1,5 +1,5 @@
 {
-  "name": "@jobflow/effect-playwright",
+  "name": "effect-playwright",
   "type": "module",
   "version": "0.1.0",
   "description": "A effect based Playwright library.",

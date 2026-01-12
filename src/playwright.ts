@@ -18,7 +18,7 @@ export interface PlaywrightService {
    *
    * ```ts
    * import { Effect } from "effect";
-   * import { Playwright } from "@jobflow/effect-playwright";
+   * import { Playwright } from "effect-playwright";
    * import { chromium } from "playwright-core";
    *
    * const program = Effect.gen(function* () {
@@ -45,7 +45,7 @@ export interface PlaywrightService {
    *
    * ```ts
    * import { Effect } from "effect";
-   * import { Playwright } from "@jobflow/effect-playwright";
+   * import { Playwright } from "effect-playwright";
    * import { chromium } from "playwright-core";
    *
    * const program = Effect.gen(function* () {
@@ -79,7 +79,7 @@ export interface PlaywrightService {
    *
    * ```ts
    * import { Effect } from "effect";
-   * import { Playwright } from "@jobflow/effect-playwright";
+   * import { Playwright } from "effect-playwright";
    *
    * const program = Effect.gen(function* () {
    *   const browser = yield* Playwright.connectCDP(cdpUrl);
@@ -115,7 +115,7 @@ const launch: (
   });
 
 export class Playwright extends Context.Tag(
-  "@jobflow/effect-playwright/index/Playwright",
+  "effect-playwright/index/Playwright",
 )<Playwright, PlaywrightService>() {
   /**
    * @category layer

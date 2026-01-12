@@ -1,6 +1,6 @@
-import { Playwright, PlaywrightBrowser } from "@jobflow/effect-playwright";
 import { Context, Effect, Layer } from "effect";
 import type { Scope } from "effect/Scope";
+import { Playwright, PlaywrightBrowser } from "effect-playwright";
 import type { BrowserType, LaunchOptions } from "playwright-core";
 import type { PlaywrightError } from "../errors";
 
@@ -16,7 +16,7 @@ import type { PlaywrightError } from "../errors";
  * @category tag
  */
 export class PlaywrightEnvironment extends Context.Tag(
-  "@jobflow/effect-playwright/experimental/PlaywrightEnvironment",
+  "effect-playwright/experimental/PlaywrightEnvironment",
 )<
   PlaywrightEnvironment,
   {
@@ -34,7 +34,7 @@ export class PlaywrightEnvironment extends Context.Tag(
  * @example
  *
  * ```ts
- * import { PlaywrightEnvironment } from "@jobflow/effect-playwright/experimental";
+ * import { PlaywrightEnvironment } from "effect-playwright/experimental";
  * import { chromium } from "playwright-core";
  *
  * const playwrightEnv = PlaywrightEnvironment.layer(chromium);
@@ -74,7 +74,7 @@ export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) => {
  * @example
  *
  * ```ts
- * import { PlaywrightEnvironment } from "@jobflow/effect-playwright/experimental";
+ * import { PlaywrightEnvironment } from "effect-playwright/experimental";
  * import { chromium } from "playwright-core";
  *
  * const layer = PlaywrightEnvironment.layer(chromium);
