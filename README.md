@@ -76,6 +76,20 @@ const program = Effect.gen(function* () {
 await Effect.runPromise(program.pipe(Effect.provide(liveLayer)));
 ```
 
+### `PlaywrightEnvironment.withBrowser`
+
+The `withBrowser` utility provides the `PlaywrightBrowser` service to your effect. It internally manages a `Scope`, which means the browser will be launched when the effect starts and closed automatically when the effect finishes (including on failure or interruption).
+
+```ts
+const program = Effect.gen(function* () {
+  const browser = yield* PlaywrightBrowser; // Now available in context
+  const page = yield* browser.newPage();
+
+  // ...
+  // Browser will be closed automatically after this block
+}).pipe(PlaywrightEnvironment.withBrowser);
+```
+
 ## Accessing Native Playwright
 
 If you need to access functionality from the underlying Playwright objects that isn't directly exposed, you can use the `use` method available on most services/objects (browsers, pages, locators).
