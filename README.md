@@ -91,7 +91,7 @@ const program = Effect.gen(function* () {
   const page = yield* browser.newPage();
 
   // ...
-  // Browser will be closed automatically after this block
+  // Browser close is ensured
 }).pipe(PlaywrightEnvironment.withBrowser);
 ```
 
