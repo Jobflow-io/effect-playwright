@@ -3,7 +3,7 @@
 [![GitHub License](https://img.shields.io/github/license/Jobflow-io/effect-playwright)](https://github.com/Jobflow-io/effect-playwright/blob/main/LICENSE)
 [![Effect: yes](https://img.shields.io/badge/effect-yes-blue)](https://effect.website/)
 
-A Playwright wrapper for the Effect ecosystem. This library provides a set of services and layers to interact with Playwright in a type-safe and functional way using Effect.
+A Playwright wrapper for the Effect ecosystem. This library provides a set of services and layers to interact with Playwright in a type-safe way using Effect.
 
 ## Installation
 
@@ -77,7 +77,7 @@ await Effect.runPromise(program.pipe(Effect.provide(liveLayer)));
 
 ## Accessing Native Playwright
 
-If you need to access functionality from the underlying Playwright objects that isn't directly exposed, you can use the `use` method available on most services (`PlaywrightBrowser`, `PlaywrightPage`, `PlaywrightLocator`).
+If you need to access functionality from the underlying Playwright objects that isn't directly exposed, you can use the `use` method available on most services/objects (browsers, pages, locators).
 
 ```ts
 import { Playwright } from "effect-playwright";
@@ -97,3 +97,5 @@ const program = Effect.gen(function* () {
 ## Error Handling
 
 All methods return effects that can fail with a `PlaywrightError`. This error wraps the original error from Playwright.
+Note that Playwright does not support interruption, so `Effect.timeout` or similar code does not behave like you
+might expect. Playwright provides its own `timeout` option for almost every method.

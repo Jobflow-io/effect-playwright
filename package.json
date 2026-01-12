@@ -2,18 +2,16 @@
   "name": "effect-playwright",
   "type": "module",
   "version": "0.1.0",
-  "description": "A effect based Playwright library.",
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
+  "description": "An Effect-based Playwright library.",
   "author": "Jobflow GmbH",
   "license": "ISC",
-  "homepage": "https://github.com/jobflow/effect-playwright",
+  "homepage": "https://github.com/Jobflow-io/effect-playwright",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jobflow/effect-playwright.git"
+    "url": "git+https://github.com/Jobflow-io/effect-playwright.git"
   },
   "bugs": {
-    "url": "https://github.com/jobflow/effect-playwright/issues"
+    "url": "https://github.com/Jobflow-io/effect-playwright/issues"
   },
   "exports": {
     ".": "./dist/index.mjs",

@@ -5,12 +5,12 @@ import type { BrowserType, LaunchOptions } from "playwright-core";
 import type { PlaywrightError } from "../errors";
 
 /**
- * Most of the time you want to use the same kind of browser and configuration every time you use playwright.
+ * Most of the time you want to use the same kind of browser and configuration every time you use Playwright.
  * `PlaywrightEnvironment` is a service that allows you to configure how browsers are launched once. You can then
  * use {@link PlaywrightEnvironment.browser} to start browsers scoped to the current lifetime. They will be closed when the scope is closed.
  *
  * You can use {@link PlaywrightEnvironment.withBrowser} to provide the `PlaywrightBrowser` service to the wrapped effect. This
- * also allows you to re-use the same browser how many times you want.
+ * also allows you to re-use the same browser as many times as you want.
  *
  * @since 0.1.0
  * @category tag
@@ -67,7 +67,7 @@ export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) => {
 };
 
 /**
- * Provides a scoped `PlaywrightBrowser` service, allowing you to access the browser from the context (eg. by yielding `PlaywrightBrowser`).
+ * Provides a scoped `PlaywrightBrowser` service, allowing you to access the browser from the context (e.g. by yielding `PlaywrightBrowser`).
  *
  * You will need to provide the `PlaywrightEnvironment` layer first.
  *
