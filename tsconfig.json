@@ -17,7 +17,7 @@
     "types": ["vitest/importMeta"],
     "paths": {
       "effect-playwright": ["./src/index.ts"],
-      "effect-playwright/experimental": ["./src/experimental/index.ts"],
+      "effect-playwright/experimental": ["./src/experimental/index.ts"]
     },
     "plugins": [
       {
