@@ -6,6 +6,9 @@
 
 A Playwright wrapper for the Effect ecosystem. This library provides a set of services and layers to interact with Playwright in a type-safe way using Effect.
 
+> [!NOTE]
+> This library is currently focused on using Playwright for **automation** and **scraping**. It does not provide a wrapper for `@playwright/test` (the test runner).
+
 ## Installation
 
 ```bash
@@ -17,6 +20,8 @@ or
 ```bash
 npm install effect-playwright playwright-core
 ```
+
+You can also install `playwright` instead of `playwright-core` if you want the post-build auto install of the browsers.
 
 ## Quick Start
 
