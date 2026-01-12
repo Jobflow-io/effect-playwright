@@ -1,5 +1,6 @@
 # effect-playwright
 
+[![NPM Version](https://img.shields.io/npm/v/effect-playwright)](https://www.npmjs.com/package/effect-playwright)
 [![GitHub License](https://img.shields.io/github/license/Jobflow-io/effect-playwright)](https://github.com/Jobflow-io/effect-playwright/blob/main/LICENSE)
 [![Effect: yes](https://img.shields.io/badge/effect-yes-blue)](https://effect.website/)
 
