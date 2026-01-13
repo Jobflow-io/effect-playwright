@@ -1,4 +1,4 @@
-import { assert, layer } from "@effect/vitest";
+import { assert, expect, layer } from "@effect/vitest";
 import { Effect } from "effect";
 import { Playwright } from "effect-playwright";
 import { chromium } from "playwright-core";
@@ -59,16 +59,14 @@ layer(Playwright.layer)("Playwright", (it) => {
       const result = yield* playwright
         .launchScoped(chromium, {
           timeout: 1,
-          executablePath: "sleep",
-          args: ["10"],
+          executablePath: "/bin/cat",
         })
         .pipe(Effect.flip);
       assert(
         result._tag === "PlaywrightError",
         "Expected failure with timeout 0",
       );
-
-      assert(result.reason === "Timeout", "Expected timeout");
+      expect(result.reason).toBe("Timeout");
     }),
   );
 });
