@@ -109,9 +109,7 @@ const launch: (
       catch: wrapError,
     });
 
-    const browser = PlaywrightBrowser.make(rawBrowser);
-
-    return browser;
+    return PlaywrightBrowser.make(rawBrowser);
   });
 
 export class Playwright extends Context.Tag(
