@@ -1,5 +1,5 @@
 import { assert, layer } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Fiber, Stream } from "effect";
 import { chromium } from "playwright-core";
 import { PlaywrightBrowser } from "./browser";
 import { PlaywrightEnvironment } from "./experimental";
@@ -188,6 +188,31 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       yield* page.waitForURL((url) => url.hash === "#test-history");
       const url = yield* page.url;
       assert(url.endsWith("#test-history"));
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("filechooser event should work", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.evaluate(() => {
+        document.body.innerHTML = '<input type="file" id="fileinput" />';
+      });
+
+      const fileChooser = yield* page
+        .eventStream("filechooser")
+        .pipe(Stream.runHead)
+        .pipe(Effect.fork);
+
+      yield* page.locator("#fileinput").click();
+
+      const results = yield* Fiber.join(fileChooser).pipe(Effect.flatten);
+
+      assert(
+        (yield* results.isMultiple) === false,
+        "isMultiple should be false",
+      );
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });
