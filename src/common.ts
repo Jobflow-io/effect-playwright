@@ -1,6 +1,7 @@
-import { Data, Effect, Option } from "effect";
+import { Data, Effect, Option, Stream } from "effect";
 import type {
   Dialog,
+  Download,
   ElementHandle,
   FileChooser,
   Request,
@@ -232,6 +233,41 @@ export class PlaywrightFileChooser extends Data.TaggedClass(
       page: () => PlaywrightPage.make(fileChooser.page()),
       setFiles: (files, options) =>
         use(() => fileChooser.setFiles(files, options)),
+    });
+  }
+}
+
+export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
+  cancel: Effect.Effect<void, PlaywrightError>;
+  createReadStream: Stream.Stream<Uint8Array, PlaywrightError>;
+  delete: Effect.Effect<void, PlaywrightError>;
+  failure: Effect.Effect<Option.Option<string | null>, PlaywrightError>;
+  page: () => PlaywrightPageService;
+  path: Effect.Effect<Option.Option<string | null>, PlaywrightError>;
+  saveAs: (path: string) => Effect.Effect<void, PlaywrightError>;
+  suggestedFilename: Effect.Effect<string>;
+  url: Effect.Effect<string>;
+  use: <R>(
+    f: (download: Download) => Promise<R>,
+  ) => Effect.Effect<R, PlaywrightError>;
+}> {
+  static make(download: Download) {
+    const use = useHelper(download);
+
+    return new PlaywrightDownload({
+      cancel: use(() => download.cancel()),
+      /** TODO: implement createReadStream / effect wrapper for it */
+      createReadStream: Stream.empty,
+      delete: use(() => download.delete()),
+      failure: use(() => download.failure()).pipe(
+        Effect.map(Option.fromNullable),
+      ),
+      page: () => PlaywrightPage.make(download.page()),
+      path: use(() => download.path()).pipe(Effect.map(Option.fromNullable)),
+      saveAs: (path) => use(() => download.saveAs(path)),
+      suggestedFilename: Effect.sync(() => download.suggestedFilename()),
+      url: Effect.sync(() => download.url()),
+      use,
     });
   }
 }

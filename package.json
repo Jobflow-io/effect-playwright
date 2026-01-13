@@ -48,6 +48,7 @@
     "@effect/platform": "^0.94.1",
     "@effect/platform-node": "^0.104.0",
     "@effect/vitest": "^0.27.0",
+    "@types/node": "^25.0.8",
     "effect": "^3.19.14",
     "playwright": "^1.57.0",
     "tsdown": "0.20.0-beta.1",
