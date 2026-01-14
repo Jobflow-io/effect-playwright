@@ -71,31 +71,6 @@ layer(Playwright.layer)("Playwright", (it) => {
   );
 
   it.scoped(
-    "should connect via CDP",
-    Effect.fn(function* () {
-      const playwright = yield* Playwright;
-
-      // 1. Launch a browser that exposes CDP
-      yield* playwright.launchScoped(chromium, {
-        args: [
-          "--remote-debugging-port=9222",
-          "--remote-debugging-address=127.0.0.1",
-        ],
-      });
-
-      // 2. Connect to it via CDP
-      const browser = yield* playwright.connectCDP("http://127.0.0.1:9222");
-
-      // 3. Cleanup connection (doesn't close the browser itself, but closes the CDP connection)
-      yield* Effect.addFinalizer(() => browser.close.pipe(Effect.ignore));
-
-      const page = yield* browser.newPage();
-      const content = yield* page.evaluate(() => "cdp works");
-      assert(content === "cdp works", "Expected content to be cdp works");
-    }),
-  );
-
-  it.scoped(
     "should connect via CDP (confirm browser.close only closes CDP connection)",
     Effect.fn(function* () {
       const playwright = yield* Playwright;
