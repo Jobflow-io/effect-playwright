@@ -12,5 +12,6 @@ export default defineConfig({
     sequence: {
       concurrent: true,
     },
+    slowTestThreshold: 2000,
   },
 });
