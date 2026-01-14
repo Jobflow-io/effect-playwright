@@ -116,12 +116,12 @@ layer(Playwright.layer)("Playwright", (it) => {
 
       assert(
         (yield* directBrowser.isConnected) === true,
-        "Expected browser to be connected",
+        "Expected direct browser to be still connected",
       );
 
       const page = yield* directBrowser.newPage();
-      const content = yield* page.evaluate(() => "cdp works");
-      assert(content === "cdp works", "Expected content to be cdp works");
+      const content = yield* page.evaluate(() => "eval works");
+      assert(content === "eval works", "Expected content to be eval works");
     }),
   );
 
@@ -156,9 +156,9 @@ layer(Playwright.layer)("Playwright", (it) => {
       );
 
       const page = yield* directBrowser.newPage();
-      const content = yield* page.evaluate(() => "cdp works after cdp closed");
+      const content = yield* page.evaluate(() => "eval after cdp closed");
       assert(
-        content === "cdp works after cdp closed",
+        content === "eval after cdp closed",
         "Expected content to be correct",
       );
     }),
