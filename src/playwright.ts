@@ -71,18 +71,19 @@ export interface PlaywrightService {
   /**
    * Connects to a browser instance via Chrome DevTools Protocol (CDP).
    *
-   * Unlike {@link launchScoped}, this method does **not** close the browser when the
-   * scope is closed. It is the caller's responsibility to manage the browser's
+   * Unlike {@link connectCDPScoped}, this method does **not** close the connection when the
+   * scope is closed. It is the caller's responsibility to manage the connection's
    * lifecycle.
    *
-   * If you want to close the browser using a scope simply add a finalizer:
+   * If you want to close the connection using a scope simply add a finalizer:
    *
    * ```ts
    * import { Effect } from "effect";
    * import { Playwright } from "effect-playwright";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* Playwright.connectCDP(cdpUrl);
+   *   const playwright = yield* Playwright;
+   *   const browser = yield* playwright.connectCDP(cdpUrl);
    *   yield* Effect.addFinalizer(() => browser.close.pipe(Effect.ignore));
    * });
    *
@@ -97,6 +98,39 @@ export interface PlaywrightService {
     cdpUrl: string,
     options?: ConnectOverCDPOptions,
   ) => Effect.Effect<typeof PlaywrightBrowser.Service, PlaywrightError>;
+  /**
+   * Connects to a browser instance via Chrome DevTools Protocol (CDP) managed by a Scope.
+   *
+   * This method automatically closes the connection when the scope is closed.
+   *
+   * Note that closing a CDP connection does **not** close the browser instance itself,
+   * only the CDP connection.
+   *
+   * ```ts
+   * import { Effect } from "effect";
+   * import { Playwright } from "effect-playwright";
+   *
+   * const program = Effect.gen(function* () {
+   *   const playwright = yield* Playwright;
+   *   const browser = yield* playwright.connectCDPScoped(cdpUrl);
+   *   // Connection will be closed automatically when scope closes
+   * });
+   *
+   * await Effect.runPromise(program);
+   * ```
+   *
+   * @param cdpUrl - The CDP URL to connect to.
+   * @param options - Optional options for connecting to the CDP URL.
+   * @since 0.1.0
+   */
+  connectCDPScoped: (
+    cdpUrl: string,
+    options?: ConnectOverCDPOptions,
+  ) => Effect.Effect<
+    typeof PlaywrightBrowser.Service,
+    PlaywrightError,
+    Scope.Scope
+  >;
 }
 
 const launch: (
@@ -114,6 +148,19 @@ const launch: (
     return browser;
   });
 
+const connectCDP: (
+  cdpUrl: string,
+  options?: ConnectOverCDPOptions,
+) => Effect.Effect<typeof PlaywrightBrowser.Service, PlaywrightError> =
+  Effect.fn(function* (cdpUrl: string, options?: ConnectOverCDPOptions) {
+    const browser = yield* Effect.tryPromise({
+      try: () => chromium.connectOverCDP(cdpUrl, options),
+      catch: wrapError,
+    });
+
+    return PlaywrightBrowser.make(browser);
+  });
+
 export class Playwright extends Context.Tag(
   "effect-playwright/index/Playwright",
 )<Playwright, PlaywrightService>() {
@@ -122,26 +169,14 @@ export class Playwright extends Context.Tag(
    */
   static readonly layer = Layer.succeed(Playwright, {
     launch,
-    launchScoped: Effect.fn(function* (
-      browserType: BrowserType,
-      options?: LaunchOptions,
-    ) {
-      const browser = yield* launch(browserType, options);
-
-      // cleanup
-      yield* Effect.addFinalizer(() => browser.close.pipe(Effect.ignore));
-      return browser;
-    }),
-    connectCDP: Effect.fn(function* (
-      cdpUrl: string,
-      options?: ConnectOverCDPOptions,
-    ) {
-      const browser = yield* Effect.tryPromise({
-        try: () => chromium.connectOverCDP(cdpUrl, options),
-        catch: wrapError,
-      });
-
-      return PlaywrightBrowser.make(browser);
-    }),
+    launchScoped: (browserType, options) =>
+      Effect.acquireRelease(launch(browserType, options), (browser) =>
+        browser.close.pipe(Effect.ignore),
+      ),
+    connectCDP,
+    connectCDPScoped: (cdpUrl, options) =>
+      Effect.acquireRelease(connectCDP(cdpUrl, options), (browser) =>
+        browser.close.pipe(Effect.ignore),
+      ),
   });
 }

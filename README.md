@@ -55,6 +55,36 @@ const program = Effect.gen(function* () {
 }).pipe(Effect.scoped);
 ```
 
+## Connecting via CDP
+
+You can connect to an existing browser instance using the Chrome DevTools Protocol (CDP).
+
+```ts
+const program = Effect.gen(function* () {
+  const playwright = yield* Playwright;
+
+  // Use connectCDPScoped to automatically close the CONNECTION when the scope ends
+  // Note: This does NOT close the browser process itself, only the CDP connection.
+  const browser = yield* playwright.connectCDPScoped("http://localhost:9222");
+
+  const page = yield* browser.newPage();
+  // ...
+}).pipe(Effect.scoped);
+```
+
+If you need to manage the connection lifecycle manually, use `connectCDP`:
+
+```ts
+const program = Effect.gen(function* () {
+  const playwright = yield* Playwright;
+  const browser = yield* playwright.connectCDP("http://localhost:9222");
+
+  // ... use browser ...
+
+  yield* browser.close;
+});
+```
+
 ## PlaywrightEnvironment (Experimental)
 
 The `PlaywrightEnvironment` simplifies setup by allowing you to configure the browser type and launch options once and reuse them across your application.
