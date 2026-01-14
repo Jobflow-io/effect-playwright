@@ -247,11 +247,17 @@ export class PlaywrightPage extends Context.Tag(
           Effect.acquireRelease(
             Effect.sync(() => {
               const callback = emit.single;
+              const closeCallback = emit.end;
               page.on(event, callback);
+              page.once("close", closeCallback);
 
-              return callback;
+              return { callback, closeCallback };
             }),
-            (callback) => Effect.sync(() => page.off(event, callback)),
+            ({ callback, closeCallback }) =>
+              Effect.sync(() => {
+                page.off(event, callback);
+                page.off("close", closeCallback);
+              }),
           ),
         ).pipe(
           Stream.map((e) => {
