@@ -12,6 +12,7 @@ import {
   PlaywrightDialog,
   PlaywrightDownload,
   PlaywrightFileChooser,
+  PlaywrightFrame,
   PlaywrightRequest,
   PlaywrightResponse,
   PlaywrightWorker,
@@ -219,7 +220,7 @@ export class PlaywrightPage extends Context.Tag(
    * @param page - The Playwright `Page` instance to wrap.
    * @since 0.1.0
    */
-  static make(page: Page): PlaywrightPageService {
+  static make(page: PageWithPatchedEvents): PlaywrightPageService {
     const use = useHelper(page);
 
     return PlaywrightPage.of({
@@ -246,14 +247,11 @@ export class PlaywrightPage extends Context.Tag(
           Effect.acquireRelease(
             Effect.sync(() => {
               const callback = emit.single;
-              (page as PageWithPatchedEvents).on(event, callback);
+              page.on(event, callback);
 
               return callback;
             }),
-            (callback) =>
-              Effect.sync(() =>
-                (page as PageWithPatchedEvents).off(event, callback),
-              ),
+            (callback) => Effect.sync(() => page.off(event, callback)),
           ),
         ).pipe(
           Stream.map((e) => {
@@ -300,9 +298,9 @@ const eventMappings = {
   domcontentloaded: PlaywrightPage.make,
   download: PlaywrightDownload.make,
   filechooser: PlaywrightFileChooser.make,
-  frameattached: identity<Frame>,
-  framedetached: identity<Frame>,
-  framenavigated: identity<Frame>,
+  frameattached: PlaywrightFrame.make,
+  framedetached: PlaywrightFrame.make,
+  framenavigated: PlaywrightFrame.make,
   load: PlaywrightPage.make,
   pageerror: identity<Error>,
   popup: PlaywrightPage.make,

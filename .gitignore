@@ -3,6 +3,7 @@ src/scratchpad.ts
 dist
 docs
 context
+tmp
 
 ## in scratchpad, we only track setup.ts
 src/scratchpad/*

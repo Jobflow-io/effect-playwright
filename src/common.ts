@@ -4,6 +4,7 @@ import type {
   Download,
   ElementHandle,
   FileChooser,
+  Frame,
   Request,
   Response,
   Worker,
@@ -13,8 +14,18 @@ import { PlaywrightPage, type PlaywrightPageService } from "./page";
 import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
 
-// fake define PlaywrightFrame for now
-type PlaywrightFrame = unknown;
+// TODO: wrap frame methods
+export class PlaywrightFrame extends Data.TaggedClass("PlaywrightFrame")<{
+  use: <A>(
+    f: (frame: Frame) => Promise<A>,
+  ) => Effect.Effect<A, PlaywrightError>;
+}> {
+  static make(frame: Frame): PlaywrightFrame {
+    const use = useHelper(frame);
+
+    return new PlaywrightFrame({ use });
+  }
+}
 
 export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
   allHeaders: Effect.Effect<
@@ -56,7 +67,7 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
     return new PlaywrightRequest({
       allHeaders: use(() => request.allHeaders()),
       failure: Option.liftNullable(request.failure),
-      frame: Effect.sync(() => request.frame()),
+      frame: Effect.sync(() => PlaywrightFrame.make(request.frame())),
       headerValue: (name) =>
         use(() => request.headerValue(name)).pipe(
           Effect.map(Option.fromNullable),
@@ -145,7 +156,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
       allHeaders: use(() => response.allHeaders()),
       body: use(() => response.body()),
       finished: use(() => response.finished()),
-      frame: Effect.sync(() => response.frame()),
+      frame: Effect.sync(() => PlaywrightFrame.make(response.frame())),
       fromServiceWorker: Effect.sync(() => response.fromServiceWorker()),
       headers: Effect.sync(() => response.headers()),
       headersArray: use(() => response.headersArray()),
@@ -182,6 +193,7 @@ export class PlaywrightWorker extends Data.TaggedClass("PlaywrightWorker")<{
     const use = useHelper(worker);
 
     return new PlaywrightWorker({
+      // biome-ignore lint/suspicious/noExplicitAny: no idea how to type this.. but it's implementation only here
       evaluate: (f, arg) => use((w) => w.evaluate(f as any, arg)),
       url: Effect.sync(() => worker.url()),
     });
