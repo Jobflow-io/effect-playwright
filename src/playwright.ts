@@ -121,7 +121,7 @@ export interface PlaywrightService {
    *
    * @param cdpUrl - The CDP URL to connect to.
    * @param options - Optional options for connecting to the CDP URL.
-   * @since 0.1.0
+   * @since 0.1.1
    */
   connectCDPScoped: (
     cdpUrl: string,
