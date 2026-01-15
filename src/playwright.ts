@@ -143,9 +143,7 @@ const launch: (
       catch: wrapError,
     });
 
-    const browser = PlaywrightBrowser.make(rawBrowser);
-
-    return browser;
+    return PlaywrightBrowser.make(rawBrowser);
   });
 
 const connectCDP: (

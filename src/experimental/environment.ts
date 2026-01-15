@@ -41,10 +41,11 @@ export class PlaywrightEnvironment extends Context.Tag(
  *
  * // use the layer
  * const program = Effect.gen(function* () {
- *   const browser = yield* PlaywrightEnvironment.browser;
+ *   const playwright = yield* PlaywrightEnvironment;
+ *   const browser = yield* playwright.browser;
  *   const page = yield* browser.newPage();
  *   yield* page.goto("https://example.com");
- * }).pipe(PlaywrightEnvironment.withBrowser, Effect.provide(playwrightEnv));
+ * }).pipe(Effect.scoped, Effect.provide(playwrightEnv));
  * ```
  *
  * @param browser - The Playwright BrowserType implementation (e.g. `chromium`, `firefox`, `webkit`).
@@ -77,12 +78,13 @@ export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) => {
  * import { PlaywrightEnvironment } from "effect-playwright/experimental";
  * import { chromium } from "playwright-core";
  *
- * const layer = PlaywrightEnvironment.layer(chromium);
+ * const env = PlaywrightEnvironment.layer(chromium);
+ *
  * const program = Effect.gen(function* () {
  *     const browser = yield* PlaywrightBrowser;
  *     const page = yield* browser.newPage();
  *     yield* page.goto("https://example.com");
- * }).pipe(PlaywrightEnvironment.withBrowser);
+ * }).pipe(PlaywrightEnvironment.withBrowser, Effect.provide(env));
  * ```
  *
  * @since 0.1.0
