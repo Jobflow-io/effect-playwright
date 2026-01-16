@@ -6,7 +6,10 @@ import type {
   FileChooser,
   Frame,
   Page,
+  Request,
+  Response,
   WebSocket,
+  Worker,
 } from "playwright-core";
 import {
   PlaywrightDialog,
@@ -19,8 +22,56 @@ import {
 } from "./common";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightLocator } from "./locator";
-import type { PageFunction } from "./playwright-types";
+import type { PageFunction, PatchedEvents } from "./playwright-types";
 import { useHelper } from "./utils";
+
+interface PageEvents {
+  close: Page;
+  console: ConsoleMessage;
+  crash: Page;
+  dialog: Dialog;
+  domcontentloaded: Page;
+  download: Download;
+  filechooser: FileChooser;
+  frameattached: Frame;
+  framedetached: Frame;
+  framenavigated: Frame;
+  load: Page;
+  pageerror: Error;
+  popup: Page;
+  request: Request;
+  requestfailed: Request;
+  requestfinished: Request;
+  response: Response;
+  websocket: WebSocket;
+  worker: Worker;
+}
+
+const eventMappings = {
+  close: (page: Page) => PlaywrightPage.make(page),
+  console: identity<ConsoleMessage>,
+  crash: (page: Page) => PlaywrightPage.make(page),
+  dialog: (dialog: Dialog) => PlaywrightDialog.make(dialog),
+  domcontentloaded: (page: Page) => PlaywrightPage.make(page),
+  download: (download: Download) => PlaywrightDownload.make(download),
+  filechooser: (fileChooser: FileChooser) =>
+    PlaywrightFileChooser.make(fileChooser),
+  frameattached: (frame: Frame) => PlaywrightFrame.make(frame),
+  framedetached: (frame: Frame) => PlaywrightFrame.make(frame),
+  framenavigated: (frame: Frame) => PlaywrightFrame.make(frame),
+  load: (page: Page) => PlaywrightPage.make(page),
+  pageerror: identity<Error>,
+  popup: (page: Page) => PlaywrightPage.make(page),
+  request: (request: Request) => PlaywrightRequest.make(request),
+  requestfailed: (request: Request) => PlaywrightRequest.make(request),
+  requestfinished: (request: Request) => PlaywrightRequest.make(request),
+  response: (response: Response) => PlaywrightResponse.make(response),
+  websocket: identity<WebSocket>,
+  worker: (worker: Worker) => PlaywrightWorker.make(worker),
+} as const;
+
+type PageWithPatchedEvents = PatchedEvents<Page, PageEvents>;
+
 export interface PlaywrightPageService {
   /**
    * Navigates the page to the given URL.
@@ -186,7 +237,7 @@ export interface PlaywrightPageService {
    * @see {@link Page.on}
    * @since 0.1.0
    */
-  readonly eventStream: <K extends keyof typeof eventMappings>(
+  readonly eventStream: <K extends keyof PageEvents>(
     event: K,
   ) => Stream.Stream<ReturnType<(typeof eventMappings)[K]>>;
 
@@ -228,7 +279,7 @@ export class PlaywrightPage extends Context.Tag(
       waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
       title: use((p) => p.title()),
       evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
-        use((p) => p.evaluate(f, arg as Arg)),
+        use((p) => p.evaluate<R, Arg>(f, arg as Arg)),
       locator: (selector, options) =>
         PlaywrightLocator.make(page.locator(selector, options)),
       getByRole: (role, options) =>
@@ -242,95 +293,27 @@ export class PlaywrightPage extends Context.Tag(
       reload: use((p) => p.reload()),
       close: use((p) => p.close()),
       click: (selector, options) => use((p) => p.click(selector, options)),
-      eventStream: <K extends PageEvent>(event: K) =>
+      eventStream: <K extends keyof PageEvents>(event: K) =>
         Stream.asyncPush<PageEvents[K]>((emit) =>
           Effect.acquireRelease(
             Effect.sync(() => {
-              const callback = emit.single;
-              const closeCallback = emit.end;
-              page.on(event, callback);
-              page.once("close", closeCallback);
-
-              return { callback, closeCallback };
+              page.on(event, emit.single);
+              page.once("close", emit.end);
             }),
-            ({ callback, closeCallback }) =>
+            () =>
               Effect.sync(() => {
-                page.off(event, callback);
-                page.off("close", closeCallback);
+                page.off(event, emit.single);
+                page.off("close", emit.end);
               }),
           ),
         ).pipe(
           Stream.map((e) => {
-            const mapper = eventMappings[event] as (
-              arg: PageEvents[K],
-            ) => ReturnType<(typeof eventMappings)[K]>;
-            return mapper(e);
+            const mapping = eventMappings[event];
+            // biome-ignore lint/suspicious/noExplicitAny: Don't know how to fix this …
+            return mapping(e as any) as ReturnType<(typeof eventMappings)[K]>;
           }),
         ),
       use,
     });
   }
-}
-
-interface PageEvents {
-  close: Page;
-  console: ConsoleMessage;
-  crash: Page;
-  dialog: Dialog;
-  domcontentloaded: Page;
-  download: Download;
-  filechooser: FileChooser;
-  frameattached: Frame;
-  framedetached: Frame;
-  framenavigated: Frame;
-  load: Page;
-  pageerror: Error;
-  popup: Page;
-  request: Request;
-  requestfailed: Request;
-  requestfinished: Request;
-  response: Response;
-  websocket: WebSocket;
-  worker: Worker;
-}
-
-type PageEvent = keyof PageEvents;
-
-const eventMappings = {
-  close: PlaywrightPage.make,
-  console: identity<ConsoleMessage>,
-  crash: PlaywrightPage.make,
-  dialog: PlaywrightDialog.make,
-  domcontentloaded: PlaywrightPage.make,
-  download: PlaywrightDownload.make,
-  filechooser: PlaywrightFileChooser.make,
-  frameattached: PlaywrightFrame.make,
-  framedetached: PlaywrightFrame.make,
-  framenavigated: PlaywrightFrame.make,
-  load: PlaywrightPage.make,
-  pageerror: identity<Error>,
-  popup: PlaywrightPage.make,
-  request: PlaywrightRequest.make,
-  requestfailed: PlaywrightRequest.make,
-  requestfinished: PlaywrightRequest.make,
-  response: PlaywrightResponse.make,
-  websocket: identity<WebSocket>,
-  worker: PlaywrightWorker.make,
-} as const;
-
-/**
- * Page interface with generic on/off methods.
- * Playwright's Page uses overloads for on/off, making generic event handling impossible.
- * This interface provides a unified signature for our event map.
- * @internal
- */
-interface PageWithPatchedEvents extends Page {
-  on<K extends PageEvent>(
-    event: K,
-    listener: (arg: PageEvents[K]) => void,
-  ): this;
-  off<K extends PageEvent>(
-    event: K,
-    listener: (arg: PageEvents[K]) => void,
-  ): this;
 }

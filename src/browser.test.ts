@@ -1,5 +1,5 @@
 import { assert, layer } from "@effect/vitest";
-import { Effect } from "effect";
+import { Chunk, Effect, Fiber, Stream } from "effect";
 import { chromium } from "playwright-core";
 import type { PlaywrightBrowser } from "./browser";
 import { Playwright } from "./index";
@@ -142,6 +142,23 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       assert.isDefined(capturedBrowser);
       const isConnected = yield* capturedBrowser?.isConnected;
       assert.isFalse(isConnected);
+    }),
+  );
+  it.scoped("eventStream should emit disconnected event", () =>
+    Effect.gen(function* () {
+      const playwright = yield* Playwright;
+      const browser = yield* playwright.launchScoped(chromium);
+
+      const eventsFiber = yield* browser
+        .eventStream("disconnected")
+        .pipe(Stream.runCollect, Effect.fork);
+
+      yield* browser.close;
+      const events = yield* Fiber.join(eventsFiber);
+      assert.strictEqual(Chunk.size(events), 1);
+
+      const firstEvent = yield* Chunk.head(events);
+      assert.strictEqual(yield* firstEvent.version, yield* browser.version);
     }),
   );
 });
