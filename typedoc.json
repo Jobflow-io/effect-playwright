@@ -3,7 +3,15 @@
   "entryPoints": ["./src/index.ts", "./src/experimental/index.ts"],
   "out": "docs",
   "plugin": [],
+  "navigation": {
+    "includeCategories": true,
+  },
+  "defaultCategory": "other",
+  "categoryOrder": ["model", "tag", "type", "error", "util", "other"],
   "externalSymbolLinkMappings": {
+    "effect": {
+      "Effect": "https://effect-ts.github.io/effect/effect/Effect.ts.html#effect-interface",
+    },
     "playwright-core": {
       "Page": "https://playwright.dev/docs/api/class-page",
       "Locator": "https://playwright.dev/docs/api/class-locator",

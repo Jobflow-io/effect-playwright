@@ -8,6 +8,10 @@ import {
 import { type LaunchOptions, PlaywrightBrowser } from "./browser";
 import { type PlaywrightError, wrapError } from "./errors";
 
+/**
+ * @category model
+ * @since 0.1.0
+ */
 export interface PlaywrightService {
   /**
    * Launches a new browser instance.
@@ -159,6 +163,10 @@ const connectCDP: (
     return PlaywrightBrowser.make(browser);
   });
 
+/**
+ * @category tag
+ * @since 0.1.0
+ */
 export class Playwright extends Context.Tag(
   "effect-playwright/index/Playwright",
 )<Playwright, PlaywrightService>() {

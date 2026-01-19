@@ -53,6 +53,10 @@ type BrowserContextWithPatchedEvents = PatchedEvents<
   BrowserContextEvents
 >;
 
+/**
+ * @category model
+ * @since 0.1.0
+ */
 export interface PlaywrightBrowserContextService {
   /**
    * Returns the list of all open pages in the browser context.

@@ -21,6 +21,10 @@ const eventMappings = {
 
 type BrowserWithPatchedEvents = PatchedEvents<Browser, BrowserEvents>;
 
+/**
+ * @category model
+ * @since 0.1.0
+ */
 export interface PlaywrightBrowserService {
   /**
    * Opens a new page in the browser.

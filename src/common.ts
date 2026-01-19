@@ -15,6 +15,11 @@ import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
 
 // TODO: wrap frame methods
+
+/**
+ * @category model
+ * @since 0.1.2
+ */
 export class PlaywrightFrame extends Data.TaggedClass("PlaywrightFrame")<{
   use: <A>(
     f: (frame: Frame) => Promise<A>,
@@ -27,6 +32,10 @@ export class PlaywrightFrame extends Data.TaggedClass("PlaywrightFrame")<{
   }
 }
 
+/**
+ * @category model
+ * @since 0.1.2
+ */
 export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
   allHeaders: Effect.Effect<
     Awaited<ReturnType<Request["allHeaders"]>>,
@@ -105,6 +114,10 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
   }
 }
 
+/**
+ * @category model
+ * @since 0.1.2
+ */
 export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
   allHeaders: Effect.Effect<
     Awaited<ReturnType<Response["allHeaders"]>>,
@@ -182,6 +195,10 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
   }
 }
 
+/**
+ * @category model
+ * @since 0.1.2
+ */
 export class PlaywrightWorker extends Data.TaggedClass("PlaywrightWorker")<{
   evaluate: <R, Arg = void>(
     pageFunction: PageFunction<Arg, R>,
@@ -200,6 +217,10 @@ export class PlaywrightWorker extends Data.TaggedClass("PlaywrightWorker")<{
   }
 }
 
+/**
+ * @category model
+ * @since 0.1.2
+ */
 export class PlaywrightDialog extends Data.TaggedClass("PlaywrightDialog")<{
   accept: (promptText?: string) => Effect.Effect<void, PlaywrightError>;
   defaultValue: Effect.Effect<string>;
@@ -225,6 +246,10 @@ export class PlaywrightDialog extends Data.TaggedClass("PlaywrightDialog")<{
   }
 }
 
+/**
+ * @category model
+ * @since 0.1.2
+ */
 export class PlaywrightFileChooser extends Data.TaggedClass(
   "PlaywrightFileChooser",
 )<{
@@ -249,6 +274,10 @@ export class PlaywrightFileChooser extends Data.TaggedClass(
   }
 }
 
+/**
+ * @category model
+ * @since 0.1.2
+ */
 export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
   cancel: Effect.Effect<void, PlaywrightError>;
   createReadStream: Stream.Stream<Uint8Array, PlaywrightError>;

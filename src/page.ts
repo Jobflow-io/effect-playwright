@@ -72,6 +72,10 @@ const eventMappings = {
 
 type PageWithPatchedEvents = PatchedEvents<Page, PageEvents>;
 
+/**
+ * @category model
+ * @since 0.1.0
+ */
 export interface PlaywrightPageService {
   /**
    * Navigates the page to the given URL.

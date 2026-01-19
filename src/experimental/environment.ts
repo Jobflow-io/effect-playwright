@@ -88,6 +88,7 @@ export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) => {
  * ```
  *
  * @since 0.1.0
+ * @category util
  */
 export const withBrowser = Effect.provide(
   PlaywrightEnvironment.pipe(
