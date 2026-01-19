@@ -7,9 +7,9 @@ import type { PlaywrightError } from "../errors";
 /**
  * Most of the time you want to use the same kind of browser and configuration every time you use Playwright.
  * `PlaywrightEnvironment` is a service that allows you to configure how browsers are launched once. You can then
- * use {@link PlaywrightEnvironment.browser} to start browsers scoped to the current lifetime. They will be closed when the scope is closed.
+ * use `PlaywrightEnvironment.browser` to start browsers scoped to the current lifetime. They will be closed when the scope is closed.
  *
- * You can use {@link PlaywrightEnvironment.withBrowser} to provide the `PlaywrightBrowser` service to the wrapped effect. This
+ * You can use {@link withBrowser} to provide the `PlaywrightBrowser` service to the wrapped effect. This
  * also allows you to re-use the same browser as many times as you want.
  *
  * @since 0.1.0
