@@ -11,16 +11,18 @@ import type {
   WebSocket,
   Worker,
 } from "playwright-core";
+
 import {
   PlaywrightDialog,
   PlaywrightDownload,
   PlaywrightFileChooser,
-  PlaywrightFrame,
   PlaywrightRequest,
   PlaywrightResponse,
   PlaywrightWorker,
 } from "./common";
+
 import type { PlaywrightError } from "./errors";
+import { PlaywrightFrame } from "./frame";
 import { PlaywrightLocator } from "./locator";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
 import { useHelper } from "./utils";

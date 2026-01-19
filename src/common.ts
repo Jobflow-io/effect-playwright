@@ -4,33 +4,15 @@ import type {
   Download,
   ElementHandle,
   FileChooser,
-  Frame,
   Request,
   Response,
   Worker,
 } from "playwright-core";
 import type { PlaywrightError } from "./errors";
+import { PlaywrightFrame, type PlaywrightFrameService } from "./frame";
 import { PlaywrightPage, type PlaywrightPageService } from "./page";
 import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
-
-// TODO: wrap frame methods
-
-/**
- * @category model
- * @since 0.1.2
- */
-export class PlaywrightFrame extends Data.TaggedClass("PlaywrightFrame")<{
-  use: <A>(
-    f: (frame: Frame) => Promise<A>,
-  ) => Effect.Effect<A, PlaywrightError>;
-}> {
-  static make(frame: Frame): PlaywrightFrame {
-    const use = useHelper(frame);
-
-    return new PlaywrightFrame({ use });
-  }
-}
 
 /**
  * @category model
@@ -42,7 +24,7 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
     PlaywrightError
   >;
   failure: () => Option.Option<NonNullable<ReturnType<Request["failure"]>>>;
-  frame: Effect.Effect<PlaywrightFrame>;
+  frame: Effect.Effect<PlaywrightFrameService>;
   headerValue: (
     name: string,
   ) => Effect.Effect<Option.Option<string>, PlaywrightError>;
@@ -128,7 +110,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
     Awaited<ReturnType<Response["finished"]>>,
     PlaywrightError
   >;
-  frame: Effect.Effect<PlaywrightFrame>;
+  frame: Effect.Effect<PlaywrightFrameService>;
   fromServiceWorker: Effect.Effect<boolean>;
   headers: Effect.Effect<ReturnType<Response["headers"]>>;
   headersArray: Effect.Effect<
