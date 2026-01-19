@@ -125,6 +125,41 @@ const program = Effect.gen(function* () {
 }).pipe(PlaywrightEnvironment.withBrowser);
 ```
 
+## Event Handling
+
+You can listen to Playwright events using the `eventStream` method. This returns an Effect `Stream` that emits events as they occur.
+
+> [!NOTE]
+> `eventStream` emits "Effectified" wrappers (e.g., `PlaywrightRequest`, `PlaywrightResponse`, `PlaywrightPage`) for most events. This allows you to continue using the Effect ecosystem seamlessly within your event handlers.
+
+The stream is automatically managed and will close when the underlying resource (like the Page or Browser) is closed.
+
+### Example: Monitoring Network Requests
+
+Since event streams run indefinitely until the resource closes, you often need to **fork** the resulting effect so it runs in the background without blocking your main program flow.
+
+```ts
+const program = Effect.gen(function* () {
+  const browser = yield* PlaywrightBrowser;
+  const page = yield* browser.newPage();
+
+  // Create a stream of request events
+  yield* page.eventStream("request").pipe(
+    Stream.runForEach((request) =>
+      Effect.gen(function* () {
+        const url = yield* request.url;
+        yield* Effect.log(`Request: ${url}`);
+      }),
+    ),
+
+    // Fork to run it in the background
+    Effect.fork,
+  );
+
+  yield* page.goto("https://example.com");
+}).pipe(PlaywrightEnvironment.withBrowser);
+```
+
 ## Accessing Native Playwright
 
 If you need to access functionality from the underlying Playwright objects that isn't directly exposed, you can use the `use` method available on most services/objects (browsers, pages, locators).
