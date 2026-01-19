@@ -1,5 +1,5 @@
 import { assert, layer } from "@effect/vitest";
-import { Effect, Fiber, Option, Stream } from "effect";
+import { Chunk, Effect, Fiber, Option, Stream } from "effect";
 import { chromium } from "playwright-core";
 import { PlaywrightBrowser } from "./browser";
 import { PlaywrightEnvironment } from "./experimental";
@@ -140,6 +140,14 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       assert((yield* download.suggestedFilename) === "test.txt");
       const url = yield* download.url;
       assert(url.startsWith("data:"));
+
+      const text = yield* download.stream.pipe(
+        Stream.decodeText(),
+        Stream.runCollect,
+        Effect.map(Chunk.join("")),
+      );
+
+      assert.strictEqual(text, "hello world");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });
