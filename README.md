@@ -3,6 +3,7 @@
 [![NPM Version](https://img.shields.io/npm/v/effect-playwright)](https://www.npmjs.com/package/effect-playwright)
 [![GitHub License](https://img.shields.io/github/license/Jobflow-io/effect-playwright)](https://github.com/Jobflow-io/effect-playwright/blob/main/LICENSE)
 [![Effect: yes](https://img.shields.io/badge/effect-yes-blue)](https://effect.website/)
+[![Documentation](https://img.shields.io/badge/view_documentation-purple)](https://jobflow-io.github.io/effect-playwright/modules/index.html)
 
 A Playwright wrapper for the Effect ecosystem. This library provides a set of services and layers to interact with Playwright in a type-safe way using Effect.
 
