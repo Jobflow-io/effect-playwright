@@ -8,6 +8,7 @@
   },
   "defaultCategory": "other",
   "categoryOrder": ["model", "tag", "type", "error", "util", "other"],
+  "readme": "./README.md",
   "externalSymbolLinkMappings": {
     "effect": {
       "Effect": "https://effect-ts.github.io/effect/effect/Effect.ts.html#effect-interface",
