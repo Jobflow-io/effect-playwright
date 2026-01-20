@@ -14,7 +14,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": ["vitest/importMeta"],
+    "types": ["vitest/importMeta", "node"],
     "paths": {
       "effect-playwright": ["./src/index.ts"],
       "effect-playwright/experimental": ["./src/experimental/index.ts"]

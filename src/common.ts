@@ -1,3 +1,4 @@
+import { Readable } from "node:stream";
 import { Data, Effect, Option, Stream } from "effect";
 import type {
   Dialog,
@@ -8,7 +9,7 @@ import type {
   Response,
   Worker,
 } from "playwright-core";
-import type { PlaywrightError } from "./errors";
+import { type PlaywrightError, wrapError } from "./errors";
 import { PlaywrightFrame, type PlaywrightFrameService } from "./frame";
 import { PlaywrightPage, type PlaywrightPageService } from "./page";
 import type { PageFunction } from "./playwright-types";
@@ -262,7 +263,12 @@ export class PlaywrightFileChooser extends Data.TaggedClass(
  */
 export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
   cancel: Effect.Effect<void, PlaywrightError>;
-  createReadStream: Stream.Stream<Uint8Array, PlaywrightError>;
+  /**
+   * Creates a stream of the download data.
+   * @category custom
+   * @since 0.2.0
+   */
+  stream: Stream.Stream<Uint8Array, PlaywrightError>;
   delete: Effect.Effect<void, PlaywrightError>;
   failure: Effect.Effect<Option.Option<string | null>, PlaywrightError>;
   page: () => PlaywrightPageService;
@@ -279,8 +285,17 @@ export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
 
     return new PlaywrightDownload({
       cancel: use(() => download.cancel()),
-      /** TODO: implement createReadStream / effect wrapper for it */
-      createReadStream: Stream.empty,
+      stream: use(() =>
+        download.createReadStream().then((s) => Readable.toWeb(s)),
+      ).pipe(
+        Effect.map((s) =>
+          Stream.fromReadableStream(
+            () => s as ReadableStream<Uint8Array>,
+            wrapError,
+          ),
+        ),
+        Stream.unwrap,
+      ),
       delete: use(() => download.delete()),
       failure: use(() => download.failure()).pipe(
         Effect.map(Option.fromNullable),
