@@ -5,4 +5,5 @@
  * @packageDocumentation
  */
 
+export * as BrowserUtils from "./browser-utils";
 export * as PlaywrightEnvironment from "./environment";
