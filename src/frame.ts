@@ -31,6 +31,16 @@ export interface PlaywrightFrameService {
     options?: Parameters<Frame["waitForURL"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
+   * Waits for the frame to reach the given load state.
+   *
+   * @see {@link Frame.waitForLoadState}
+   * @since 0.2.0
+   */
+  readonly waitForLoadState: (
+    state?: Parameters<Frame["waitForLoadState"]>[0],
+    options?: Parameters<Frame["waitForLoadState"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
    * Evaluates a function in the context of the frame.
    *
    * @see {@link Frame.evaluate}
@@ -164,6 +174,8 @@ export class PlaywrightFrame extends Context.Tag(
     return PlaywrightFrame.of({
       goto: (url, options) => use((f) => f.goto(url, options)),
       waitForURL: (url, options) => use((f) => f.waitForURL(url, options)),
+      waitForLoadState: (state, options) =>
+        use((f) => f.waitForLoadState(state, options)),
       evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
         use((frame) => frame.evaluate<R, Arg>(f, arg as Arg)),
       title: use((f) => f.title()),

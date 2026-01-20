@@ -215,4 +215,21 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       );
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("waitForLoadState should resolve", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      // Using about:blank and history API to simulate some activity, but networkidle is tricky on blank page.
+      // load and domcontentloaded are safer.
+      yield* page.goto("about:blank");
+
+      // Wait for 'load' state which should already be true or happen quickly
+      yield* page.waitForLoadState("load");
+
+      // No assertion needed other than it doesn't timeout/error
+      assert.ok(true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });

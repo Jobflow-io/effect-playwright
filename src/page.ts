@@ -110,6 +110,23 @@ export interface PlaywrightPageService {
     options?: Parameters<Page["waitForURL"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
+   * Waits for the page to reach the given load state.
+   *
+   * NOTE: Most of the time, this method is not needed because Playwright auto-waits before every action.
+   *
+   * @example
+   * ```ts
+   * yield* page.waitForLoadState("domcontentloaded");
+   * ```
+   *
+   * @see {@link Page.waitForLoadState}
+   * @since 0.2.0
+   */
+  readonly waitForLoadState: (
+    state?: Parameters<Page["waitForLoadState"]>[0],
+    options?: Parameters<Page["waitForLoadState"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
    * Evaluates a function in the context of the page.
    *
    * @example
@@ -233,6 +250,17 @@ export interface PlaywrightPageService {
   readonly url: Effect.Effect<string, PlaywrightError>;
 
   /**
+   * Returns all frames attached to the page.
+   *
+   * @see {@link Page.frames}
+   * @since 0.2.0
+   */
+  readonly frames: Effect.Effect<
+    ReadonlyArray<typeof PlaywrightFrame.Service>,
+    PlaywrightError
+  >;
+
+  /**
    * Creates a stream of the given event from the page.
    *
    * @example
@@ -284,6 +312,8 @@ export class PlaywrightPage extends Context.Tag(
     return PlaywrightPage.of({
       goto: (url, options) => use((p) => p.goto(url, options)),
       waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
+      waitForLoadState: (state, options) =>
+        use((p) => p.waitForLoadState(state, options)),
       title: use((p) => p.title()),
       evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
         use((p) => p.evaluate<R, Arg>(f, arg as Arg)),
@@ -297,6 +327,7 @@ export class PlaywrightPage extends Context.Tag(
         PlaywrightLocator.make(page.getByLabel(label, options)),
       getByTestId: (testId) => PlaywrightLocator.make(page.getByTestId(testId)),
       url: Effect.sync(() => page.url()),
+      frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
       reload: use((p) => p.reload()),
       close: use((p) => p.close()),
       click: (selector, options) => use((p) => p.click(selector, options)),
