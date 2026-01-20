@@ -104,6 +104,7 @@ export interface PlaywrightBrowserService {
    * const disconnectedStream = browser.eventStream("disconnected");
    * ```
    *
+   * @category custom
    * @see {@link Browser.on}
    * @since 0.1.2
    */

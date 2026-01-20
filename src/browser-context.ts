@@ -96,6 +96,7 @@ export interface PlaywrightBrowserContextService {
    * const pageStream = context.eventStream("page");
    * ```
    *
+   * @category custom
    * @see {@link BrowserContext.on}
    * @since 0.1.2
    */

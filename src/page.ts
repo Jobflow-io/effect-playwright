@@ -240,6 +240,7 @@ export interface PlaywrightPageService {
    * const consoleStream = page.eventStream("console");
    * ```
    *
+   * @category custom
    * @see {@link Page.on}
    * @since 0.1.0
    */
