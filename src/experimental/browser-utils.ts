@@ -20,6 +20,7 @@ export const allPages = (browser: PlaywrightBrowserService) =>
 export const allFrames = (browser: PlaywrightBrowserService) =>
   allPages(browser).pipe(
     Effect.flatMap((pages) => Effect.all(pages.map((page) => page.frames))),
+    Effect.map(Array.flatten),
   );
 
 /**
