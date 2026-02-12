@@ -9,8 +9,9 @@ import { type LaunchOptions, PlaywrightBrowser } from "./browser";
 import { PlaywrightBrowserContext } from "./browser-context";
 import { type PlaywrightError, wrapError } from "./errors";
 
-type LaunchPersistentContextOptions =
-  Parameters<BrowserType["launchPersistentContext"]>[1];
+type LaunchPersistentContextOptions = Parameters<
+  BrowserType["launchPersistentContext"]
+>[1];
 
 /**
  * @category model
@@ -79,11 +80,54 @@ export interface PlaywrightService {
   /**
    * Launches a persistent browser context.
    *
+   * Unlike {@link launchPersistentContextScoped}, this method does **not** close the
+   * context automatically when scope is closed. You are responsible for closing it.
+   *
    * This launches a browser with a persistent profile under `userDataDir` and returns
-   * the single persistent context. Closing the context also closes the browser process.
+   * the single persistent context for that browser.
+   *
+   * Closing this context also closes the underlying browser process.
+   *
+   * ```ts
+   * import { Effect } from "effect";
+   * import { Playwright } from "effect-playwright";
+   * import { chromium } from "playwright-core";
+   *
+   * const program = Effect.gen(function* () {
+   *   const playwright = yield* Playwright;
+   *   const context = yield* playwright.launchPersistentContext(
+   *     chromium,
+   *     "./.playwright-profile",
+   *   );
+   *
+   *   const page = yield* context.newPage;
+   *   yield* page.goto("https://example.com");
+   *
+   *   // Closes the persistent context and browser process.
+   *   yield* context.close;
+   * });
+   *
+   * await Effect.runPromise(program);
+   * ```
+   *
+   * If you call this non-scoped variant inside a scope, add a finalizer for cleanup:
+   *
+   * ```ts
+   * const program = Effect.gen(function* () {
+   *   const playwright = yield* Playwright;
+   *   const context = yield* playwright.launchPersistentContext(
+   *     chromium,
+   *     "./.playwright-profile",
+   *   );
+   *
+   *   yield* Effect.addFinalizer(() => context.close.pipe(Effect.ignore));
+   * });
+   *
+   * await Effect.runPromise(program.pipe(Effect.scoped));
+   * ```
    *
    * @param browserType - The browser type to launch (e.g. chromium, firefox, webkit).
-   * @param userDataDir - Directory used for persistent browser profile data.
+   * @param userDataDir - Directory used for persistent browser profile data. Pass `""` for a temporary profile directory.
    * @param options - Optional persistent context launch options.
    * @since 0.2.4
    */
@@ -98,8 +142,28 @@ export interface PlaywrightService {
    * This automatically closes the persistent context (and therefore the browser process)
    * when the scope is closed.
    *
+   * ```ts
+   * import { Effect } from "effect";
+   * import { Playwright } from "effect-playwright";
+   * import { chromium } from "playwright-core";
+   *
+   * const program = Effect.gen(function* () {
+   *   const playwright = yield* Playwright;
+   *   const context = yield* playwright.launchPersistentContextScoped(
+   *     chromium,
+   *     "./.playwright-profile",
+   *   );
+   *
+   *   const page = yield* context.newPage;
+   *   yield* page.goto("https://example.com");
+   *   // Context/browser cleanup is automatic when scope closes.
+   * }).pipe(Effect.scoped);
+   *
+   * await Effect.runPromise(program);
+   * ```
+   *
    * @param browserType - The browser type to launch (e.g. chromium, firefox, webkit).
-   * @param userDataDir - Directory used for persistent browser profile data.
+   * @param userDataDir - Directory used for persistent browser profile data. Pass `""` for a temporary profile directory.
    * @param options - Optional persistent context launch options.
    * @since 0.2.4
    */
@@ -208,20 +272,18 @@ const launchPersistentContext: (
   userDataDir: string,
   options?: LaunchPersistentContextOptions,
 ) => Effect.Effect<typeof PlaywrightBrowserContext.Service, PlaywrightError> =
-  Effect.fn(
-    function* (
-      browserType: BrowserType,
-      userDataDir: string,
-      options?: LaunchPersistentContextOptions,
-    ) {
-      const rawContext = yield* Effect.tryPromise({
-        try: () => browserType.launchPersistentContext(userDataDir, options),
-        catch: wrapError,
-      });
+  Effect.fn(function* (
+    browserType: BrowserType,
+    userDataDir: string,
+    options?: LaunchPersistentContextOptions,
+  ) {
+    const rawContext = yield* Effect.tryPromise({
+      try: () => browserType.launchPersistentContext(userDataDir, options),
+      catch: wrapError,
+    });
 
-      return PlaywrightBrowserContext.make(rawContext);
-    },
-  );
+    return PlaywrightBrowserContext.make(rawContext);
+  });
 
 /**
  * @category tag
