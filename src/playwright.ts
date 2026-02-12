@@ -6,7 +6,11 @@ import {
 } from "playwright-core";
 
 import { type LaunchOptions, PlaywrightBrowser } from "./browser";
+import { PlaywrightBrowserContext } from "./browser-context";
 import { type PlaywrightError, wrapError } from "./errors";
+
+type LaunchPersistentContextOptions =
+  Parameters<BrowserType["launchPersistentContext"]>[1];
 
 /**
  * @category model
@@ -69,6 +73,42 @@ export interface PlaywrightService {
     options?: LaunchOptions,
   ) => Effect.Effect<
     typeof PlaywrightBrowser.Service,
+    PlaywrightError,
+    Scope.Scope
+  >;
+  /**
+   * Launches a persistent browser context.
+   *
+   * This launches a browser with a persistent profile under `userDataDir` and returns
+   * the single persistent context. Closing the context also closes the browser process.
+   *
+   * @param browserType - The browser type to launch (e.g. chromium, firefox, webkit).
+   * @param userDataDir - Directory used for persistent browser profile data.
+   * @param options - Optional persistent context launch options.
+   * @since 0.2.4
+   */
+  launchPersistentContext: (
+    browserType: BrowserType,
+    userDataDir: string,
+    options?: LaunchPersistentContextOptions,
+  ) => Effect.Effect<typeof PlaywrightBrowserContext.Service, PlaywrightError>;
+  /**
+   * Launches a persistent browser context managed by a Scope.
+   *
+   * This automatically closes the persistent context (and therefore the browser process)
+   * when the scope is closed.
+   *
+   * @param browserType - The browser type to launch (e.g. chromium, firefox, webkit).
+   * @param userDataDir - Directory used for persistent browser profile data.
+   * @param options - Optional persistent context launch options.
+   * @since 0.2.4
+   */
+  launchPersistentContextScoped: (
+    browserType: BrowserType,
+    userDataDir: string,
+    options?: LaunchPersistentContextOptions,
+  ) => Effect.Effect<
+    typeof PlaywrightBrowserContext.Service,
     PlaywrightError,
     Scope.Scope
   >;
@@ -163,6 +203,26 @@ const connectCDP: (
     return PlaywrightBrowser.make(browser);
   });
 
+const launchPersistentContext: (
+  browserType: BrowserType,
+  userDataDir: string,
+  options?: LaunchPersistentContextOptions,
+) => Effect.Effect<typeof PlaywrightBrowserContext.Service, PlaywrightError> =
+  Effect.fn(
+    function* (
+      browserType: BrowserType,
+      userDataDir: string,
+      options?: LaunchPersistentContextOptions,
+    ) {
+      const rawContext = yield* Effect.tryPromise({
+        try: () => browserType.launchPersistentContext(userDataDir, options),
+        catch: wrapError,
+      });
+
+      return PlaywrightBrowserContext.make(rawContext);
+    },
+  );
+
 /**
  * @category tag
  * @since 0.1.0
@@ -178,6 +238,12 @@ export class Playwright extends Context.Tag(
     launchScoped: (browserType, options) =>
       Effect.acquireRelease(launch(browserType, options), (browser) =>
         browser.close.pipe(Effect.ignore),
+      ),
+    launchPersistentContext,
+    launchPersistentContextScoped: (browserType, userDataDir, options) =>
+      Effect.acquireRelease(
+        launchPersistentContext(browserType, userDataDir, options),
+        (context) => context.close.pipe(Effect.ignore),
       ),
     connectCDP,
     connectCDPScoped: (cdpUrl, options) =>

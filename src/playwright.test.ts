@@ -2,6 +2,7 @@ import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
 import { Playwright } from "effect-playwright";
 import { chromium } from "playwright-core";
+import type { PlaywrightBrowserContext } from "./browser-context";
 
 layer(Playwright.layer)("Playwright", (it) => {
   it.scoped("should launch a browser", () =>
@@ -35,6 +36,46 @@ layer(Playwright.layer)("Playwright", (it) => {
       const result = yield* Effect.exit(program);
 
       assert(result._tag === "Success", "Expected success");
+    }),
+  );
+
+  it.scoped("should launch a persistent context", () =>
+    Effect.gen(function* () {
+      const playwright = yield* Playwright;
+      const context = yield* playwright.launchPersistentContext(chromium, "");
+      const page = yield* context.newPage;
+
+      yield* page.goto("data:text/html,<title>persistent-context</title>");
+      const title = yield* page.title;
+
+      assert(title === "persistent-context", "Expected title to match");
+      yield* context.close;
+    }),
+  );
+
+  it.scoped("should launch a persistent context and close with scope", () =>
+    Effect.gen(function* () {
+      const playwright = yield* Playwright;
+      let capturedContext: typeof PlaywrightBrowserContext.Service | undefined;
+
+      yield* Effect.gen(function* () {
+        const context = yield* playwright.launchPersistentContextScoped(
+          chromium,
+          "",
+        );
+        capturedContext = context;
+
+        const page = yield* context.newPage;
+        const content = yield* page.evaluate(() => "scoped-persistent");
+        assert(content === "scoped-persistent", "Expected content to match");
+      }).pipe(Effect.scoped);
+
+      assert(capturedContext !== undefined, "Expected captured context");
+      const error = yield* capturedContext.newPage.pipe(Effect.flip);
+      assert(
+        error._tag === "PlaywrightError",
+        "Expected failure after scoped close",
+      );
     }),
   );
 
