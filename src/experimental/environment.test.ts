@@ -44,7 +44,7 @@ const accessSecond = Effect.gen(function* () {
 
   // page should have ?test=1
   const page = pages[0];
-  const url = yield* page.url;
+  const url = page.url();
   assert(url.includes("?test=1"), "Expected ?test=1");
 });
 

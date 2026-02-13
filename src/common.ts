@@ -51,7 +51,7 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
   serviceWorker: () => Option.Option<PlaywrightWorker>;
   sizes: Effect.Effect<Awaited<ReturnType<Request["sizes"]>>, PlaywrightError>;
   timing: Effect.Effect<ReturnType<Request["timing"]>>;
-  url: Effect.Effect<string>;
+  url: () => string;
 }> {
   static make(request: Request): PlaywrightRequest {
     const use = useHelper(request);
@@ -92,7 +92,7 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
         ),
       sizes: use(() => request.sizes()),
       timing: Effect.sync(() => request.timing()),
-      url: Effect.sync(() => request.url()),
+      url: () => request.url(),
     });
   }
 }
@@ -143,7 +143,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
   status: Effect.Effect<number>;
   statusText: Effect.Effect<string>;
   text: Effect.Effect<Awaited<ReturnType<Response["text"]>>, PlaywrightError>;
-  url: Effect.Effect<string>;
+  url: () => string;
 }> {
   static make(response: Response) {
     const use = useHelper(response);
@@ -173,7 +173,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
       status: Effect.sync(() => response.status()),
       statusText: Effect.sync(() => response.statusText()),
       text: use(() => response.text()),
-      url: Effect.sync(() => response.url()),
+      url: () => response.url(),
     });
   }
 }
@@ -187,7 +187,7 @@ export class PlaywrightWorker extends Data.TaggedClass("PlaywrightWorker")<{
     pageFunction: PageFunction<Arg, R>,
     arg?: Arg,
   ) => Effect.Effect<R, PlaywrightError>;
-  url: Effect.Effect<string>;
+  url: () => string;
 }> {
   static make(worker: Worker) {
     const use = useHelper(worker);
@@ -195,7 +195,7 @@ export class PlaywrightWorker extends Data.TaggedClass("PlaywrightWorker")<{
     return new PlaywrightWorker({
       // biome-ignore lint/suspicious/noExplicitAny: no idea how to type this.. but it's implementation only here
       evaluate: (f, arg) => use((w) => w.evaluate(f as any, arg)),
-      url: Effect.sync(() => worker.url()),
+      url: () => worker.url(),
     });
   }
 }
@@ -206,25 +206,25 @@ export class PlaywrightWorker extends Data.TaggedClass("PlaywrightWorker")<{
  */
 export class PlaywrightDialog extends Data.TaggedClass("PlaywrightDialog")<{
   accept: (promptText?: string) => Effect.Effect<void, PlaywrightError>;
-  defaultValue: Effect.Effect<string>;
+  defaultValue: () => string;
   dismiss: Effect.Effect<void, PlaywrightError>;
-  message: Effect.Effect<string>;
+  message: () => string;
   page: () => Option.Option<PlaywrightPageService>;
-  type: Effect.Effect<string>;
+  type: () => string;
 }> {
   static make(dialog: Dialog) {
     const use = useHelper(dialog);
 
     return new PlaywrightDialog({
       accept: (promptText) => use(() => dialog.accept(promptText)),
-      defaultValue: Effect.sync(() => dialog.defaultValue()),
+      defaultValue: () => dialog.defaultValue(),
       dismiss: use(() => dialog.dismiss()),
-      message: Effect.sync(() => dialog.message()),
+      message: () => dialog.message(),
       page: () =>
         Option.fromNullable(dialog.page()).pipe(
           Option.map(PlaywrightPage.make),
         ),
-      type: Effect.sync(() => dialog.type()),
+      type: () => dialog.type(),
     });
   }
 }
@@ -275,7 +275,7 @@ export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
   path: Effect.Effect<Option.Option<string | null>, PlaywrightError>;
   saveAs: (path: string) => Effect.Effect<void, PlaywrightError>;
   suggestedFilename: Effect.Effect<string>;
-  url: Effect.Effect<string>;
+  url: () => string;
   use: <R>(
     f: (download: Download) => Promise<R>,
   ) => Effect.Effect<R, PlaywrightError>;
@@ -304,7 +304,7 @@ export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
       path: use(() => download.path()).pipe(Effect.map(Option.fromNullable)),
       saveAs: (path) => use(() => download.saveAs(path)),
       suggestedFilename: Effect.sync(() => download.suggestedFilename()),
-      url: Effect.sync(() => download.url()),
+      url: () => download.url(),
       use,
     });
   }

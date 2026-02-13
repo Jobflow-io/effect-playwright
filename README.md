@@ -148,8 +148,7 @@ const program = Effect.gen(function* () {
   yield* page.eventStream("request").pipe(
     Stream.runForEach((request) =>
       Effect.gen(function* () {
-        const url = yield* request.url;
-        yield* Effect.log(`Request: ${url}`);
+        yield* Effect.log(`Request: ${request.url()}`);
       }),
     ),
 
