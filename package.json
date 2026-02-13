@@ -1,7 +1,7 @@
 {
   "name": "effect-playwright",
   "type": "module",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "An Effect-based Playwright library.",
   "author": "Jobflow GmbH",
   "license": "ISC",
