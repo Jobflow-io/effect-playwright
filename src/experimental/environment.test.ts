@@ -13,7 +13,7 @@ const accessFirst = Effect.gen(function* () {
 
   assert(browser, "Expected browser");
 
-  const contexts = yield* browser.contexts;
+  const contexts = browser.contexts();
 
   assert(contexts.length > 0, "Expected contexts");
 
@@ -32,7 +32,7 @@ const accessSecond = Effect.gen(function* () {
 
   assert(browser, "Expected browser");
 
-  const contexts = yield* browser.contexts;
+  const contexts = browser.contexts();
 
   assert(contexts.length > 0, "Expected contexts");
 
@@ -44,7 +44,7 @@ const accessSecond = Effect.gen(function* () {
 
   // page should have ?test=1
   const page = pages[0];
-  const url = yield* page.url;
+  const url = page.url();
   assert(url.includes("?test=1"), "Expected ?test=1");
 });
 
@@ -109,14 +109,11 @@ layer(layerPlaywrightEnvironment(chromium))("PlaywrightEnvironment", (it) => {
       );
 
       assert(capturedBrowser, "Expected browser");
-      const contexts = yield* capturedBrowser.contexts;
+      const contexts = capturedBrowser.contexts();
       assert(contexts.length === 0, "Expected no contexts");
 
       // actually not connected anymore
-      assert(
-        (yield* capturedBrowser.isConnected) === false,
-        "Expected not connected",
-      );
+      assert(capturedBrowser.isConnected() === false, "Expected not connected");
     }),
   );
 });

@@ -186,7 +186,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       });
 
       yield* page.waitForURL((url) => url.hash === "#test-history");
-      const url = yield* page.url;
+      const url = page.url();
       assert(url.endsWith("#test-history"));
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
@@ -209,10 +209,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       const results = yield* Fiber.join(fileChooser).pipe(Effect.flatten);
 
-      assert(
-        (yield* results.isMultiple) === false,
-        "isMultiple should be false",
-      );
+      assert(results.isMultiple() === false, "isMultiple should be false");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
@@ -230,6 +227,20 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       // No assertion needed other than it doesn't timeout/error
       assert.ok(true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+  it.scoped("url property should update after navigation", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      const url1 = "data:text/html,<h1>Page 1</h1>";
+      yield* page.goto(url1);
+      assert.strictEqual(page.url(), url1);
+
+      const url2 = "data:text/html,<h1>Page 2</h1>";
+      yield* page.goto(url2);
+      assert.strictEqual(page.url(), url2);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });

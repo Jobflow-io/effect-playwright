@@ -174,6 +174,8 @@ export interface PlaywrightPageService {
   /**
    * Returns a locator for the given selector.
    *
+   * NOTE: This method will cause a defect if `options.has` or `options.hasNot` are provided and belong to a different frame.
+   *
    * @see {@link Page.locator}
    * @since 0.1.0
    */
@@ -241,13 +243,13 @@ export interface PlaywrightPageService {
    *
    * @example
    * ```ts
-   * const url = yield* page.url;
+   * const url = page.url();
    * ```
    *
    * @see {@link Page.url}
    * @since 0.1.0
    */
-  readonly url: Effect.Effect<string, PlaywrightError>;
+  readonly url: () => string;
 
   /**
    * Returns all frames attached to the page.
@@ -326,7 +328,7 @@ export class PlaywrightPage extends Context.Tag(
       getByLabel: (label, options) =>
         PlaywrightLocator.make(page.getByLabel(label, options)),
       getByTestId: (testId) => PlaywrightLocator.make(page.getByTestId(testId)),
-      url: Effect.sync(() => page.url()),
+      url: () => page.url(),
       frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
       reload: use((p) => p.reload()),
       close: use((p) => p.close()),

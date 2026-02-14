@@ -6,10 +6,7 @@ import type { PlaywrightBrowserService } from "../browser";
  * @category util
  */
 export const allPages = (browser: PlaywrightBrowserService) =>
-  browser.contexts.pipe(
-    Effect.flatMap((contexts) =>
-      Effect.all(contexts.map((context) => context.pages)),
-    ),
+  Effect.all(browser.contexts().map((context) => context.pages)).pipe(
     Effect.map(Array.flatten),
   );
 
@@ -32,10 +29,8 @@ export const allFrameNavigatedEventStream = (
   browser: PlaywrightBrowserService,
 ) =>
   Effect.gen(function* () {
-    const contexts = yield* browser.contexts;
-    const pages = yield* pipe(
-      contexts.map((c) => c.pages),
-      Effect.all,
+    const contexts = browser.contexts();
+    const pages = yield* Effect.all(contexts.map((c) => c.pages)).pipe(
       Effect.map(Array.flatten),
     );
 

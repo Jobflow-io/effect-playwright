@@ -27,7 +27,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       const frames = yield* page.frames;
 
       const isTestFrame = (f: PlaywrightFrameService) =>
-        f.name.pipe(Effect.map((n) => n === "test-frame"));
+        Effect.succeed(f.name() === "test-frame");
 
       const frame = yield* Effect.findFirst(frames, isTestFrame).pipe(
         Effect.flatten,
@@ -59,7 +59,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       assert.strictEqual(byText, 1);
 
       // Test name
-      const name = yield* frame.name;
+      const name = frame.name();
       assert.strictEqual(name, "test-frame");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
@@ -80,9 +80,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       // Get the frame - it should be there now
       // Get the frame - it should be there now
       const frames = yield* page.frames;
-      const frameService = frames.find((f) =>
-        Effect.runSync(f.name.pipe(Effect.map((n) => n === "test-frame"))),
-      );
+      const frameService = frames.find((f) => f.name() === "test-frame");
 
       assert.isOk(frameService, "Frame not found");
 
