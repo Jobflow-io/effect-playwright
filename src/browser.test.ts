@@ -157,7 +157,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       const events = yield* Fiber.join(eventsFiber);
       assert.strictEqual(Chunk.size(events), 1);
 
-      const firstEvent = Chunk.unsafeHead(events);
+      const firstEvent = yield* Chunk.head(events);
       assert.strictEqual(firstEvent.version(), browser.version());
     }),
   );
