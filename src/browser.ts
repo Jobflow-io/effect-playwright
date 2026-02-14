@@ -67,9 +67,7 @@ export interface PlaywrightBrowserService {
    * An Effect that returns the list of all open browser contexts.
    * @see {@link Browser.contexts}
    */
-  readonly contexts: Effect.Effect<
-    Array<typeof PlaywrightBrowserContext.Service>
-  >;
+  readonly contexts: () => Array<typeof PlaywrightBrowserContext.Service>;
 
   readonly newContext: (
     options?: NewContextOptions,
@@ -83,18 +81,18 @@ export interface PlaywrightBrowserService {
    * An Effect that returns the browser type (chromium, firefox or webkit) that the browser belongs to.
    * @see {@link Browser.browserType}
    */
-  readonly browserType: Effect.Effect<BrowserType>;
+  readonly browserType: () => BrowserType;
 
   /**
    * An Effect that returns the version of the browser.
    * @see {@link Browser.version}
    */
-  readonly version: Effect.Effect<string>;
+  readonly version: () => string;
   /**
    * An Effect that returns whether the browser is connected.
    * @see {@link Browser.isConnected}
    */
-  readonly isConnected: Effect.Effect<boolean>;
+  readonly isConnected: () => boolean;
 
   /**
    * Creates a stream of the given event from the browser.
@@ -129,9 +127,7 @@ export class PlaywrightBrowser extends Context.Tag(
       newPage: (options) =>
         use((browser) => browser.newPage(options).then(PlaywrightPage.make)),
       close: use((browser) => browser.close()),
-      contexts: Effect.sync(() =>
-        browser.contexts().map(PlaywrightBrowserContext.make),
-      ),
+      contexts: () => browser.contexts().map(PlaywrightBrowserContext.make),
       newContext: (options) =>
         Effect.acquireRelease(
           use((browser) =>
@@ -139,9 +135,9 @@ export class PlaywrightBrowser extends Context.Tag(
           ),
           (context) => context.close.pipe(Effect.ignoreLogged),
         ),
-      browserType: Effect.sync(() => browser.browserType()),
-      version: Effect.sync(() => browser.version()),
-      isConnected: Effect.sync(() => browser.isConnected()),
+      browserType: () => browser.browserType(),
+      version: () => browser.version(),
+      isConnected: () => browser.isConnected(),
       eventStream: <K extends keyof BrowserEvents>(event: K) =>
         Stream.asyncPush<BrowserEvents[K]>((emit) =>
           Effect.acquireRelease(

@@ -131,7 +131,7 @@ layer(Playwright.layer)("Playwright", (it) => {
       yield* browser.close;
 
       assert(
-        (yield* directBrowser.isConnected) === true,
+        directBrowser.isConnected() === true,
         "Expected direct browser to be still connected",
       );
 
@@ -159,7 +159,7 @@ layer(Playwright.layer)("Playwright", (it) => {
         const browser = yield* playwright.connectCDPScoped(
           "http://127.0.0.1:9223",
         );
-        const isConnected = yield* browser.isConnected;
+        const isConnected = browser.isConnected();
         assert(isConnected === true, "Expected connected true");
       }).pipe(Effect.scoped);
 
@@ -167,7 +167,7 @@ layer(Playwright.layer)("Playwright", (it) => {
       // We can't easily check the CDP browser object as it's out of scope
       // but we can check if the direct browser is still connected
       assert(
-        (yield* directBrowser.isConnected) === true,
+        directBrowser.isConnected() === true,
         "Expected browser to still be connected",
       );
 

@@ -37,8 +37,7 @@ const program = Effect.gen(function* () {
   const page = yield* browser.newPage();
 
   yield* page.goto("https://example.com");
-  const title = yield* page.title;
-  console.log(`Page title: ${title}`);
+  console.log(`Page title: ${page.title()}`);
 }).pipe(Effect.scoped, Effect.provide(Playwright.layer));
 
 await Effect.runPromise(program);
@@ -99,7 +98,7 @@ import { Effect } from "effect";
 import { chromium } from "playwright-core";
 
 const liveLayer = PlaywrightEnvironment.layer(chromium, {
-  headless: true /** any other launch options */,
+  headless: false /** any other launch options */,
 });
 
 const program = Effect.gen(function* () {
