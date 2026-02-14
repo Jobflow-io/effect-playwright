@@ -30,8 +30,8 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       assert(request.isNavigationRequest() === true);
 
       assert(response.url().includes("example.com"));
-      assert((yield* response.ok) === true);
-      assert((yield* response.status) === 200);
+      assert(response.ok() === true);
+      assert(response.status() === 200);
 
       const headers = response.headers();
       assert(headers["content-type"] !== undefined);

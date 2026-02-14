@@ -188,7 +188,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
     PlaywrightError
   >;
   frame: Effect.Effect<PlaywrightFrameService>;
-  fromServiceWorker: Effect.Effect<boolean>;
+  fromServiceWorker: () => boolean;
   headers: () => ReturnType<Response["headers"]>;
   headersArray: Effect.Effect<
     Awaited<ReturnType<Response["headersArray"]>>,
@@ -204,7 +204,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
     PlaywrightError
   >;
   json: Effect.Effect<Awaited<ReturnType<Response["json"]>>, PlaywrightError>;
-  ok: Effect.Effect<boolean>;
+  ok: () => boolean;
   request: () => PlaywrightRequest;
   securityDetails: Effect.Effect<
     Option.Option<
@@ -216,8 +216,8 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
     Option.Option<NonNullable<Awaited<ReturnType<Response["serverAddr"]>>>>,
     PlaywrightError
   >;
-  status: Effect.Effect<number>;
-  statusText: Effect.Effect<string>;
+  status: () => number;
+  statusText: () => string;
   text: Effect.Effect<Awaited<ReturnType<Response["text"]>>, PlaywrightError>;
   url: () => string;
 }> {
@@ -229,7 +229,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
       body: use(() => response.body()),
       finished: use(() => response.finished()),
       frame: Effect.sync(() => PlaywrightFrame.make(response.frame())),
-      fromServiceWorker: Effect.sync(() => response.fromServiceWorker()),
+      fromServiceWorker: () => response.fromServiceWorker(),
       headers: () => response.headers(),
       headersArray: use(() => response.headersArray()),
       headerValue: (name) =>
@@ -238,7 +238,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
         ),
       headerValues: (name) => use(() => response.headerValues(name)),
       json: use(() => response.json()),
-      ok: Effect.sync(() => response.ok()),
+      ok: () => response.ok(),
       request: () => PlaywrightRequest.make(response.request()),
       securityDetails: use(() => response.securityDetails()).pipe(
         Effect.map(Option.fromNullable),
@@ -246,8 +246,8 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
       serverAddr: use(() => response.serverAddr()).pipe(
         Effect.map(Option.fromNullable),
       ),
-      status: Effect.sync(() => response.status()),
-      statusText: Effect.sync(() => response.statusText()),
+      status: () => response.status(),
+      statusText: () => response.statusText(),
       text: use(() => response.text()),
       url: () => response.url(),
     });

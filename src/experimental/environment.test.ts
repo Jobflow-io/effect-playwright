@@ -109,14 +109,11 @@ layer(layerPlaywrightEnvironment(chromium))("PlaywrightEnvironment", (it) => {
       );
 
       assert(capturedBrowser, "Expected browser");
-      const contexts = capturedBrowser!.contexts();
+      const contexts = capturedBrowser.contexts();
       assert(contexts.length === 0, "Expected no contexts");
 
       // actually not connected anymore
-      assert(
-        capturedBrowser!.isConnected() === false,
-        "Expected not connected",
-      );
+      assert(capturedBrowser.isConnected() === false, "Expected not connected");
     }),
   );
 });
