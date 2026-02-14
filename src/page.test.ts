@@ -209,10 +209,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       const results = yield* Fiber.join(fileChooser).pipe(Effect.flatten);
 
-      assert(
-        (yield* results.isMultiple) === false,
-        "isMultiple should be false",
-      );
+      assert(results.isMultiple() === false, "isMultiple should be false");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 

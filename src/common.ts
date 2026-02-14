@@ -313,7 +313,7 @@ export class PlaywrightFileChooser extends Data.TaggedClass(
   "PlaywrightFileChooser",
 )<{
   element: () => ElementHandle;
-  isMultiple: Effect.Effect<boolean>;
+  isMultiple: () => boolean;
   page: () => PlaywrightPageService;
   setFiles: (
     files: Parameters<FileChooser["setFiles"]>[0],
@@ -325,7 +325,7 @@ export class PlaywrightFileChooser extends Data.TaggedClass(
 
     return new PlaywrightFileChooser({
       element: () => fileChooser.element(),
-      isMultiple: Effect.sync(() => fileChooser.isMultiple()),
+      isMultiple: () => fileChooser.isMultiple(),
       page: () => PlaywrightPage.make(fileChooser.page()),
       setFiles: (files, options) =>
         use(() => fileChooser.setFiles(files, options)),

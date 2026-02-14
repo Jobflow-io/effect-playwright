@@ -113,7 +113,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
         Effect.flatten,
       );
 
-      assert((yield* fileChooser.isMultiple) === false);
+      assert(fileChooser.isMultiple() === false);
       assert(fileChooser.element() !== null);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
