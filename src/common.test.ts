@@ -137,7 +137,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
 
       const download = yield* Fiber.join(downloadFiber).pipe(Effect.flatten);
 
-      assert((yield* download.suggestedFilename) === "test.txt");
+      assert(download.suggestedFilename() === "test.txt");
       const url = download.url();
       assert(url.startsWith("data:"));
 

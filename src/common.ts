@@ -350,7 +350,7 @@ export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
   page: () => PlaywrightPageService;
   path: Effect.Effect<Option.Option<string | null>, PlaywrightError>;
   saveAs: (path: string) => Effect.Effect<void, PlaywrightError>;
-  suggestedFilename: Effect.Effect<string>;
+  suggestedFilename: () => string;
   url: () => string;
   use: <R>(
     f: (download: Download) => Promise<R>,
@@ -379,7 +379,7 @@ export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
       page: () => PlaywrightPage.make(download.page()),
       path: use(() => download.path()).pipe(Effect.map(Option.fromNullable)),
       saveAs: (path) => use(() => download.saveAs(path)),
-      suggestedFilename: Effect.sync(() => download.suggestedFilename()),
+      suggestedFilename: () => download.suggestedFilename(),
       url: () => download.url(),
       use,
     });
