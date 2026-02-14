@@ -26,14 +26,14 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       const response = yield* Fiber.join(responseFiber).pipe(Effect.flatten);
 
       assert(request.url().includes("example.com"));
-      assert((yield* request.method) === "GET");
-      assert((yield* request.isNavigationRequest) === true);
+      assert(request.method() === "GET");
+      assert(request.isNavigationRequest() === true);
 
       assert(response.url().includes("example.com"));
       assert((yield* response.ok) === true);
       assert((yield* response.status) === 200);
 
-      const headers = yield* response.headers;
+      const headers = response.headers();
       assert(headers["content-type"] !== undefined);
 
       const respRequest = response.request();

@@ -20,37 +20,113 @@ import { useHelper } from "./utils";
  * @since 0.1.2
  */
 export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
+  /**
+   * An object with all the request HTTP headers associated with this request. The header names are lower-cased.
+   * @see {@link Request.allHeaders}
+   */
   allHeaders: Effect.Effect<
     Awaited<ReturnType<Request["allHeaders"]>>,
     PlaywrightError
   >;
+  /**
+   * The method returns null unless this request was a failed one.
+   * @see {@link Request.failure}
+   */
   failure: () => Option.Option<NonNullable<ReturnType<Request["failure"]>>>;
+  /**
+   * Returns the Frame that initiated this request.
+   * @see {@link Request.frame}
+   */
   frame: Effect.Effect<PlaywrightFrameService>;
+  /**
+   * Returns the value of the header matching the name. The name is case insensitive.
+   * @see {@link Request.headerValue}
+   */
   headerValue: (
     name: string,
   ) => Effect.Effect<Option.Option<string>, PlaywrightError>;
-  headers: Effect.Effect<ReturnType<Request["headers"]>>;
+  /**
+   * An object with the request HTTP headers. The header names are lower-cased.
+   * @see {@link Request.headers}
+   */
+  headers: () => ReturnType<Request["headers"]>;
+  /**
+   * An array with all the request HTTP headers associated with this request.
+   * @see {@link Request.headersArray}
+   */
   headersArray: Effect.Effect<
     Awaited<ReturnType<Request["headersArray"]>>,
     PlaywrightError
   >;
-  isNavigationRequest: Effect.Effect<boolean>;
-  method: Effect.Effect<string>;
+  /**
+   * Whether this request is driving frame's navigation.
+   * @see {@link Request.isNavigationRequest}
+   */
+  isNavigationRequest: () => boolean;
+  /**
+   * Request's method (GET, POST, etc.)
+   * @see {@link Request.method}
+   */
+  method: () => string;
+  /**
+   * Request's post body, if any.
+   * @see {@link Request.postData}
+   */
   postData: () => Option.Option<string>;
+  /**
+   * Request's post body in a binary form, if any.
+   * @see {@link Request.postDataBuffer}
+   */
   postDataBuffer: () => Option.Option<
     NonNullable<ReturnType<Request["postDataBuffer"]>>
   >;
+  /**
+   * Returns parsed request's body for form-urlencoded and JSON requests.
+   * @see {@link Request.postDataJSON}
+   */
   postDataJSON: Effect.Effect<
     Option.Option<NonNullable<Awaited<ReturnType<Request["postDataJSON"]>>>>,
     PlaywrightError
   >;
+  /**
+   * Request that was redirected by the server to this one, if any.
+   * @see {@link Request.redirectedFrom}
+   */
   redirectedFrom: () => Option.Option<PlaywrightRequest>;
+  /**
+   * New request issued by the browser if the server responded with redirect.
+   * @see {@link Request.redirectedTo}
+   */
   redirectedTo: () => Option.Option<PlaywrightRequest>;
-  resourceType: Effect.Effect<ReturnType<Request["resourceType"]>>;
+  /**
+   * Contains the request's resource type as it was perceived by the rendering engine.
+   * @see {@link Request.resourceType}
+   */
+  resourceType: () => string;
+  /**
+   * Returns the matching Response object, or null if the response was not received due to error.
+   * @see {@link Request.response}
+   */
   response: Effect.Effect<Option.Option<PlaywrightResponse>, PlaywrightError>;
+  /**
+   * Returns the ServiceWorker that initiated this request.
+   * @see {@link Request.serviceWorker}
+   */
   serviceWorker: () => Option.Option<PlaywrightWorker>;
+  /**
+   * Returns resource size information for given request.
+   * @see {@link Request.sizes}
+   */
   sizes: Effect.Effect<Awaited<ReturnType<Request["sizes"]>>, PlaywrightError>;
-  timing: Effect.Effect<ReturnType<Request["timing"]>>;
+  /**
+   * Returns resource timing information for given request.
+   * @see {@link Request.timing}
+   */
+  timing: () => ReturnType<Request["timing"]>;
+  /**
+   * URL of the request.
+   * @see {@link Request.url}
+   */
   url: () => string;
 }> {
   static make(request: Request): PlaywrightRequest {
@@ -64,10 +140,10 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
         use(() => request.headerValue(name)).pipe(
           Effect.map(Option.fromNullable),
         ),
-      headers: Effect.sync(() => request.headers()),
+      headers: () => request.headers(),
       headersArray: use(() => request.headersArray()),
-      isNavigationRequest: Effect.sync(() => request.isNavigationRequest()),
-      method: Effect.sync(() => request.method()),
+      isNavigationRequest: () => request.isNavigationRequest(),
+      method: () => request.method(),
       postData: Option.liftNullable(request.postData),
       postDataBuffer: Option.liftNullable(request.postDataBuffer),
       postDataJSON: use(() => request.postDataJSON()).pipe(
@@ -81,7 +157,7 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
         Option.fromNullable(request.redirectedTo()).pipe(
           Option.map(PlaywrightRequest.make),
         ),
-      resourceType: Effect.sync(() => request.resourceType()),
+      resourceType: () => request.resourceType(),
       response: use(() => request.response()).pipe(
         Effect.map(Option.fromNullable),
         Effect.map(Option.map(PlaywrightResponse.make)),
@@ -91,7 +167,7 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
           Option.map(PlaywrightWorker.make),
         ),
       sizes: use(() => request.sizes()),
-      timing: Effect.sync(() => request.timing()),
+      timing: () => request.timing(),
       url: () => request.url(),
     });
   }
@@ -113,7 +189,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
   >;
   frame: Effect.Effect<PlaywrightFrameService>;
   fromServiceWorker: Effect.Effect<boolean>;
-  headers: Effect.Effect<ReturnType<Response["headers"]>>;
+  headers: () => ReturnType<Response["headers"]>;
   headersArray: Effect.Effect<
     Awaited<ReturnType<Response["headersArray"]>>,
     PlaywrightError
@@ -154,7 +230,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
       finished: use(() => response.finished()),
       frame: Effect.sync(() => PlaywrightFrame.make(response.frame())),
       fromServiceWorker: Effect.sync(() => response.fromServiceWorker()),
-      headers: Effect.sync(() => response.headers()),
+      headers: () => response.headers(),
       headersArray: use(() => response.headersArray()),
       headerValue: (name) =>
         use(() => response.headerValue(name)).pipe(
