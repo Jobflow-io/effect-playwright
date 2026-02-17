@@ -32,7 +32,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
 
-      const type = yield* browser.browserType;
+      const type = browser.browserType();
       assert.strictEqual(type.name(), "chromium");
     }),
   );
@@ -42,7 +42,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
 
-      const version = yield* browser.version;
+      const version = browser.version();
       assert.isString(version);
       assert.isNotEmpty(version);
     }),
@@ -66,11 +66,11 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
 
-      const initialContexts = yield* browser.contexts;
+      const initialContexts = browser.contexts();
       assert.strictEqual(initialContexts.length, 0);
 
       yield* browser.newContext();
-      const contextsAfterOne = yield* browser.contexts;
+      const contextsAfterOne = browser.contexts();
       assert.strictEqual(contextsAfterOne.length, 1);
     }),
   );
@@ -108,7 +108,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       const browser = yield* playwright.launchScoped(chromium);
 
       yield* browser.newPage();
-      const contexts = yield* browser.contexts;
+      const contexts = browser.contexts();
       assert.strictEqual(contexts.length, 1);
 
       const pages = yield* contexts[0].pages;
@@ -129,18 +129,18 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
           yield* Effect.scoped(
             Effect.gen(function* () {
               yield* browser.newContext();
-              const contexts = yield* browser.contexts;
+              const contexts = browser.contexts();
               assert.strictEqual(contexts.length, 1);
             }),
           );
 
-          const contextsAfter = yield* browser.contexts;
+          const contextsAfter = browser.contexts();
           assert.strictEqual(contextsAfter.length, 0);
         }),
       );
 
       assert.isDefined(capturedBrowser);
-      const isConnected = yield* capturedBrowser?.isConnected;
+      const isConnected = capturedBrowser?.isConnected();
       assert.isFalse(isConnected);
     }),
   );
@@ -158,7 +158,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       assert.strictEqual(Chunk.size(events), 1);
 
       const firstEvent = yield* Chunk.head(events);
-      assert.strictEqual(yield* firstEvent.version, yield* browser.version);
+      assert.strictEqual(firstEvent.version(), browser.version());
     }),
   );
 });

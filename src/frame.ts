@@ -1,4 +1,4 @@
-import { Context, Effect } from "effect";
+import { Context, type Effect } from "effect";
 import type { Frame } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightLocator } from "./locator";
@@ -70,6 +70,8 @@ export interface PlaywrightFrameService {
   /**
    * Returns a locator for the given selector.
    *
+   * NOTE: This method will cause a defect if `options.has` or `options.hasNot` are provided and belong to a different frame.
+   *
    * @see {@link Frame.locator}
    * @since 0.1.3
    */
@@ -123,7 +125,7 @@ export interface PlaywrightFrameService {
    * @see {@link Frame.url}
    * @since 0.1.3
    */
-  readonly url: Effect.Effect<string, PlaywrightError>;
+  readonly url: () => string;
 
   /**
    * Returns the full HTML contents of the frame, including the doctype.
@@ -139,7 +141,7 @@ export interface PlaywrightFrameService {
    * @see {@link Frame.name}
    * @since 0.1.3
    */
-  readonly name: Effect.Effect<string>;
+  readonly name: () => string;
 
   /**
    * Clicks an element matching the given selector.
@@ -190,9 +192,9 @@ export class PlaywrightFrame extends Context.Tag(
         PlaywrightLocator.make(frame.getByLabel(label, options)),
       getByTestId: (testId) =>
         PlaywrightLocator.make(frame.getByTestId(testId)),
-      url: Effect.sync(() => frame.url()),
+      url: () => frame.url(),
       content: use((f) => f.content()),
-      name: Effect.sync(() => frame.name()),
+      name: () => frame.name(),
       click: (selector, options) => use((f) => f.click(selector, options)),
     });
   }

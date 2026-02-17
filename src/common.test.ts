@@ -25,23 +25,23 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       const request = yield* Fiber.join(requestFiber).pipe(Effect.flatten);
       const response = yield* Fiber.join(responseFiber).pipe(Effect.flatten);
 
-      assert((yield* request.url).includes("example.com"));
-      assert((yield* request.method) === "GET");
-      assert((yield* request.isNavigationRequest) === true);
+      assert(request.url().includes("example.com"));
+      assert(request.method() === "GET");
+      assert(request.isNavigationRequest() === true);
 
-      assert((yield* response.url).includes("example.com"));
-      assert((yield* response.ok) === true);
-      assert((yield* response.status) === 200);
+      assert(response.url().includes("example.com"));
+      assert(response.ok() === true);
+      assert(response.status() === 200);
 
-      const headers = yield* response.headers;
+      const headers = response.headers();
       assert(headers["content-type"] !== undefined);
 
       const respRequest = response.request();
-      assert((yield* respRequest.url).includes("example.com"));
+      assert(respRequest.url().includes("example.com"));
 
       const requestResponse = yield* request.response;
       assert(Option.isSome(requestResponse));
-      assert((yield* requestResponse.value.url) === (yield* response.url));
+      assert(requestResponse.value.url() === response.url());
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
@@ -64,7 +64,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
 
       const worker = yield* Fiber.join(workerFiber).pipe(Effect.flatten);
 
-      assert((yield* worker.url).startsWith("blob:"));
+      assert(worker.url().startsWith("blob:"));
       const result = yield* worker.evaluate(() => 1 + 1);
       assert(result === 2);
     }).pipe(PlaywrightEnvironment.withBrowser),
@@ -86,8 +86,8 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
 
       const dialog = yield* Fiber.join(dialogFiber).pipe(Effect.flatten);
 
-      assert((yield* dialog.message) === "hello world");
-      assert((yield* dialog.type) === "alert");
+      assert(dialog.message() === "hello world");
+      assert(dialog.type() === "alert");
 
       yield* dialog.accept();
     }).pipe(PlaywrightEnvironment.withBrowser),
@@ -113,7 +113,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
         Effect.flatten,
       );
 
-      assert((yield* fileChooser.isMultiple) === false);
+      assert(fileChooser.isMultiple() === false);
       assert(fileChooser.element() !== null);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
@@ -137,8 +137,8 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
 
       const download = yield* Fiber.join(downloadFiber).pipe(Effect.flatten);
 
-      assert((yield* download.suggestedFilename) === "test.txt");
-      const url = yield* download.url;
+      assert(download.suggestedFilename() === "test.txt");
+      const url = download.url();
       assert(url.startsWith("data:"));
 
       const text = yield* download.stream.pipe(
