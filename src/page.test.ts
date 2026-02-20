@@ -205,8 +205,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       const fileChooser = yield* page
         .eventStream("filechooser")
-        .pipe(Stream.runHead)
-        .pipe(Effect.fork);
+        .pipe(Stream.runHead, Effect.fork);
 
       yield* page.locator("#fileinput").click();
 
