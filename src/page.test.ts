@@ -325,4 +325,23 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(magicValue, 42);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("keyboard should allow typing text", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.evaluate(() => {
+        document.body.innerHTML = '<input id="input" />';
+        document.getElementById("input")?.focus();
+      });
+
+      yield* page.keyboard.type("Hello Effect");
+
+      const value = yield* page.evaluate(
+        () => (document.getElementById("input") as HTMLInputElement).value,
+      );
+      assert.strictEqual(value, "Hello Effect");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });
