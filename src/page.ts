@@ -24,6 +24,7 @@ import {
 import type { PlaywrightError } from "./errors";
 import { PlaywrightFrame } from "./frame";
 import { PlaywrightLocator } from "./locator";
+import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
 import { useHelper } from "./utils";
 
@@ -79,6 +80,10 @@ type PageWithPatchedEvents = PatchedEvents<Page, PageEvents>;
  * @since 0.1.0
  */
 export interface PlaywrightPageService {
+  /**
+   * Access the clock.
+   */
+  readonly clock: PlaywrightClockService;
   /**
    * Navigates the page to the given URL.
    *
@@ -312,6 +317,7 @@ export class PlaywrightPage extends Context.Tag(
     const use = useHelper(page);
 
     return PlaywrightPage.of({
+      clock: PlaywrightClock.make(page.clock),
       goto: (url, options) => use((p) => p.goto(url, options)),
       waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
       waitForLoadState: (state, options) =>

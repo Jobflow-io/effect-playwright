@@ -4,6 +4,12 @@ import { chromium } from "playwright-core";
 import { PlaywrightBrowser } from "./browser";
 import { PlaywrightEnvironment } from "./experimental";
 
+type TestWindow = Window & {
+  timerFired?: boolean;
+  clicked?: boolean;
+  clickCoords?: { x: number; y: number } | null;
+};
+
 layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
   it.scoped("goto should navigate to a URL", () =>
     Effect.gen(function* () {
@@ -35,7 +41,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
-        const win = window as Window & { clicked?: boolean };
+        const win = window as TestWindow;
         document.body.innerHTML =
           '<button id="mybutton" onclick="window.clicked = true">Click Me</button>';
         win.clicked = false;
@@ -44,7 +50,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       yield* page.click("#mybutton");
 
       const clicked = yield* page.evaluate(
-        () => (window as Window & { clicked?: boolean }).clicked,
+        () => (window as TestWindow).clicked,
       );
       assert(clicked === true);
     }).pipe(PlaywrightEnvironment.withBrowser),
@@ -92,9 +98,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
-        const win = window as Window & {
-          clickCoords?: { x: number; y: number } | null;
-        };
+        const win = window as TestWindow;
         document.body.innerHTML =
           '<button id="mybutton" style="width: 100px; height: 100px">Click Me</button>';
         win.clickCoords = null;
@@ -107,9 +111,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       yield* page.click("#mybutton", { position: { x: 10, y: 10 } });
 
       const coords = yield* page.evaluate(
-        () =>
-          (window as Window & { clickCoords?: { x: number; y: number } | null })
-            .clickCoords,
+        () => (window as TestWindow).clickCoords,
       );
       assert(coords !== null);
     }).pipe(PlaywrightEnvironment.withBrowser),
@@ -241,6 +243,67 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const url2 = "data:text/html,<h1>Page 2</h1>";
       yield* page.goto(url2);
       assert.strictEqual(page.url(), url2);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("clock should allow fast forwarding time", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      // Install clock
+      yield* page.clock.install({ time: new Date("2024-01-01T00:00:00.000Z") });
+
+      yield* page.evaluate(() => {
+        (window as TestWindow).timerFired = false;
+        setTimeout(() => {
+          (window as TestWindow).timerFired = true;
+        }, 10000);
+      });
+
+      let timerFired = yield* page.evaluate(
+        () => (window as TestWindow).timerFired,
+      );
+      assert.strictEqual(timerFired, false);
+
+      yield* page.clock.fastForward(10000);
+
+      timerFired = yield* page.evaluate(
+        () => (window as TestWindow).timerFired,
+      );
+      assert.strictEqual(timerFired, true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("clock should allow fast forwarding time on context", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const context = yield* browser.newContext();
+      const page = yield* context.newPage;
+
+      // Install clock on context
+      yield* context.clock.install({
+        time: new Date("2024-01-01T00:00:00.000Z"),
+      });
+
+      yield* page.evaluate(() => {
+        (window as TestWindow).timerFired = false;
+        setTimeout(() => {
+          (window as TestWindow).timerFired = true;
+        }, 10000);
+      });
+
+      let timerFired = yield* page.evaluate(
+        () => (window as TestWindow).timerFired,
+      );
+      assert.strictEqual(timerFired, false);
+
+      yield* context.clock.fastForward(10000);
+
+      timerFired = yield* page.evaluate(
+        () => (window as TestWindow).timerFired,
+      );
+      assert.strictEqual(timerFired, true);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });

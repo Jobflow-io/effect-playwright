@@ -17,6 +17,7 @@ import {
 } from "./common";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightPage } from "./page";
+import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import type { PatchedEvents } from "./playwright-types";
 import { useHelper } from "./utils";
 
@@ -58,6 +59,10 @@ type BrowserContextWithPatchedEvents = PatchedEvents<
  * @since 0.1.0
  */
 export interface PlaywrightBrowserContextService {
+  /**
+   * Access the clock.
+   */
+  readonly clock: PlaywrightClockService;
   /**
    * Returns the list of all open pages in the browser context.
    *
@@ -122,6 +127,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
   ): PlaywrightBrowserContextService {
     const use = useHelper(context);
     return PlaywrightBrowserContext.of({
+      clock: PlaywrightClock.make(context.clock),
       pages: Effect.sync(() => context.pages().map(PlaywrightPage.make)),
       newPage: use((c) => c.newPage().then(PlaywrightPage.make)),
       close: use((c) => c.close()),

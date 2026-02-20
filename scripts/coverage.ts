@@ -20,6 +20,7 @@ const MAPPINGS = [
   { pw: "Dialog", ep: "PlaywrightDialog", type: "class" as const },
   { pw: "FileChooser", ep: "PlaywrightFileChooser", type: "class" as const },
   { pw: "Download", ep: "PlaywrightDownload", type: "class" as const },
+  { pw: "Clock", ep: "PlaywrightClockService", type: "interface" as const },
 ];
 
 const EXCLUDED_METHODS = new Set([

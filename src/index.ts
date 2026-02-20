@@ -26,3 +26,4 @@ export * from "./frame";
 export * from "./locator";
 export * from "./page";
 export * from "./playwright";
+export * from "./clock";
