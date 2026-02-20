@@ -244,6 +244,21 @@ export interface PlaywrightPageService {
   ) => typeof PlaywrightLocator.Service;
 
   /**
+   * Captures a screenshot of the page.
+   *
+   * @example
+   * ```ts
+   * const buffer = yield* page.screenshot({ path: "screenshot.png" });
+   * ```
+   *
+   * @see {@link Page.screenshot}
+   * @since 0.2.0
+   */
+  readonly screenshot: (
+    options?: Parameters<Page["screenshot"]>[0],
+  ) => Effect.Effect<Buffer, PlaywrightError>;
+
+  /**
    * Reloads the page.
    *
    * @see {@link Page.reload}
@@ -355,6 +370,7 @@ export class PlaywrightPage extends Context.Tag(
       frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
       reload: use((p) => p.reload()),
       close: use((p) => p.close()),
+      screenshot: (options) => use((p) => p.screenshot(options)),
       click: (selector, options) => use((p) => p.click(selector, options)),
       eventStream: <K extends keyof PageEvents>(event: K) =>
         Stream.asyncPush<PageEvents[K]>((emit) =>

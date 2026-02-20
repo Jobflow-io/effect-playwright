@@ -343,4 +343,16 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(value, "Hello Effect");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+  it.scoped("screenshot should capture an image", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("data:text/html,<h1>Screenshot Test</h1>");
+      const buffer = yield* page.screenshot({ type: "png" });
+
+      assert(Buffer.isBuffer(buffer));
+      assert(buffer.length > 0);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });
