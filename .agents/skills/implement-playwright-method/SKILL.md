@@ -22,7 +22,7 @@ First, find the implementation of the method in the Playwright codebase to under
 
 ### 2. Analyze the Method
 
-Determine if the method can throw and what it returns. **Do not blindly follow existing patterns in `effect-playwright` if they wrap safe synchronous methods in Effects.**
+Determine if the method can throw and what it returns. **Do not blindly follow existing patterns in `effect-playwright`. Always analyze the original Playwright source code to determine behavior.**
 
 #### Can it throw?
 
@@ -43,7 +43,38 @@ Determine if the method can throw and what it returns. **Do not blindly follow e
 - **`T | null`** -> `Option<T>` (if sync) or `Effect<Option<T>, PlaywrightError>` (if async)
 - **Playwright Object (e.g., `Page`)** -> **Wrapped Object (e.g., `PlaywrightPage`)**
 
-### 3. Define the Interface
+### 3. Handle Sub-APIs / Nested Properties
+
+Some Playwright interfaces expose other classes as properties (e.g., `Page.keyboard`, `Page.mouse`, `BrowserContext.tracing`).
+
+1. **Create a new Wrapper**: Create a new file, Service, and Tag for the sub-API (e.g., `PlaywrightKeyboardService` wrapping `Keyboard`).
+2. **Expose as a Sync Property**: Expose it as a direct, read-only property on the parent service. Do not wrap property access in an `Effect`.
+
+**Example (Interface in Parent):**
+
+```typescript
+export interface PlaywrightPageService {
+  /**
+   * Access the keyboard.
+   * @see {@link Page.keyboard}
+   */
+  readonly keyboard: PlaywrightKeyboardService;
+}
+```
+
+**Example (Implementation in Parent's `make`):**
+
+```typescript
+static make(page: Page): PlaywrightPageService {
+  return PlaywrightPage.of({
+    // Initialize the sub-API wrapper synchronously
+    keyboard: PlaywrightKeyboard.make(page.keyboard),
+    // ...
+  });
+}
+```
+
+### 4. Define the Interface
 
 Add the method to the Service interface in the corresponding `src/X.ts` file (e.g., `PlaywrightPageService` in `src/page.ts`).
 
@@ -93,7 +124,7 @@ readonly url: () => string;
 readonly textContent: Effect.Effect<Option.Option<string>, PlaywrightError>;
 ```
 
-### 4. Implement the Method
+### 5. Implement the Method
 
 Implement the method in the `make` function of the implementation class (e.g., `PlaywrightPage.make`).
 
@@ -135,7 +166,7 @@ Implement the method in the `make` function of the implementation class (e.g., `
   ),
   ```
 
-### 5. Verify
+### 6. Verify
 
 - Ensure types match `PlaywrightXService`.
-- Run `npm run typecheck` (or equivalent) to verify implementation.
+- Run `pnpm run type-check` and `pnpm test` to verify implementation.
