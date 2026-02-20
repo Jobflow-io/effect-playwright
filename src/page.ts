@@ -11,7 +11,7 @@ import type {
   WebSocket,
   Worker,
 } from "playwright-core";
-
+import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import {
   PlaywrightDialog,
   PlaywrightDownload,
@@ -20,11 +20,9 @@ import {
   PlaywrightResponse,
   PlaywrightWorker,
 } from "./common";
-
 import type { PlaywrightError } from "./errors";
 import { PlaywrightFrame } from "./frame";
 import { PlaywrightLocator } from "./locator";
-import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
 import { useHelper } from "./utils";
 
@@ -149,6 +147,18 @@ export interface PlaywrightPageService {
     pageFunction: PageFunction<Arg, R>,
     arg?: Arg,
   ) => Effect.Effect<R, PlaywrightError>;
+  /**
+   * Adds a script which would be evaluated in one of the following scenarios:
+   * - Whenever the page is navigated.
+   * - Whenever the child frame is attached or navigated. In this case, the script is evaluated in the context of the newly attached frame.
+   *
+   * @see {@link Page.addInitScript}
+   * @since 0.2.0
+   */
+  readonly addInitScript: (
+    script: Parameters<Page["addInitScript"]>[0],
+    arg?: Parameters<Page["addInitScript"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Returns the page title.
    *
@@ -325,6 +335,7 @@ export class PlaywrightPage extends Context.Tag(
       title: use((p) => p.title()),
       evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
         use((p) => p.evaluate<R, Arg>(f, arg as Arg)),
+      addInitScript: (script, arg) => use((p) => p.addInitScript(script, arg)),
       locator: (selector, options) =>
         PlaywrightLocator.make(page.locator(selector, options)),
       getByRole: (role, options) =>

@@ -8,6 +8,7 @@ type TestWindow = Window & {
   timerFired?: boolean;
   clicked?: boolean;
   clickCoords?: { x: number; y: number } | null;
+  magicValue?: number;
 };
 
 layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
@@ -304,6 +305,24 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).timerFired,
       );
       assert.strictEqual(timerFired, true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("addInitScript should execute script before page load", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.addInitScript(() => {
+        (window as TestWindow).magicValue = 42;
+      });
+
+      yield* page.goto("about:blank");
+
+      const magicValue = yield* page.evaluate(
+        () => (window as TestWindow).magicValue,
+      );
+      assert.strictEqual(magicValue, 42);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });

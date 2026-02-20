@@ -9,6 +9,7 @@ import type {
   WebError,
   Worker,
 } from "playwright-core";
+import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import {
   PlaywrightDialog,
   PlaywrightRequest,
@@ -17,7 +18,6 @@ import {
 } from "./common";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightPage } from "./page";
-import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import type { PatchedEvents } from "./playwright-types";
 import { useHelper } from "./utils";
 
@@ -92,6 +92,18 @@ export interface PlaywrightBrowserContextService {
    * @since 0.1.0
    */
   readonly close: Effect.Effect<void, PlaywrightError>;
+  /**
+   * Adds a script which would be evaluated in one of the following scenarios:
+   * - Whenever a page is created in the browser context or is navigated.
+   * - Whenever a child frame is attached or navigated. In this case, the script is evaluated in the context of the newly attached frame.
+   *
+   * @see {@link BrowserContext.addInitScript}
+   * @since 0.2.0
+   */
+  readonly addInitScript: (
+    script: Parameters<BrowserContext["addInitScript"]>[0],
+    arg?: Parameters<BrowserContext["addInitScript"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Creates a stream of the given event from the browser context.
@@ -131,6 +143,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
       pages: Effect.sync(() => context.pages().map(PlaywrightPage.make)),
       newPage: use((c) => c.newPage().then(PlaywrightPage.make)),
       close: use((c) => c.close()),
+      addInitScript: (script, arg) => use((c) => c.addInitScript(script, arg)),
       eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
         Stream.asyncPush<BrowserContextEvents[K]>((emit) =>
           Effect.acquireRelease(
