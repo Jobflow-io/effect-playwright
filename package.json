@@ -26,6 +26,7 @@
     "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "type-check": "tsc --noEmit",
+    "coverage": "tsx scripts/coverage.ts",
     "generate-docs": "typedoc",
     "format-fix": "biome format --fix"
   },
@@ -53,6 +54,7 @@
     "@types/node": "^25.2.3",
     "effect": "^3.19.16",
     "playwright": "^1.58.2",
+    "ts-morph": "^27.0.2",
     "tsdown": "0.20.3",
     "tsx": "^4.21.0",
     "typedoc": "^0.28.17",
