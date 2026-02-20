@@ -47,6 +47,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.15",
+    "@effect/cli": "^0.73.2",
     "@effect/language-service": "0.73.1",
     "@effect/platform": "^0.94.4",
     "@effect/platform-node": "^0.104.1",

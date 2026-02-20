@@ -1,26 +1,29 @@
-import * as fs from "fs";
-import * as path from "path";
+import { Command } from "@effect/cli";
+import { FileSystem, Path } from "@effect/platform";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { Console, Effect } from "effect";
 import { type JSDocableNode, Project } from "ts-morph";
 
 const MAPPINGS = [
-  { pw: "Browser", ep: "PlaywrightBrowserService", type: "interface" },
+  { pw: "Browser", ep: "PlaywrightBrowserService", type: "interface" as const },
   {
     pw: "BrowserContext",
     ep: "PlaywrightBrowserContextService",
-    type: "interface",
+    type: "interface" as const,
   },
-  { pw: "Page", ep: "PlaywrightPageService", type: "interface" },
-  { pw: "Frame", ep: "PlaywrightFrameService", type: "interface" },
-  { pw: "Locator", ep: "PlaywrightLocatorService", type: "interface" },
-  { pw: "Request", ep: "PlaywrightRequest", type: "class" },
-  { pw: "Response", ep: "PlaywrightResponse", type: "class" },
-  { pw: "Worker", ep: "PlaywrightWorker", type: "class" },
-  { pw: "Dialog", ep: "PlaywrightDialog", type: "class" },
-  { pw: "FileChooser", ep: "PlaywrightFileChooser", type: "class" },
-  { pw: "Download", ep: "PlaywrightDownload", type: "class" },
+  { pw: "Page", ep: "PlaywrightPageService", type: "interface" as const },
+  { pw: "Frame", ep: "PlaywrightFrameService", type: "interface" as const },
+  { pw: "Locator", ep: "PlaywrightLocatorService", type: "interface" as const },
+  { pw: "Request", ep: "PlaywrightRequest", type: "class" as const },
+  { pw: "Response", ep: "PlaywrightResponse", type: "class" as const },
+  { pw: "Worker", ep: "PlaywrightWorker", type: "class" as const },
+  { pw: "Dialog", ep: "PlaywrightDialog", type: "class" as const },
+  { pw: "FileChooser", ep: "PlaywrightFileChooser", type: "class" as const },
+  { pw: "Download", ep: "PlaywrightDownload", type: "class" as const },
 ];
 
 const EXCLUDED_METHODS = new Set([
+  // EventEmitter methods
   "on",
   "once",
   "off",
@@ -36,15 +39,18 @@ const EXCLUDED_METHODS = new Set([
   "emit",
   "eventNames",
   "listenerCount",
+  // Deprecated or internal
   "_",
   "$",
   "$$",
   "$eval",
   "$$eval",
+  // Utility symbols
   "[Symbol.asyncDispose]",
 ]);
 
 const CUSTOM_MAPPINGS: Record<string, string> = {
+  // Playwright -> Effect-Playwright
   createReadStream: "stream",
 };
 
@@ -62,24 +68,37 @@ function isDeprecated(node: JSDocableNode): boolean {
     );
 }
 
-async function main() {
-  const project = new Project({
-    tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
-  });
+const runCoverage = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const pathService = yield* Path.Path;
 
-  const pwTypesPath = path.join(
-    process.cwd(),
-    "node_modules/playwright-core/types/types.d.ts",
+  const cwd = process.cwd();
+  const tsConfigFilePath = pathService.join(cwd, "tsconfig.json");
+  const pwTypesPath = pathService.join(
+    cwd,
+    "node_modules",
+    "playwright-core",
+    "types",
+    "types.d.ts",
   );
-  if (!fs.existsSync(pwTypesPath)) {
-    console.error(`Could not find playwright-core types at ${pwTypesPath}`);
-    process.exit(1);
+
+  const exists = yield* fs.exists(pwTypesPath);
+  if (!exists) {
+    return yield* Effect.fail(
+      new Error(`Could not find playwright-core types at ${pwTypesPath}`),
+    );
   }
+
+  yield* Console.log("Initializing ts-morph project...");
+
+  const project = new Project({
+    tsConfigFilePath,
+  });
 
   const pwSourceFile = project.addSourceFileAtPath(pwTypesPath);
   const epSourceFiles = project.getSourceFiles("src/**/*.ts");
 
-  console.log("=== Playwright API Coverage ===\n");
+  yield* Console.log("\n=== Playwright API Coverage ===\n");
 
   let totalPwStable = 0;
   let totalEpStable = 0;
@@ -99,12 +118,7 @@ async function main() {
     }
     for (const method of pwInterface.getMethods()) {
       if (isRelevantProperty(method.getName())) {
-        // Since methods can be overloaded, we check if any of the signatures are NOT deprecated
-        // If all are deprecated, then the method is deprecated. If there's no JSDoc or at least one isn't, it's stable.
-        // Actually, interface methods in playwright-core types are usually not overloaded in a way where one is deprecated and one is not.
-        // Let's just check the method itself.
         const methodIsDeprecated = isDeprecated(method);
-        // If it was already added (e.g., from property), we could OR the deprecation. But map handles it.
         if (
           !pwMethods.has(method.getName()) ||
           !pwMethods.get(method.getName())
@@ -151,7 +165,10 @@ async function main() {
       }
     }
 
-    if (!foundEp) continue;
+    if (!foundEp) {
+      yield* Console.warn(`[!] Could not find ${type} ${ep} in src/.`);
+      continue;
+    }
 
     let implementedStable = 0;
     let implementedDeprecated = 0;
@@ -165,7 +182,7 @@ async function main() {
       const mappedEpName = CUSTOM_MAPPINGS[m];
       const isImplemented =
         epMembers.has(m) ||
-        epMembers.has(m + "Stream") ||
+        epMembers.has(`${m}Stream`) ||
         (mappedEpName && epMembers.has(mappedEpName));
 
       if (deprecated) {
@@ -193,39 +210,46 @@ async function main() {
         ? "100.0"
         : ((implementedDeprecated / pwDeprecatedCount) * 100).toFixed(1);
 
-    console.log(`--- ${pw} ---`);
-    console.log(
+    yield* Console.log(`--- ${pw} ---`);
+    yield* Console.log(
       `Stable Coverage:     ${coverageStable}% (${implementedStable}/${pwStableCount})`,
     );
     if (pwDeprecatedCount > 0) {
-      console.log(
+      yield* Console.log(
         `Deprecated Coverage: ${coverageDeprecated}% (${implementedDeprecated}/${pwDeprecatedCount})`,
       );
     }
 
     if (missingStable.length > 0) {
-      console.log(`Missing stable methods:`);
+      yield* Console.log(`Missing stable methods:`);
       for (let i = 0; i < missingStable.length; i += 5) {
-        console.log(`  ${missingStable.slice(i, i + 5).join(", ")}`);
+        yield* Console.log(`  ${missingStable.slice(i, i + 5).join(", ")}`);
       }
     }
     if (missingDeprecated.length > 0) {
-      console.log(`Missing deprecated methods:`);
+      yield* Console.log(`Missing deprecated methods:`);
       for (let i = 0; i < missingDeprecated.length; i += 5) {
-        console.log(`  ${missingDeprecated.slice(i, i + 5).join(", ")}`);
+        yield* Console.log(`  ${missingDeprecated.slice(i, i + 5).join(", ")}`);
       }
     }
-    console.log();
+    yield* Console.log("");
   }
 
-  console.log("=============================");
-  console.log(
+  yield* Console.log("=============================");
+  yield* Console.log(
     `Total Stable Coverage:     ${((totalEpStable / totalPwStable) * 100).toFixed(1)}% (${totalEpStable}/${totalPwStable})`,
   );
-  console.log(
+  yield* Console.log(
     `Total Deprecated Coverage: ${((totalEpDeprecated / totalPwDeprecated) * 100).toFixed(1)}% (${totalEpDeprecated}/${totalPwDeprecated})`,
   );
-  console.log("=============================\n");
-}
+  yield* Console.log("=============================\n");
+});
 
-main().catch(console.error);
+const command = Command.make("coverage", {}, () => runCoverage);
+
+const run = Command.run(command, {
+  name: "effect-playwright-coverage",
+  version: "0.1.0",
+});
+
+run(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
