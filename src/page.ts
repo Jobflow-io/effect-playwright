@@ -596,7 +596,18 @@ export interface PlaywrightPageService {
    * @since 0.3.0
    */
   readonly context: () => PlaywrightBrowserContextService;
-
+  /**
+   * Returns the opener for popup pages and `Option.none` for others.
+   *
+   * If the opener has been closed already, returns `Option.none`.
+   *
+   * @see {@link Page.opener}
+   * @since 0.3.0
+   */
+  readonly opener: Effect.Effect<
+    Option.Option<PlaywrightPageService>,
+    PlaywrightError
+  >;
   /**
    * Returns a frame matching the specified criteria.
    *
@@ -622,7 +633,13 @@ export interface PlaywrightPageService {
     ReadonlyArray<typeof PlaywrightFrame.Service>,
     PlaywrightError
   >;
-
+  /**
+   * The page's main frame. Page is guaranteed to have a main frame which persists during navigations.
+   *
+   * @see {@link Page.mainFrame}
+   * @since 0.3.0
+   */
+  readonly mainFrame: () => typeof PlaywrightFrame.Service;
   /**
    * Creates a stream of the given event from the page.
    *
@@ -709,12 +726,17 @@ export class PlaywrightPage extends Context.Tag(
         PlaywrightLocator.make(page.getByTitle(text, options)),
       url: () => page.url(),
       context: () => PlaywrightBrowserContext.make(page.context()),
+      opener: use((p) => p.opener()).pipe(
+        Effect.map(Option.fromNullable),
+        Effect.map(Option.map(PlaywrightPage.make)),
+      ),
       consoleMessages: use((p) => p.consoleMessages()),
       frame: (frameSelector) =>
         Option.fromNullable(page.frame(frameSelector)).pipe(
           Option.map(PlaywrightFrame.make),
         ),
       frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
+      mainFrame: () => PlaywrightFrame.make(page.mainFrame()),
       reload: use((p) => p.reload()),
       goBack: (options) =>
         use((p) => p.goBack(options)).pipe(

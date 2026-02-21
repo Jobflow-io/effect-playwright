@@ -714,4 +714,44 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(page.isClosed(), true);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("mainFrame should return the main frame", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      const mainFrame = page.mainFrame();
+      assert.ok(mainFrame);
+
+      const url = mainFrame.url();
+      assert.strictEqual(url, "about:blank");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("opener should return the opener page", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("about:blank");
+
+      const popupFiber = yield* page
+        .eventStream("popup")
+        .pipe(Stream.runHead, Effect.fork);
+
+      yield* page.evaluate(() => {
+        window.open("about:blank");
+      });
+
+      const popupOpt = yield* Fiber.join(popupFiber);
+      const popup = Option.getOrThrow(popupOpt);
+
+      const openerOpt = yield* popup.opener;
+      assert(Option.isSome(openerOpt), "Opener should be Some");
+
+      const opener = Option.getOrThrow(openerOpt);
+      const url = opener.url();
+      assert.strictEqual(url, "about:blank");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });
