@@ -540,6 +540,54 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("pageerror event should work", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("about:blank");
+
+      const errorFiber = yield* page
+        .eventStream("pageerror")
+        .pipe(Stream.runHead, Effect.fork);
+
+      yield* page.evaluate(() => {
+        setTimeout(() => {
+          throw new Error("Test Error");
+        }, 0);
+      });
+
+      const errorOpt = yield* Fiber.join(errorFiber);
+      const error = Option.getOrThrow(errorOpt);
+      assert.strictEqual(error.message, "Test Error");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("pageErrors should return all page errors", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("about:blank");
+
+      const errorFiber = yield* page
+        .eventStream("pageerror")
+        .pipe(Stream.runHead, Effect.fork);
+
+      yield* page.evaluate(() => {
+        setTimeout(() => {
+          throw new Error("Test Error");
+        }, 0);
+      });
+
+      yield* Fiber.join(errorFiber);
+
+      const errors = yield* page.pageErrors;
+      assert.ok(errors.length >= 1);
+      assert.strictEqual(errors[0].message, "Test Error");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("context should return the associated browser context", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;

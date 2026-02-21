@@ -590,6 +590,19 @@ export interface PlaywrightPageService {
   >;
 
   /**
+   * Returns all errors that have been thrown in the page.
+   *
+   * @example
+   * ```ts
+   * const pageErrors = yield* page.pageErrors;
+   * ```
+   *
+   * @see {@link Page.pageErrors}
+   * @since 0.3.0
+   */
+  readonly pageErrors: Effect.Effect<ReadonlyArray<Error>, PlaywrightError>;
+
+  /**
    * Get the browser context that the page belongs to.
    *
    * @see {@link Page.context}
@@ -731,6 +744,8 @@ export class PlaywrightPage extends Context.Tag(
         Effect.map(Option.map(PlaywrightPage.make)),
       ),
       consoleMessages: use((p) => p.consoleMessages()),
+      pageErrors: use((p) => p.pageErrors()),
+
       frame: (frameSelector) =>
         Option.fromNullable(page.frame(frameSelector)).pipe(
           Option.map(PlaywrightFrame.make),
