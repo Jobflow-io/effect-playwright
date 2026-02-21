@@ -29,6 +29,7 @@ import type { PlaywrightError } from "./errors";
 import { PlaywrightFrame } from "./frame";
 import { PlaywrightKeyboard, type PlaywrightKeyboardService } from "./keyboard";
 import { PlaywrightLocator } from "./locator";
+import { PlaywrightMouse, type PlaywrightMouseService } from "./mouse";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
 import { useHelper } from "./utils";
 
@@ -96,6 +97,12 @@ export interface PlaywrightPageService {
    * @since 0.3.0
    */
   readonly keyboard: PlaywrightKeyboardService;
+  /**
+   * Access the mouse.
+   *
+   * @since 0.3.0
+   */
+  readonly mouse: PlaywrightMouseService;
   /**
    * Navigates the page to the given URL.
    *
@@ -634,6 +641,7 @@ export class PlaywrightPage extends Context.Tag(
     return PlaywrightPage.of({
       clock: PlaywrightClock.make(page.clock),
       keyboard: PlaywrightKeyboard.make(page.keyboard),
+      mouse: PlaywrightMouse.make(page.mouse),
       goto: (url, options) => use((p) => p.goto(url, options)),
       waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
       waitForLoadState: (state, options) =>

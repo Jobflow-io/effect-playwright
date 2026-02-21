@@ -392,6 +392,32 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(value, "Hello Effect");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("mouse should allow dispatching events", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.evaluate(() => {
+        document.body.innerHTML =
+          '<div id="target" style="width: 100px; height: 100px; background: red;"></div>';
+        const target = document.getElementById("target");
+        if (target) {
+          target.addEventListener("click", () => {
+            (window as TestWindow).clicked = true;
+          });
+        }
+      });
+
+      yield* page.mouse.click(50, 50);
+
+      const clicked = yield* page.evaluate(
+        () => (window as TestWindow).clicked,
+      );
+      assert.strictEqual(clicked, true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("screenshot should capture an image", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
