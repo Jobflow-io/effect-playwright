@@ -82,10 +82,14 @@ type PageWithPatchedEvents = PatchedEvents<Page, PageEvents>;
 export interface PlaywrightPageService {
   /**
    * Access the clock.
+   *
+   * @since 0.3.0
    */
   readonly clock: PlaywrightClockService;
   /**
    * Access the keyboard.
+   *
+   * @since 0.3.0
    */
   readonly keyboard: PlaywrightKeyboardService;
   /**
@@ -159,7 +163,7 @@ export interface PlaywrightPageService {
    * - Whenever the child frame is attached or navigated. In this case, the script is evaluated in the context of the newly attached frame.
    *
    * @see {@link Page.addInitScript}
-   * @since 0.2.0
+   * @since 0.3.0
    */
   readonly addInitScript: (
     script: Parameters<Page["addInitScript"]>[0],
@@ -169,7 +173,7 @@ export interface PlaywrightPageService {
    * Adds a `<script>` tag into the page with the desired url or content.
    *
    * @see {@link Page.addScriptTag}
-   * @since 0.2.0
+   * @since 0.3.0
    */
   readonly addScriptTag: (
     options: Parameters<Page["addScriptTag"]>[0],
@@ -178,7 +182,7 @@ export interface PlaywrightPageService {
    * Adds a `<link rel="stylesheet">` tag into the page with the desired url or a `<style type="text/css">` tag with the content.
    *
    * @see {@link Page.addStyleTag}
-   * @since 0.2.0
+   * @since 0.3.0
    */
   readonly addStyleTag: (
     options: Parameters<Page["addStyleTag"]>[0],
@@ -271,7 +275,7 @@ export interface PlaywrightPageService {
    * ```
    *
    * @see {@link Page.screenshot}
-   * @since 0.2.0
+   * @since 0.3.0
    */
   readonly screenshot: (
     options?: Parameters<Page["screenshot"]>[0],
