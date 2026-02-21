@@ -389,6 +389,36 @@ export interface PlaywrightPageService {
   readonly getByTestId: (
     testId: Parameters<Page["getByTestId"]>[0],
   ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given alt text.
+   *
+   * @see {@link Page.getByAltText}
+   * @since 0.3.0
+   */
+  readonly getByAltText: (
+    text: Parameters<Page["getByAltText"]>[0],
+    options?: Parameters<Page["getByAltText"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given placeholder.
+   *
+   * @see {@link Page.getByPlaceholder}
+   * @since 0.3.0
+   */
+  readonly getByPlaceholder: (
+    text: Parameters<Page["getByPlaceholder"]>[0],
+    options?: Parameters<Page["getByPlaceholder"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given title.
+   *
+   * @see {@link Page.getByTitle}
+   * @since 0.3.0
+   */
+  readonly getByTitle: (
+    text: Parameters<Page["getByTitle"]>[0],
+    options?: Parameters<Page["getByTitle"]>[1],
+  ) => typeof PlaywrightLocator.Service;
 
   /**
    * Captures a screenshot of the page.
@@ -617,6 +647,12 @@ export class PlaywrightPage extends Context.Tag(
       getByLabel: (label, options) =>
         PlaywrightLocator.make(page.getByLabel(label, options)),
       getByTestId: (testId) => PlaywrightLocator.make(page.getByTestId(testId)),
+      getByAltText: (text, options) =>
+        PlaywrightLocator.make(page.getByAltText(text, options)),
+      getByPlaceholder: (text, options) =>
+        PlaywrightLocator.make(page.getByPlaceholder(text, options)),
+      getByTitle: (text, options) =>
+        PlaywrightLocator.make(page.getByTitle(text, options)),
       url: () => page.url(),
       context: () => PlaywrightBrowserContext.make(page.context()),
       consoleMessages: use((p) => p.consoleMessages()),

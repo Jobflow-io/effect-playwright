@@ -174,6 +174,9 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
           <label for="input">Label Text</label>
           <input id="input" />
           <div data-testid="test-id">Test Content</div>
+          <img alt="Alt Text" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
+          <input placeholder="Placeholder Text" />
+          <div title="Title Text">Hover Me</div>
         `;
       });
 
@@ -188,6 +191,19 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       const byTestId = yield* page.getByTestId("test-id").textContent();
       assert(byTestId === "Test Content");
+
+      const byAltText = yield* page
+        .getByAltText("Alt Text")
+        .getAttribute("alt");
+      assert(byAltText === "Alt Text");
+
+      const byPlaceholder = yield* page
+        .getByPlaceholder("Placeholder Text")
+        .getAttribute("placeholder");
+      assert(byPlaceholder === "Placeholder Text");
+
+      const byTitle = yield* page.getByTitle("Title Text").textContent();
+      assert(byTitle === "Hover Me");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
