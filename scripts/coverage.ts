@@ -62,11 +62,16 @@ function isRelevantProperty(name: string) {
 }
 
 function isDeprecated(node: JSDocableNode): boolean {
-  return node
-    .getJsDocs()
-    .some((doc) =>
-      doc.getTags().some((tag) => tag.getTagName() === "deprecated"),
-    );
+  return node.getJsDocs().some((doc) => {
+    const hasDeprecatedTag = doc
+      .getTags()
+      .some((tag) => tag.getTagName() === "deprecated");
+    const docText = doc.getText();
+
+    // some methods are "soft-deprecated", i.e. they are still available but discouraged
+    const hasLocatorNote = docText.includes("**NOTE** Use locator-based");
+    return hasDeprecatedTag || hasLocatorNote;
+  });
 }
 
 const runCoverage = Effect.gen(function* () {
