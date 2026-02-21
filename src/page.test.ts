@@ -25,6 +25,17 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("setContent should set the page content", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.setContent("<h1>Hello World</h1>");
+      const content = yield* page.content;
+      assert(content.includes("<h1>Hello World</h1>"));
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("title should return the page title", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;

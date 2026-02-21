@@ -129,6 +129,17 @@ export interface PlaywrightPageService {
     options?: Parameters<Page["goto"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
+   * This method internally calls [document.write()](https://developer.mozilla.org/en-US/docs/Web/API/Document/write),
+   * inheriting all its specific characteristics and behaviors.
+   *
+   * @see {@link Page.setContent}
+   * @since 0.3.0
+   */
+  readonly setContent: (
+    html: string,
+    options?: Parameters<Page["setContent"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
    * Waits for the page to navigate to the given URL.
    *
    * @example
@@ -719,6 +730,7 @@ export class PlaywrightPage extends Context.Tag(
       mouse: PlaywrightMouse.make(page.mouse),
       touchscreen: PlaywrightTouchscreen.make(page.touchscreen),
       goto: (url, options) => use((p) => p.goto(url, options)),
+      setContent: (html, options) => use((p) => p.setContent(html, options)),
       waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
       waitForLoadState: (state, options) =>
         use((p) => p.waitForLoadState(state, options)),
