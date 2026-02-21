@@ -200,6 +200,18 @@ export interface PlaywrightPageService {
    */
   readonly title: Effect.Effect<string, PlaywrightError>;
   /**
+   * Returns the full HTML contents of the page, including the doctype.
+   *
+   * @example
+   * ```ts
+   * const html = yield* page.content;
+   * ```
+   *
+   * @see {@link Page.content}
+   * @since 0.3.0
+   */
+  readonly content: Effect.Effect<string, PlaywrightError>;
+  /**
    * A generic utility to execute any promise-based method on the underlying Playwright `Page`.
    * Can be used to access any Page functionality not directly exposed by this service.
    *
@@ -400,6 +412,7 @@ export class PlaywrightPage extends Context.Tag(
       waitForLoadState: (state, options) =>
         use((p) => p.waitForLoadState(state, options)),
       title: use((p) => p.title()),
+      content: use((p) => p.content()),
       evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
         use((p) => p.evaluate<R, Arg>(f, arg as Arg)),
       addInitScript: (script, arg) => use((p) => p.addInitScript(script, arg)),

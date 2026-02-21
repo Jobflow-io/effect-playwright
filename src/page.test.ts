@@ -36,6 +36,19 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("content should return the page content", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto(
+        "data:text/html,<html><head><title>Content</title></head><body><h1>Hello</h1></body></html>",
+      );
+      const content = yield* page.content;
+      assert(content.includes("<h1>Hello</h1>"));
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("click should click an element", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
