@@ -494,6 +494,34 @@ export interface PlaywrightPageService {
    */
   readonly reload: Effect.Effect<void, PlaywrightError>;
   /**
+   * Navigate to the previous page in history.
+   *
+   * @example
+   * ```ts
+   * const response = yield* page.goBack();
+   * ```
+   *
+   * @see {@link Page.goBack}
+   * @since 0.3.0
+   */
+  readonly goBack: (
+    options?: Parameters<Page["goBack"]>[0],
+  ) => Effect.Effect<Option.Option<PlaywrightResponse>, PlaywrightError>;
+  /**
+   * Navigate to the next page in history.
+   *
+   * @example
+   * ```ts
+   * const response = yield* page.goForward();
+   * ```
+   *
+   * @see {@link Page.goForward}
+   * @since 0.3.0
+   */
+  readonly goForward: (
+    options?: Parameters<Page["goForward"]>[0],
+  ) => Effect.Effect<Option.Option<PlaywrightResponse>, PlaywrightError>;
+  /**
    * Brings page to front (activates tab).
    *
    * @see {@link Page.bringToFront}
@@ -662,6 +690,16 @@ export class PlaywrightPage extends Context.Tag(
         ),
       frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
       reload: use((p) => p.reload()),
+      goBack: (options) =>
+        use((p) => p.goBack(options)).pipe(
+          Effect.map(Option.fromNullable),
+          Effect.map(Option.map(PlaywrightResponse.make)),
+        ),
+      goForward: (options) =>
+        use((p) => p.goForward(options)).pipe(
+          Effect.map(Option.fromNullable),
+          Effect.map(Option.map(PlaywrightResponse.make)),
+        ),
       bringToFront: use((p) => p.bringToFront()),
       close: use((p) => p.close()),
       screenshot: (options) => use((p) => p.screenshot(options)),

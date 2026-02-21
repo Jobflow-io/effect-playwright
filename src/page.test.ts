@@ -275,6 +275,26 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("goBack and goForward should navigate through history", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      const url1 = "data:text/html,<h1>Page 1</h1>";
+      yield* page.goto(url1);
+
+      const url2 = "data:text/html,<h1>Page 2</h1>";
+      yield* page.goto(url2);
+      assert.strictEqual(page.url(), url2, "URL should be updated to url2");
+
+      yield* page.goBack();
+      assert.strictEqual(page.url(), url1, "URL should be updated to url1");
+
+      yield* page.goForward();
+      assert.strictEqual(page.url(), url2, "URL should be updated to url2");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("clock should allow fast forwarding time", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
