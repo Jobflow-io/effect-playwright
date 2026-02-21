@@ -182,6 +182,13 @@ export interface PlaywrightPageService {
     viewportSize: Parameters<Page["setViewportSize"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
+   * Returns the viewport size.
+   *
+   * @see {@link Page.viewportSize}
+   * @since 0.3.0
+   */
+  readonly viewportSize: () => Option.Option<{ width: number; height: number }>;
+  /**
    * Waits for the page to navigate to the given URL.
    *
    * @example
@@ -781,6 +788,7 @@ export class PlaywrightPage extends Context.Tag(
         use((p) => p.setExtraHTTPHeaders(headers)),
       setViewportSize: (viewportSize) =>
         use((p) => p.setViewportSize(viewportSize)),
+      viewportSize: () => Option.fromNullable(page.viewportSize()),
       waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
       waitForLoadState: (state, options) =>
         use((p) => p.waitForLoadState(state, options)),

@@ -853,6 +853,21 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("viewportSize should return the current viewport size", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.setViewportSize({ width: 600, height: 400 });
+      const sizeOpt = page.viewportSize();
+      assert(Option.isSome(sizeOpt));
+      const size = Option.getOrThrow(sizeOpt);
+
+      assert.strictEqual(size.width, 600);
+      assert.strictEqual(size.height, 400);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("setExtraHTTPHeaders should not crash", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
