@@ -394,4 +394,18 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(color, "rgb(255, 0, 0)");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+  it.scoped("bringToFront should bring the page to the front", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const context = yield* browser.newContext();
+      const page1 = yield* context.newPage;
+      const page2 = yield* context.newPage;
+
+      yield* page1.bringToFront;
+      yield* page2.bringToFront;
+
+      // Ensure no errors are thrown
+      assert.ok(true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });

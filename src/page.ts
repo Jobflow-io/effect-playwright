@@ -285,6 +285,13 @@ export interface PlaywrightPageService {
    */
   readonly reload: Effect.Effect<void, PlaywrightError>;
   /**
+   * Brings page to front (activates tab).
+   *
+   * @see {@link Page.bringToFront}
+   * @since 0.3.0
+   */
+  readonly bringToFront: Effect.Effect<void, PlaywrightError>;
+  /**
    * Closes the page.
    *
    * @see {@link Page.close}
@@ -390,6 +397,7 @@ export class PlaywrightPage extends Context.Tag(
       url: () => page.url(),
       frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
       reload: use((p) => p.reload()),
+      bringToFront: use((p) => p.bringToFront()),
       close: use((p) => p.close()),
       screenshot: (options) => use((p) => p.screenshot(options)),
       click: (selector, options) => use((p) => p.click(selector, options)),
