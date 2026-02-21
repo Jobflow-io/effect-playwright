@@ -546,6 +546,13 @@ export interface PlaywrightPageService {
    */
   readonly bringToFront: Effect.Effect<void, PlaywrightError>;
   /**
+   * Pauses the script execution.
+   *
+   * @see {@link Page.pause}
+   * @since 0.3.0
+   */
+  readonly pause: Effect.Effect<void, PlaywrightError>;
+  /**
    * Closes the page.
    *
    * @see {@link Page.close}
@@ -764,6 +771,7 @@ export class PlaywrightPage extends Context.Tag(
           Effect.map(Option.map(PlaywrightResponse.make)),
         ),
       bringToFront: use((p) => p.bringToFront()),
+      pause: use((p) => p.pause()),
       close: use((p) => p.close()),
       isClosed: () => page.isClosed(),
       screenshot: (options) => use((p) => p.screenshot(options)),
