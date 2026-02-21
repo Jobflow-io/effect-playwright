@@ -836,4 +836,56 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(url, "about:blank");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("setViewportSize should update viewport dimensions", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.setViewportSize({ width: 600, height: 400 });
+      const size = yield* page.evaluate(() => ({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      }));
+
+      assert.strictEqual(size.width, 600);
+      assert.strictEqual(size.height, 400);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("setExtraHTTPHeaders should not crash", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.setExtraHTTPHeaders({ "x-custom-header": "test-value" });
+      assert.ok(true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("setDefaultNavigationTimeout should not crash", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.setDefaultNavigationTimeout(1000);
+      assert.ok(true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("setDefaultTimeout should influence timeouts", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.setDefaultTimeout(1);
+
+      const result = yield* page
+        .locator("#non-existent")
+        .click()
+        .pipe(Effect.flip);
+
+      assert.strictEqual(result._tag, "PlaywrightError");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });

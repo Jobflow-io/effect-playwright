@@ -140,6 +140,48 @@ export interface PlaywrightPageService {
     options?: Parameters<Page["setContent"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
+   * This setting will change the default maximum navigation time for the following methods:
+   * - {@link PlaywrightPageService.goBack}
+   * - {@link PlaywrightPageService.goForward}
+   * - {@link PlaywrightPageService.goto}
+   * - {@link PlaywrightPageService.reload}
+   * - {@link PlaywrightPageService.setContent}
+   * - {@link PlaywrightPageService.waitForURL}
+   *
+   * @see {@link Page.setDefaultNavigationTimeout}
+   * @since 0.3.0
+   */
+  readonly setDefaultNavigationTimeout: (
+    timeout: Parameters<Page["setDefaultNavigationTimeout"]>[0],
+  ) => Effect.Effect<void>;
+  /**
+   * This setting will change the default maximum time for all the methods accepting `timeout` option.
+   *
+   * @see {@link Page.setDefaultTimeout}
+   * @since 0.3.0
+   */
+  readonly setDefaultTimeout: (
+    timeout: Parameters<Page["setDefaultTimeout"]>[0],
+  ) => Effect.Effect<void>;
+  /**
+   * The extra HTTP headers will be sent with every request the page initiates.
+   *
+   * @see {@link Page.setExtraHTTPHeaders}
+   * @since 0.3.0
+   */
+  readonly setExtraHTTPHeaders: (
+    headers: Parameters<Page["setExtraHTTPHeaders"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Sets the viewport size for the page.
+   *
+   * @see {@link Page.setViewportSize}
+   * @since 0.3.0
+   */
+  readonly setViewportSize: (
+    viewportSize: Parameters<Page["setViewportSize"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
    * Waits for the page to navigate to the given URL.
    *
    * @example
@@ -731,6 +773,14 @@ export class PlaywrightPage extends Context.Tag(
       touchscreen: PlaywrightTouchscreen.make(page.touchscreen),
       goto: (url, options) => use((p) => p.goto(url, options)),
       setContent: (html, options) => use((p) => p.setContent(html, options)),
+      setDefaultNavigationTimeout: (timeout) =>
+        Effect.sync(() => page.setDefaultNavigationTimeout(timeout)),
+      setDefaultTimeout: (timeout) =>
+        Effect.sync(() => page.setDefaultTimeout(timeout)),
+      setExtraHTTPHeaders: (headers) =>
+        use((p) => p.setExtraHTTPHeaders(headers)),
+      setViewportSize: (viewportSize) =>
+        use((p) => p.setViewportSize(viewportSize)),
       waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
       waitForLoadState: (state, options) =>
         use((p) => p.waitForLoadState(state, options)),
