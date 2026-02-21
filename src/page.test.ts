@@ -408,4 +408,24 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.ok(true);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("consoleMessages should return console messages", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("about:blank");
+
+      yield* page.evaluate(() => {
+        console.log("Hello from page");
+        console.warn("Warning from page");
+      });
+
+      const messages = yield* page.consoleMessages;
+
+      assert.strictEqual(messages.length, 2);
+      assert.strictEqual(messages[0].text(), "Hello from page");
+      assert.strictEqual(messages[1].text(), "Warning from page");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });

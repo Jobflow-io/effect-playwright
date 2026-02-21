@@ -317,6 +317,22 @@ export interface PlaywrightPageService {
   readonly url: () => string;
 
   /**
+   * Returns all messages that have been logged to the console.
+   *
+   * @example
+   * ```ts
+   * const consoleMessages = yield* page.consoleMessages;
+   * ```
+   *
+   * @see {@link Page.consoleMessages}
+   * @since 0.3.0
+   */
+  readonly consoleMessages: Effect.Effect<
+    ReadonlyArray<ConsoleMessage>,
+    PlaywrightError
+  >;
+
+  /**
    * Returns all frames attached to the page.
    *
    * @see {@link Page.frames}
@@ -399,6 +415,7 @@ export class PlaywrightPage extends Context.Tag(
         PlaywrightLocator.make(page.getByLabel(label, options)),
       getByTestId: (testId) => PlaywrightLocator.make(page.getByTestId(testId)),
       url: () => page.url(),
+      consoleMessages: use((p) => p.consoleMessages()),
       frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
       reload: use((p) => p.reload()),
       bringToFront: use((p) => p.bringToFront()),
