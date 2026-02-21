@@ -11,7 +11,7 @@ Use `pnpm` for all package management tasks.
 - **Run All Tests:** `pnpm test` (uses `vitest`)
 - **Run Single Test File:** `pnpm test src/path/to/test.ts`
 - **Type Check:** `pnpm type-check` (runs `tsc --noEmit`)
-- **Format:** `pnpm format-fix` (uses `biome format --fix`)
+- **Format:** `pnpm format` (uses `biome format --fix`)
 - **Generate Docs:** `pnpm generate-docs`
 
 ## 2. Code Style & Conventions
