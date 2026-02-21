@@ -12,6 +12,10 @@ import type {
   WebSocket,
   Worker,
 } from "playwright-core";
+import {
+  PlaywrightBrowserContext,
+  type PlaywrightBrowserContextService,
+} from "./browser-context";
 import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import {
   PlaywrightDialog,
@@ -345,6 +349,14 @@ export interface PlaywrightPageService {
   >;
 
   /**
+   * Get the browser context that the page belongs to.
+   *
+   * @see {@link Page.context}
+   * @since 0.3.0
+   */
+  readonly context: () => PlaywrightBrowserContextService;
+
+  /**
    * Returns all frames attached to the page.
    *
    * @see {@link Page.frames}
@@ -428,6 +440,7 @@ export class PlaywrightPage extends Context.Tag(
         PlaywrightLocator.make(page.getByLabel(label, options)),
       getByTestId: (testId) => PlaywrightLocator.make(page.getByTestId(testId)),
       url: () => page.url(),
+      context: () => PlaywrightBrowserContext.make(page.context()),
       consoleMessages: use((p) => p.consoleMessages()),
       frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
       reload: use((p) => p.reload()),

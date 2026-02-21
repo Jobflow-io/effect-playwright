@@ -441,4 +441,19 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(messages[1].text(), "Warning from page");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("context should return the associated browser context", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const context = yield* browser.newContext();
+      const page = yield* context.newPage;
+
+      const pageContext = page.context();
+
+      // we can't do direct reference equality because they are wrapper objects,
+      // but we can check if it has the right methods and doesn't crash
+      const pages = yield* pageContext.pages;
+      assert.strictEqual(pages.length, 1);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });
