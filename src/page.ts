@@ -1,4 +1,4 @@
-import { Context, Effect, identity, Runtime, Stream } from "effect";
+import { Context, Effect, identity, Option, Runtime, Stream } from "effect";
 import type {
   ConsoleMessage,
   Dialog,
@@ -516,6 +516,21 @@ export interface PlaywrightPageService {
   readonly context: () => PlaywrightBrowserContextService;
 
   /**
+   * Returns a frame matching the specified criteria.
+   *
+   * @example
+   * ```ts
+   * const frame = Option.getOrNull(page.frame("frame-name"));
+   * ```
+   *
+   * @see {@link Page.frame}
+   * @since 0.3.0
+   */
+  readonly frame: (
+    frameSelector: Parameters<Page["frame"]>[0],
+  ) => Option.Option<typeof PlaywrightFrame.Service>;
+
+  /**
    * Returns all frames attached to the page.
    *
    * @see {@link Page.frames}
@@ -605,6 +620,10 @@ export class PlaywrightPage extends Context.Tag(
       url: () => page.url(),
       context: () => PlaywrightBrowserContext.make(page.context()),
       consoleMessages: use((p) => p.consoleMessages()),
+      frame: (frameSelector) =>
+        Option.fromNullable(page.frame(frameSelector)).pipe(
+          Option.map(PlaywrightFrame.make),
+        ),
       frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
       reload: use((p) => p.reload()),
       bringToFront: use((p) => p.bringToFront()),

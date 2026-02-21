@@ -1,5 +1,5 @@
 import { assert, layer } from "@effect/vitest";
-import { Effect, Fiber, Ref, Stream } from "effect";
+import { Effect, Fiber, Option, Ref, Stream } from "effect";
 import { chromium } from "playwright-core";
 import { PlaywrightBrowser } from "./browser";
 import { PlaywrightEnvironment } from "./experimental";
@@ -581,6 +581,26 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       assert.strictEqual(yield* Ref.get(ref), 1, "Ref value is 1");
       assert.strictEqual(result, 1, "Return value is 1");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("frame should return an Option of PlaywrightFrame", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.use((p) =>
+        p.setContent('<iframe name="test-frame" id="test-frame"></iframe>'),
+      );
+
+      const frameOpt = page.frame("test-frame");
+      assert(Option.isSome(frameOpt), "Frame should be Some");
+
+      const frameOptByName = page.frame({ name: "test-frame" });
+      assert(Option.isSome(frameOptByName), "Frame should be Some");
+
+      const nonExistentFrame = page.frame("foo");
+      assert(Option.isNone(nonExistentFrame), "Frame should be None");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });
