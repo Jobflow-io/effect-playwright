@@ -467,6 +467,19 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("pdf should capture a PDF", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("data:text/html,<h1>PDF Test</h1>");
+      const buffer = yield* page.pdf();
+
+      assert(Buffer.isBuffer(buffer));
+      assert(buffer.length > 0);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("addScriptTag should add a script tag to the page", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;

@@ -453,6 +453,19 @@ export interface PlaywrightPageService {
   ) => Effect.Effect<Buffer, PlaywrightError>;
 
   /**
+   * Returns the PDF buffer.
+   *
+   * `page.pdf()` generates a pdf of the page with `print` css media. To generate a pdf with `screen` media, call
+   * {@link PlaywrightPageService.emulateMedia} before calling `page.pdf()`.
+   *
+   * @see {@link Page.pdf}
+   * @since 0.3.0
+   */
+  readonly pdf: (
+    options?: Parameters<Page["pdf"]>[0],
+  ) => Effect.Effect<Buffer, PlaywrightError>;
+
+  /**
    * Clicks an element matching the given selector.
    *
    * @example
@@ -775,6 +788,7 @@ export class PlaywrightPage extends Context.Tag(
       close: use((p) => p.close()),
       isClosed: () => page.isClosed(),
       screenshot: (options) => use((p) => p.screenshot(options)),
+      pdf: (options) => use((p) => p.pdf(options)),
       dragAndDrop: (source, target, options) =>
         use((p) => p.dragAndDrop(source, target, options)),
       click: (selector, options) => use((p) => p.click(selector, options)),
