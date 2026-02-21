@@ -175,6 +175,15 @@ export interface PlaywrightPageService {
     options: Parameters<Page["addScriptTag"]>[0],
   ) => Effect.Effect<ElementHandle, PlaywrightError>;
   /**
+   * Adds a `<link rel="stylesheet">` tag into the page with the desired url or a `<style type="text/css">` tag with the content.
+   *
+   * @see {@link Page.addStyleTag}
+   * @since 0.2.0
+   */
+  readonly addStyleTag: (
+    options: Parameters<Page["addStyleTag"]>[0],
+  ) => Effect.Effect<ElementHandle, PlaywrightError>;
+  /**
    * Returns the page title.
    *
    * @example
@@ -368,6 +377,7 @@ export class PlaywrightPage extends Context.Tag(
         use((p) => p.evaluate<R, Arg>(f, arg as Arg)),
       addInitScript: (script, arg) => use((p) => p.addInitScript(script, arg)),
       addScriptTag: (options) => use((p) => p.addScriptTag(options)),
+      addStyleTag: (options) => use((p) => p.addStyleTag(options)),
       locator: (selector, options) =>
         PlaywrightLocator.make(page.locator(selector, options)),
       getByRole: (role, options) =>

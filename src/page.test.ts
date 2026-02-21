@@ -371,4 +371,27 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(magicValue, 42);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("addStyleTag should add a style tag to the page", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("about:blank");
+
+      yield* page.evaluate(() => {
+        document.body.innerHTML = '<div id="test-div">Hello</div>';
+      });
+
+      yield* page.addStyleTag({
+        content: "#test-div { color: rgb(255, 0, 0); }",
+      });
+
+      const color = yield* page.evaluate(() => {
+        const el = document.getElementById("test-div");
+        return el ? window.getComputedStyle(el).color : null;
+      });
+      assert.strictEqual(color, "rgb(255, 0, 0)");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });
