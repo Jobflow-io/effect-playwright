@@ -332,6 +332,23 @@ export interface PlaywrightPageService {
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
+   * This method changes the CSS media type through the media argument,
+   * and/or the 'prefers-colors-scheme' media feature, using the colorScheme argument.
+   *
+   * @example
+   * ```ts
+   * yield* page.emulateMedia({ colorScheme: "dark" });
+   * yield* page.emulateMedia({ media: "print" });
+   * ```
+   *
+   * @see {@link Page.emulateMedia}
+   * @since 0.3.0
+   */
+  readonly emulateMedia: (
+    options?: Parameters<Page["emulateMedia"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
    * Reloads the page.
    *
    * @see {@link Page.reload}
@@ -467,6 +484,7 @@ export class PlaywrightPage extends Context.Tag(
       dragAndDrop: (source, target, options) =>
         use((p) => p.dragAndDrop(source, target, options)),
       click: (selector, options) => use((p) => p.click(selector, options)),
+      emulateMedia: (options) => use((p) => p.emulateMedia(options)),
       eventStream: <K extends keyof PageEvents>(event: K) =>
         Stream.asyncPush<PageEvents[K]>((emit) =>
           Effect.acquireRelease(

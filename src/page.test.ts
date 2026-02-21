@@ -488,4 +488,29 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(magicValue, 42);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("emulateMedia should emulate media features", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("about:blank");
+
+      // emulate dark mode
+      yield* page.emulateMedia({ colorScheme: "dark" });
+
+      let isDark = yield* page.evaluate(
+        () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+      );
+      assert.strictEqual(isDark, true);
+
+      // emulate light mode
+      yield* page.emulateMedia({ colorScheme: "light" });
+
+      isDark = yield* page.evaluate(
+        () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+      );
+      assert.strictEqual(isDark, false);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });
