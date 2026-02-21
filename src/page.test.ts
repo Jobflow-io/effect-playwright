@@ -903,4 +903,25 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(result._tag, "PlaywrightError");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("workers should return the list of workers", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      const workerFiber = yield* page
+        .eventStream("worker")
+        .pipe(Stream.runHead, Effect.fork);
+
+      yield* page.goto(
+        "data:text/html,<script>new Worker(URL.createObjectURL(new Blob(['console.log(\"worker\")'], {type: 'application/javascript'})));</script>",
+      );
+
+      yield* Fiber.join(workerFiber);
+
+      const workers = page.workers();
+      assert(workers.length >= 1);
+      assert.strictEqual(typeof workers[0].url(), "string");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });

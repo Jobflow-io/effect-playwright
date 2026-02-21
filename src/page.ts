@@ -689,6 +689,13 @@ export interface PlaywrightPageService {
    * @since 0.3.0
    */
   readonly pageErrors: Effect.Effect<ReadonlyArray<Error>, PlaywrightError>;
+  /**
+   * Returns all workers.
+   *
+   * @see {@link Page.workers}
+   * @since 0.3.0
+   */
+  readonly workers: () => ReadonlyArray<PlaywrightWorker>;
 
   /**
    * Get the browser context that the page belongs to.
@@ -843,6 +850,7 @@ export class PlaywrightPage extends Context.Tag(
       ),
       consoleMessages: use((p) => p.consoleMessages()),
       pageErrors: use((p) => p.pageErrors()),
+      workers: () => page.workers().map(PlaywrightWorker.make),
 
       frame: (frameSelector) =>
         Option.fromNullable(page.frame(frameSelector)).pipe(
