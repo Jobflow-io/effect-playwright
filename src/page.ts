@@ -3,6 +3,7 @@ import type {
   ConsoleMessage,
   Dialog,
   Download,
+  ElementHandle,
   FileChooser,
   Frame,
   Page,
@@ -164,6 +165,15 @@ export interface PlaywrightPageService {
     script: Parameters<Page["addInitScript"]>[0],
     arg?: Parameters<Page["addInitScript"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Adds a `<script>` tag into the page with the desired url or content.
+   *
+   * @see {@link Page.addScriptTag}
+   * @since 0.2.0
+   */
+  readonly addScriptTag: (
+    options: Parameters<Page["addScriptTag"]>[0],
+  ) => Effect.Effect<ElementHandle, PlaywrightError>;
   /**
    * Returns the page title.
    *
@@ -357,6 +367,7 @@ export class PlaywrightPage extends Context.Tag(
       evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
         use((p) => p.evaluate<R, Arg>(f, arg as Arg)),
       addInitScript: (script, arg) => use((p) => p.addInitScript(script, arg)),
+      addScriptTag: (options) => use((p) => p.addScriptTag(options)),
       locator: (selector, options) =>
         PlaywrightLocator.make(page.locator(selector, options)),
       getByRole: (role, options) =>

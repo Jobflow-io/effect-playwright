@@ -355,4 +355,20 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert(buffer.length > 0);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("addScriptTag should add a script tag to the page", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.goto("about:blank");
+
+      yield* page.addScriptTag({ content: "window.magicValue = 42;" });
+
+      const magicValue = yield* page.evaluate(
+        () => (window as TestWindow).magicValue,
+      );
+      assert.strictEqual(magicValue, 42);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });
