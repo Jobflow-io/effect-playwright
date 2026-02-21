@@ -701,4 +701,17 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert(Option.isNone(nonExistentFrame), "Frame should be None");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("isClosed should return the closed state of the page", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      assert.strictEqual(page.isClosed(), false);
+
+      yield* page.close;
+
+      assert.strictEqual(page.isClosed(), true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });

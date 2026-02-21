@@ -552,6 +552,13 @@ export interface PlaywrightPageService {
    * @since 0.1.0
    */
   readonly close: Effect.Effect<void, PlaywrightError>;
+  /**
+   * Indicates that the page has been closed.
+   *
+   * @see {@link Page.isClosed}
+   * @since 0.3.0
+   */
+  readonly isClosed: () => boolean;
 
   /**
    * Returns the current URL of the page.
@@ -721,6 +728,7 @@ export class PlaywrightPage extends Context.Tag(
         ),
       bringToFront: use((p) => p.bringToFront()),
       close: use((p) => p.close()),
+      isClosed: () => page.isClosed(),
       screenshot: (options) => use((p) => p.screenshot(options)),
       dragAndDrop: (source, target, options) =>
         use((p) => p.dragAndDrop(source, target, options)),
