@@ -31,6 +31,10 @@ import { PlaywrightKeyboard, type PlaywrightKeyboardService } from "./keyboard";
 import { PlaywrightLocator } from "./locator";
 import { PlaywrightMouse, type PlaywrightMouseService } from "./mouse";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
+import {
+  PlaywrightTouchscreen,
+  type PlaywrightTouchscreenService,
+} from "./touchscreen";
 import { useHelper } from "./utils";
 
 interface PageEvents {
@@ -103,6 +107,12 @@ export interface PlaywrightPageService {
    * @since 0.3.0
    */
   readonly mouse: PlaywrightMouseService;
+  /**
+   * Access the touchscreen.
+   *
+   * @since 0.3.0
+   */
+  readonly touchscreen: PlaywrightTouchscreenService;
   /**
    * Navigates the page to the given URL.
    *
@@ -642,6 +652,7 @@ export class PlaywrightPage extends Context.Tag(
       clock: PlaywrightClock.make(page.clock),
       keyboard: PlaywrightKeyboard.make(page.keyboard),
       mouse: PlaywrightMouse.make(page.mouse),
+      touchscreen: PlaywrightTouchscreen.make(page.touchscreen),
       goto: (url, options) => use((p) => p.goto(url, options)),
       waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
       waitForLoadState: (state, options) =>

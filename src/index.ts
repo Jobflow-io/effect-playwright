@@ -29,3 +29,4 @@ export * from "./locator";
 export * from "./mouse";
 export * from "./page";
 export * from "./playwright";
+export * from "./touchscreen";

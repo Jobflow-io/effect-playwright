@@ -418,6 +418,42 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("touchscreen should allow dispatching events", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const context = yield* browser.newContext({ hasTouch: true });
+      const page = yield* context.newPage;
+
+      yield* page.evaluate(() => {
+        document.body.innerHTML =
+          '<div id="target" style="width: 100px; height: 100px; background: red;"></div>';
+        const target = document.getElementById("target");
+        if (target) {
+          target.addEventListener("touchstart", (e) => {
+            const win = window as TestWindow;
+            win.clicked = true;
+            win.clickCoords = {
+              x: e.touches[0].clientX,
+              y: e.touches[0].clientY,
+            };
+          });
+        }
+      });
+
+      yield* page.touchscreen.tap(50, 50);
+
+      const clicked = yield* page.evaluate(
+        () => (window as TestWindow).clicked,
+      );
+      assert.strictEqual(clicked, true);
+
+      const coords = yield* page.evaluate(
+        () => (window as TestWindow).clickCoords,
+      );
+      assert.deepStrictEqual(coords, { x: 50, y: 50 });
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("screenshot should capture an image", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
