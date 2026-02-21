@@ -1,5 +1,5 @@
 import { assert, layer } from "@effect/vitest";
-import { Effect, Fiber, Stream } from "effect";
+import { Effect, Fiber, Ref, Stream } from "effect";
 import { chromium } from "playwright-core";
 import { PlaywrightBrowser } from "./browser";
 import { PlaywrightEnvironment } from "./experimental";
@@ -511,6 +511,76 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => window.matchMedia("(prefers-color-scheme: dark)").matches,
       );
       assert.strictEqual(isDark, false);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped(
+    "exposeFunction should expose an function that runs an effect",
+    () =>
+      Effect.gen(function* () {
+        const browser = yield* PlaywrightBrowser;
+        const page = yield* browser.newPage();
+
+        const ref = yield* Ref.make(0);
+
+        yield* page.exposeFunction("myCustomEffect", () =>
+          Ref.updateAndGet(ref, (n) => n + 1),
+        );
+
+        const result = yield* page.evaluate(async () => {
+          // @ts-expect-error
+          return await window.myCustomEffect();
+        });
+
+        assert.strictEqual(yield* Ref.get(ref), 1, "Ref value is 1");
+        assert.strictEqual(result, 1, "Return value is 1");
+      }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("exposeFunction should work with Effect.fn", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      const ref = yield* Ref.make(0);
+
+      // Effect.fn usage
+      yield* page.exposeFunction(
+        "myCustomEffectFn",
+        Effect.fn(function* (num: number) {
+          return yield* Ref.updateAndGet(ref, (n) => n + num);
+        }),
+      );
+
+      const result = yield* page.evaluate(async () => {
+        // @ts-expect-error
+        return await window.myCustomEffectFn(15);
+      });
+
+      assert.strictEqual(yield* Ref.get(ref), 15, "Ref value is 15");
+      assert.strictEqual(result, 15, "Return value is 15");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("exposeEffect should expose an effect", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      const ref = yield* Ref.make(0);
+
+      yield* page.exposeEffect(
+        "myCustomEffect",
+        Ref.updateAndGet(ref, (n) => n + 1),
+      );
+
+      const result = yield* page.evaluate(async () => {
+        // @ts-expect-error
+        return await window.myCustomEffect();
+      });
+
+      assert.strictEqual(yield* Ref.get(ref), 1, "Ref value is 1");
+      assert.strictEqual(result, 1, "Return value is 1");
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });

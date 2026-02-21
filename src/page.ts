@@ -1,4 +1,4 @@
-import { Context, Effect, identity, Stream } from "effect";
+import { Context, Effect, identity, Runtime, Stream } from "effect";
 import type {
   ConsoleMessage,
   Dialog,
@@ -182,6 +182,114 @@ export interface PlaywrightPageService {
   readonly addScriptTag: (
     options: Parameters<Page["addScriptTag"]>[0],
   ) => Effect.Effect<ElementHandle, PlaywrightError>;
+  /**
+   * Adds a function called `name` on the `window` object of every frame in this page.
+   *
+   * The provided function must return an `Effect` which will be executed using the
+   * current runtime when the function is called from the browser context.
+   *
+   * If you don't require your function to have args you can use {@link exposeEffect} instead.
+   *
+   * @example
+   * ```ts
+   * import { Console, Effect } from "effect";
+   * import { PlaywrightBrowser } from "effect-playwright/browser";
+   *
+   * const program = Effect.gen(function* () {
+   *   const browser = yield* PlaywrightBrowser;
+   *   const page = yield* browser.newPage();
+   *
+   *   // Expose an Effect-based function to the browser
+   *   yield* page.exposeFunction("logMessage", (message: string) =>
+   *     Console.log(`Message from browser: ${message}`),
+   *   );
+   *
+   *   yield* page.evaluate(() => {
+   *     // Call the exposed function from the browser context
+   *     // @ts-expect-error
+   *     return window.logMessage("Hello from the other side!");
+   *   });
+   * });
+   * ```
+   *
+   * @example
+   * ```ts
+   * import { Context, Effect } from "effect";
+   * import { PlaywrightBrowser } from "effect-playwright/browser";
+   *
+   * // A custom Database service used in your Effect application
+   * class Database extends Context.Tag("Database")<
+   *   Database,
+   *   { readonly insertProduct: (name: string, price: number) => Effect.Effect<void> }
+   * >() {}
+   *
+   * const program = Effect.gen(function* () {
+   *   const browser = yield* PlaywrightBrowser;
+   *   const page = yield* browser.newPage();
+   *
+   *   // Expose a function that seamlessly accesses Effect Context using Effect.fn
+   *   yield* page.exposeFunction(
+   *     "saveProduct",
+   *     Effect.fn(function* (name: string, price: number) {
+   *       const db = yield* Database;
+   *       yield* db.insertProduct(name, price);
+   *     }),
+   *   );
+   *
+   *   yield* page.evaluate(async () => {
+   *     // Extract data from the page and save it
+   *     const items = document.querySelectorAll(".product");
+   *     for (const item of items) {
+   *       const name = item.querySelector(".name")?.textContent || "Unknown";
+   *       const price = Number(item.querySelector(".price")?.textContent || 0);
+   *
+   *       // Call the Effect function directly from the browser
+   *       // @ts-expect-error
+   *       await window.saveProduct(name, price);
+   *     }
+   *   });
+   * });
+   * ```
+   *
+   *
+   * @see {@link Page.exposeFunction}
+   * @since 0.3.0
+   */
+  readonly exposeFunction: <A, E, R, Args extends unknown[]>(
+    name: Parameters<Page["exposeFunction"]>[0],
+    playwrightFunction: (...args: Args) => Effect.Effect<A, E, R>,
+  ) => Effect.Effect<void, PlaywrightError, R>;
+
+  /**
+   * Identical to {@link exposeFunction} but meant to be used with a static `Effect`.
+   * This is useful when the exposed function does not need any arguments and just
+   * runs a pre-defined effect in the application context.
+   *
+   * @example
+   * ```ts
+   * import { Console, Effect } from "effect";
+   * import { PlaywrightBrowser } from "effect-playwright/browser";
+   *
+   * const program = Effect.gen(function* () {
+   *   const browser = yield* PlaywrightBrowser;
+   *   const page = yield* browser.newPage();
+   *
+   *   yield* page.exposeEffect("ping", Console.log("pong"));
+   *
+   *   yield* page.evaluate(async () => {
+   *     // @ts-expect-error
+   *     await window.ping();
+   *   });
+   * });
+   * ```
+   *
+   * @see {@link Page.exposeFunction}
+   * @since 0.3.0
+   */
+  readonly exposeEffect: <A, E, R>(
+    name: Parameters<Page["exposeFunction"]>[0],
+    playwrightFunction: Effect.Effect<A, E, R>,
+  ) => Effect.Effect<void, PlaywrightError, R>;
   /**
    * Adds a `<link rel="stylesheet">` tag into the page with the desired url or a `<style type="text/css">` tag with the content.
    *
@@ -464,6 +572,27 @@ export class PlaywrightPage extends Context.Tag(
       addInitScript: (script, arg) => use((p) => p.addInitScript(script, arg)),
       addScriptTag: (options) => use((p) => p.addScriptTag(options)),
       addStyleTag: (options) => use((p) => p.addStyleTag(options)),
+      exposeFunction: <A, E, R, Args extends unknown[]>(
+        name: string,
+        effectFn: (...args: Args) => Effect.Effect<A, E, R>,
+      ) =>
+        Effect.runtime<R>().pipe(
+          Effect.map((r) => Runtime.runPromise(r)),
+          Effect.flatMap((runPromise) =>
+            use((p) =>
+              p.exposeFunction(name, (...args: Args) =>
+                runPromise(effectFn(...args)),
+              ),
+            ),
+          ),
+        ),
+      exposeEffect: <A, E, R>(name: string, effectFn: Effect.Effect<A, E, R>) =>
+        Effect.runtime<R>().pipe(
+          Effect.map((r) => Runtime.runPromise(r)),
+          Effect.flatMap((runPromise) =>
+            use((p) => p.exposeFunction(name, () => runPromise(effectFn))),
+          ),
+        ),
       locator: (selector, options) =>
         PlaywrightLocator.make(page.locator(selector, options)),
       getByRole: (role, options) =>
