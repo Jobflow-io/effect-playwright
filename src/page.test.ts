@@ -295,6 +295,16 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("requestGC should execute without error", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.requestGC;
+      assert.ok(true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("clock should allow fast forwarding time", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;

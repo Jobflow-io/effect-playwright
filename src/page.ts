@@ -552,6 +552,14 @@ export interface PlaywrightPageService {
     options?: Parameters<Page["goForward"]>[0],
   ) => Effect.Effect<Option.Option<PlaywrightResponse>, PlaywrightError>;
   /**
+   * Request the page to perform garbage collection. Note that there is no guarantee that all unreachable objects will
+   * be collected.
+   *
+   * @see {@link Page.requestGC}
+   * @since 0.3.0
+   */
+  readonly requestGC: Effect.Effect<void, PlaywrightError>;
+  /**
    * Brings page to front (activates tab).
    *
    * @see {@link Page.bringToFront}
@@ -783,6 +791,7 @@ export class PlaywrightPage extends Context.Tag(
           Effect.map(Option.fromNullable),
           Effect.map(Option.map(PlaywrightResponse.make)),
         ),
+      requestGC: use((p) => p.requestGC()),
       bringToFront: use((p) => p.bringToFront()),
       pause: use((p) => p.pause()),
       close: use((p) => p.close()),
