@@ -456,4 +456,36 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(pages.length, 1);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
+
+  it.scoped("dragAndDrop should drag and drop an element", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.evaluate(() => {
+        document.body.innerHTML = `
+          <div id="source" style="width: 50px; height: 50px; background: red;" draggable="true"></div>
+          <div id="target" style="width: 100px; height: 100px; background: blue; position: absolute; top: 200px; left: 200px;"></div>
+        `;
+
+        const target = document.getElementById("target");
+        if (target) {
+          target.addEventListener("drop", (e) => {
+            e.preventDefault();
+            (window as TestWindow).magicValue = 42;
+          });
+          target.addEventListener("dragover", (e) => {
+            e.preventDefault();
+          });
+        }
+      });
+
+      yield* page.dragAndDrop("#source", "#target");
+
+      const magicValue = yield* page.evaluate(
+        () => (window as TestWindow).magicValue,
+      );
+      assert.strictEqual(magicValue, 42);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
 });

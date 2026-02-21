@@ -298,6 +298,40 @@ export interface PlaywrightPageService {
   ) => Effect.Effect<Buffer, PlaywrightError>;
 
   /**
+   * Clicks an element matching the given selector.
+   *
+   * @example
+   * ```ts
+   * yield* page.click("button#submit");
+   * ```
+   * @deprecated Use {@link PlaywrightPageService.locator} to create a locator and then call `click` on it instead.
+   * @see {@link Page.click}
+   * @since 0.1.0
+   * @category deprecated
+   */
+  readonly click: (
+    selector: string,
+    options?: Parameters<Page["click"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Drags a source element to a target element and drops it.
+   *
+   * @example
+   * ```ts
+   * yield* page.dragAndDrop("#source", "#target");
+   * ```
+   *
+   * @see {@link Page.dragAndDrop}
+   * @since 0.3.0
+   */
+  readonly dragAndDrop: (
+    source: Parameters<Page["dragAndDrop"]>[0],
+    target: Parameters<Page["dragAndDrop"]>[1],
+    options?: Parameters<Page["dragAndDrop"]>[2],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
    * Reloads the page.
    *
    * @see {@link Page.reload}
@@ -382,23 +416,6 @@ export interface PlaywrightPageService {
   readonly eventStream: <K extends keyof PageEvents>(
     event: K,
   ) => Stream.Stream<ReturnType<(typeof eventMappings)[K]>>;
-
-  /**
-   * Clicks an element matching the given selector.
-   *
-   * @example
-   * ```ts
-   * yield* page.click("button#submit");
-   * ```
-   * @deprecated Use {@link PlaywrightPageService.locator} to create a locator and then call `click` on it instead.
-   * @see {@link Page.click}
-   * @since 0.1.0
-   * @category deprecated
-   */
-  readonly click: (
-    selector: string,
-    options?: Parameters<Page["click"]>[1],
-  ) => Effect.Effect<void, PlaywrightError>;
 }
 
 /**
@@ -447,6 +464,8 @@ export class PlaywrightPage extends Context.Tag(
       bringToFront: use((p) => p.bringToFront()),
       close: use((p) => p.close()),
       screenshot: (options) => use((p) => p.screenshot(options)),
+      dragAndDrop: (source, target, options) =>
+        use((p) => p.dragAndDrop(source, target, options)),
       click: (selector, options) => use((p) => p.click(selector, options)),
       eventStream: <K extends keyof PageEvents>(event: K) =>
         Stream.asyncPush<PageEvents[K]>((emit) =>
