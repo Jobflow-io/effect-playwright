@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "noEmit": true,
     "target": "esnext",
     "lib": ["es2023"],
     "moduleDetection": "force",

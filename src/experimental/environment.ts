@@ -63,7 +63,8 @@ export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) => {
           browser: playwright.launchScoped(browser, launchOptions),
         });
       }),
-    ).pipe(Effect.provide(Playwright.layer)),
+      Effect.provide(Playwright.layer),
+    ),
   );
 };
 
