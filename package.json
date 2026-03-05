@@ -28,7 +28,7 @@
     "type-check": "tsc --noEmit",
     "coverage": "tsx scripts/coverage.ts",
     "generate-docs": "typedoc",
-    "format-fix": "biome format --fix"
+    "format": "biome format --fix"
   },
   "keywords": [
     "effect",

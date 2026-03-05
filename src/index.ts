@@ -19,10 +19,14 @@ export {
   PlaywrightBrowserContext,
   type PlaywrightBrowserContextService,
 } from "./browser-context";
+export * from "./clock";
 export * from "./common";
 export type { PlaywrightErrorReason } from "./errors";
 export { PlaywrightError } from "./errors";
 export * from "./frame";
+export * from "./keyboard";
 export * from "./locator";
+export * from "./mouse";
 export * from "./page";
 export * from "./playwright";
+export * from "./touchscreen";

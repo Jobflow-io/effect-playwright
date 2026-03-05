@@ -1,8 +1,9 @@
-import { Context, Effect, identity, Stream } from "effect";
+import { Context, Effect, identity, Option, Runtime, Stream } from "effect";
 import type {
   ConsoleMessage,
   Dialog,
   Download,
+  ElementHandle,
   FileChooser,
   Frame,
   Page,
@@ -11,7 +12,11 @@ import type {
   WebSocket,
   Worker,
 } from "playwright-core";
-
+import {
+  PlaywrightBrowserContext,
+  type PlaywrightBrowserContextService,
+} from "./browser-context";
+import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import {
   PlaywrightDialog,
   PlaywrightDownload,
@@ -20,11 +25,16 @@ import {
   PlaywrightResponse,
   PlaywrightWorker,
 } from "./common";
-
 import type { PlaywrightError } from "./errors";
 import { PlaywrightFrame } from "./frame";
+import { PlaywrightKeyboard, type PlaywrightKeyboardService } from "./keyboard";
 import { PlaywrightLocator } from "./locator";
+import { PlaywrightMouse, type PlaywrightMouseService } from "./mouse";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
+import {
+  PlaywrightTouchscreen,
+  type PlaywrightTouchscreenService,
+} from "./touchscreen";
 import { useHelper } from "./utils";
 
 interface PageEvents {
@@ -80,6 +90,30 @@ type PageWithPatchedEvents = PatchedEvents<Page, PageEvents>;
  */
 export interface PlaywrightPageService {
   /**
+   * Access the clock.
+   *
+   * @since 0.3.0
+   */
+  readonly clock: PlaywrightClockService;
+  /**
+   * Access the keyboard.
+   *
+   * @since 0.3.0
+   */
+  readonly keyboard: PlaywrightKeyboardService;
+  /**
+   * Access the mouse.
+   *
+   * @since 0.3.0
+   */
+  readonly mouse: PlaywrightMouseService;
+  /**
+   * Access the touchscreen.
+   *
+   * @since 0.3.0
+   */
+  readonly touchscreen: PlaywrightTouchscreenService;
+  /**
    * Navigates the page to the given URL.
    *
    * @example
@@ -94,6 +128,66 @@ export interface PlaywrightPageService {
     url: string,
     options?: Parameters<Page["goto"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * This method internally calls [document.write()](https://developer.mozilla.org/en-US/docs/Web/API/Document/write),
+   * inheriting all its specific characteristics and behaviors.
+   *
+   * @see {@link Page.setContent}
+   * @since 0.3.0
+   */
+  readonly setContent: (
+    html: string,
+    options?: Parameters<Page["setContent"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * This setting will change the default maximum navigation time for the following methods:
+   * - {@link PlaywrightPageService.goBack}
+   * - {@link PlaywrightPageService.goForward}
+   * - {@link PlaywrightPageService.goto}
+   * - {@link PlaywrightPageService.reload}
+   * - {@link PlaywrightPageService.setContent}
+   * - {@link PlaywrightPageService.waitForURL}
+   *
+   * @see {@link Page.setDefaultNavigationTimeout}
+   * @since 0.3.0
+   */
+  readonly setDefaultNavigationTimeout: (
+    timeout: Parameters<Page["setDefaultNavigationTimeout"]>[0],
+  ) => Effect.Effect<void>;
+  /**
+   * This setting will change the default maximum time for all the methods accepting `timeout` option.
+   *
+   * @see {@link Page.setDefaultTimeout}
+   * @since 0.3.0
+   */
+  readonly setDefaultTimeout: (
+    timeout: Parameters<Page["setDefaultTimeout"]>[0],
+  ) => Effect.Effect<void>;
+  /**
+   * The extra HTTP headers will be sent with every request the page initiates.
+   *
+   * @see {@link Page.setExtraHTTPHeaders}
+   * @since 0.3.0
+   */
+  readonly setExtraHTTPHeaders: (
+    headers: Parameters<Page["setExtraHTTPHeaders"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Sets the viewport size for the page.
+   *
+   * @see {@link Page.setViewportSize}
+   * @since 0.3.0
+   */
+  readonly setViewportSize: (
+    viewportSize: Parameters<Page["setViewportSize"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Returns the viewport size.
+   *
+   * @see {@link Page.viewportSize}
+   * @since 0.3.0
+   */
+  readonly viewportSize: () => Option.Option<{ width: number; height: number }>;
   /**
    * Waits for the page to navigate to the given URL.
    *
@@ -145,6 +239,144 @@ export interface PlaywrightPageService {
     arg?: Arg,
   ) => Effect.Effect<R, PlaywrightError>;
   /**
+   * Adds a script which would be evaluated in one of the following scenarios:
+   * - Whenever the page is navigated.
+   * - Whenever the child frame is attached or navigated. In this case, the script is evaluated in the context of the newly attached frame.
+   *
+   * @see {@link Page.addInitScript}
+   * @since 0.3.0
+   */
+  readonly addInitScript: (
+    script: Parameters<Page["addInitScript"]>[0],
+    arg?: Parameters<Page["addInitScript"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Adds a `<script>` tag into the page with the desired url or content.
+   *
+   * @see {@link Page.addScriptTag}
+   * @since 0.3.0
+   */
+  readonly addScriptTag: (
+    options: Parameters<Page["addScriptTag"]>[0],
+  ) => Effect.Effect<ElementHandle, PlaywrightError>;
+  /**
+   * Adds a function called `name` on the `window` object of every frame in this page.
+   *
+   * The provided function must return an `Effect` which will be executed using the
+   * current runtime when the function is called from the browser context.
+   *
+   * If you don't require your function to have args you can use {@link exposeEffect} instead.
+   *
+   * @example
+   * ```ts
+   * import { Console, Effect } from "effect";
+   * import { PlaywrightBrowser } from "effect-playwright/browser";
+   *
+   * const program = Effect.gen(function* () {
+   *   const browser = yield* PlaywrightBrowser;
+   *   const page = yield* browser.newPage();
+   *
+   *   // Expose an Effect-based function to the browser
+   *   yield* page.exposeFunction("logMessage", (message: string) =>
+   *     Console.log(`Message from browser: ${message}`),
+   *   );
+   *
+   *   yield* page.evaluate(() => {
+   *     // Call the exposed function from the browser context
+   *     // @ts-expect-error
+   *     return window.logMessage("Hello from the other side!");
+   *   });
+   * });
+   * ```
+   *
+   * @example
+   * ```ts
+   * import { Context, Effect } from "effect";
+   * import { PlaywrightBrowser } from "effect-playwright/browser";
+   *
+   * // A custom Database service used in your Effect application
+   * class Database extends Context.Tag("Database")<
+   *   Database,
+   *   { readonly insertProduct: (name: string, price: number) => Effect.Effect<void> }
+   * >() {}
+   *
+   * const program = Effect.gen(function* () {
+   *   const browser = yield* PlaywrightBrowser;
+   *   const page = yield* browser.newPage();
+   *
+   *   // Expose a function that seamlessly accesses Effect Context using Effect.fn
+   *   yield* page.exposeFunction(
+   *     "saveProduct",
+   *     Effect.fn(function* (name: string, price: number) {
+   *       const db = yield* Database;
+   *       yield* db.insertProduct(name, price);
+   *     }),
+   *   );
+   *
+   *   yield* page.evaluate(async () => {
+   *     // Extract data from the page and save it
+   *     const items = document.querySelectorAll(".product");
+   *     for (const item of items) {
+   *       const name = item.querySelector(".name")?.textContent || "Unknown";
+   *       const price = Number(item.querySelector(".price")?.textContent || 0);
+   *
+   *       // Call the Effect function directly from the browser
+   *       // @ts-expect-error
+   *       await window.saveProduct(name, price);
+   *     }
+   *   });
+   * });
+   * ```
+   *
+   *
+   * @see {@link Page.exposeFunction}
+   * @since 0.3.0
+   */
+  readonly exposeFunction: <A, E, R, Args extends unknown[]>(
+    name: Parameters<Page["exposeFunction"]>[0],
+    playwrightFunction: (...args: Args) => Effect.Effect<A, E, R>,
+  ) => Effect.Effect<void, PlaywrightError, R>;
+
+  /**
+   * Identical to {@link exposeFunction} but meant to be used with a static `Effect`.
+   * This is useful when the exposed function does not need any arguments and just
+   * runs a pre-defined effect in the application context.
+   *
+   * @example
+   * ```ts
+   * import { Console, Effect } from "effect";
+   * import { PlaywrightBrowser } from "effect-playwright/browser";
+   *
+   * const program = Effect.gen(function* () {
+   *   const browser = yield* PlaywrightBrowser;
+   *   const page = yield* browser.newPage();
+   *
+   *   yield* page.exposeEffect("ping", Console.log("pong"));
+   *
+   *   yield* page.evaluate(async () => {
+   *     // @ts-expect-error
+   *     await window.ping();
+   *   });
+   * });
+   * ```
+   *
+   * @see {@link Page.exposeFunction}
+   * @since 0.3.0
+   */
+  readonly exposeEffect: <A, E, R>(
+    name: Parameters<Page["exposeFunction"]>[0],
+    playwrightFunction: Effect.Effect<A, E, R>,
+  ) => Effect.Effect<void, PlaywrightError, R>;
+  /**
+   * Adds a `<link rel="stylesheet">` tag into the page with the desired url or a `<style type="text/css">` tag with the content.
+   *
+   * @see {@link Page.addStyleTag}
+   * @since 0.3.0
+   */
+  readonly addStyleTag: (
+    options: Parameters<Page["addStyleTag"]>[0],
+  ) => Effect.Effect<ElementHandle, PlaywrightError>;
+  /**
    * Returns the page title.
    *
    * @example
@@ -156,6 +388,18 @@ export interface PlaywrightPageService {
    * @since 0.1.0
    */
   readonly title: Effect.Effect<string, PlaywrightError>;
+  /**
+   * Returns the full HTML contents of the page, including the doctype.
+   *
+   * @example
+   * ```ts
+   * const html = yield* page.content;
+   * ```
+   *
+   * @see {@link Page.content}
+   * @since 0.3.0
+   */
+  readonly content: Effect.Effect<string, PlaywrightError>;
   /**
    * A generic utility to execute any promise-based method on the underlying Playwright `Page`.
    * Can be used to access any Page functionality not directly exposed by this service.
@@ -222,61 +466,64 @@ export interface PlaywrightPageService {
   readonly getByTestId: (
     testId: Parameters<Page["getByTestId"]>[0],
   ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given alt text.
+   *
+   * @see {@link Page.getByAltText}
+   * @since 0.3.0
+   */
+  readonly getByAltText: (
+    text: Parameters<Page["getByAltText"]>[0],
+    options?: Parameters<Page["getByAltText"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given placeholder.
+   *
+   * @see {@link Page.getByPlaceholder}
+   * @since 0.3.0
+   */
+  readonly getByPlaceholder: (
+    text: Parameters<Page["getByPlaceholder"]>[0],
+    options?: Parameters<Page["getByPlaceholder"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+  /**
+   * Returns a locator that matches the given title.
+   *
+   * @see {@link Page.getByTitle}
+   * @since 0.3.0
+   */
+  readonly getByTitle: (
+    text: Parameters<Page["getByTitle"]>[0],
+    options?: Parameters<Page["getByTitle"]>[1],
+  ) => typeof PlaywrightLocator.Service;
 
   /**
-   * Reloads the page.
-   *
-   * @see {@link Page.reload}
-   * @since 0.1.0
-   */
-  readonly reload: Effect.Effect<void, PlaywrightError>;
-  /**
-   * Closes the page.
-   *
-   * @see {@link Page.close}
-   * @since 0.1.0
-   */
-  readonly close: Effect.Effect<void, PlaywrightError>;
-
-  /**
-   * Returns the current URL of the page.
+   * Captures a screenshot of the page.
    *
    * @example
    * ```ts
-   * const url = page.url();
+   * const buffer = yield* page.screenshot({ path: "screenshot.png" });
    * ```
    *
-   * @see {@link Page.url}
-   * @since 0.1.0
+   * @see {@link Page.screenshot}
+   * @since 0.3.0
    */
-  readonly url: () => string;
+  readonly screenshot: (
+    options?: Parameters<Page["screenshot"]>[0],
+  ) => Effect.Effect<Buffer, PlaywrightError>;
 
   /**
-   * Returns all frames attached to the page.
+   * Returns the PDF buffer.
    *
-   * @see {@link Page.frames}
-   * @since 0.2.0
+   * `page.pdf()` generates a pdf of the page with `print` css media. To generate a pdf with `screen` media, call
+   * {@link PlaywrightPageService.emulateMedia} before calling `page.pdf()`.
+   *
+   * @see {@link Page.pdf}
+   * @since 0.3.0
    */
-  readonly frames: Effect.Effect<
-    ReadonlyArray<typeof PlaywrightFrame.Service>,
-    PlaywrightError
-  >;
-
-  /**
-   * Creates a stream of the given event from the page.
-   *
-   * @example
-   * ```ts
-   * const consoleStream = page.eventStream("console");
-   * ```
-   *
-   * @category custom
-   * @see {@link Page.on}
-   * @since 0.1.0
-   */
-  readonly eventStream: <K extends keyof PageEvents>(
-    event: K,
-  ) => Stream.Stream<ReturnType<(typeof eventMappings)[K]>>;
+  readonly pdf: (
+    options?: Parameters<Page["pdf"]>[0],
+  ) => Effect.Effect<Buffer, PlaywrightError>;
 
   /**
    * Clicks an element matching the given selector.
@@ -294,6 +541,228 @@ export interface PlaywrightPageService {
     selector: string,
     options?: Parameters<Page["click"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Drags a source element to a target element and drops it.
+   *
+   * @example
+   * ```ts
+   * yield* page.dragAndDrop("#source", "#target");
+   * ```
+   *
+   * @see {@link Page.dragAndDrop}
+   * @since 0.3.0
+   */
+  readonly dragAndDrop: (
+    source: Parameters<Page["dragAndDrop"]>[0],
+    target: Parameters<Page["dragAndDrop"]>[1],
+    options?: Parameters<Page["dragAndDrop"]>[2],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * This method changes the CSS media type through the media argument,
+   * and/or the 'prefers-colors-scheme' media feature, using the colorScheme argument.
+   *
+   * @example
+   * ```ts
+   * yield* page.emulateMedia({ colorScheme: "dark" });
+   * yield* page.emulateMedia({ media: "print" });
+   * ```
+   *
+   * @see {@link Page.emulateMedia}
+   * @since 0.3.0
+   */
+  readonly emulateMedia: (
+    options?: Parameters<Page["emulateMedia"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Reloads the page.
+   *
+   * @see {@link Page.reload}
+   * @since 0.1.0
+   */
+  readonly reload: Effect.Effect<void, PlaywrightError>;
+  /**
+   * Navigate to the previous page in history.
+   *
+   * @example
+   * ```ts
+   * const response = yield* page.goBack();
+   * ```
+   *
+   * @see {@link Page.goBack}
+   * @since 0.3.0
+   */
+  readonly goBack: (
+    options?: Parameters<Page["goBack"]>[0],
+  ) => Effect.Effect<Option.Option<PlaywrightResponse>, PlaywrightError>;
+  /**
+   * Navigate to the next page in history.
+   *
+   * @example
+   * ```ts
+   * const response = yield* page.goForward();
+   * ```
+   *
+   * @see {@link Page.goForward}
+   * @since 0.3.0
+   */
+  readonly goForward: (
+    options?: Parameters<Page["goForward"]>[0],
+  ) => Effect.Effect<Option.Option<PlaywrightResponse>, PlaywrightError>;
+  /**
+   * Request the page to perform garbage collection. Note that there is no guarantee that all unreachable objects will
+   * be collected.
+   *
+   * @see {@link Page.requestGC}
+   * @since 0.3.0
+   */
+  readonly requestGC: Effect.Effect<void, PlaywrightError>;
+  /**
+   * Brings page to front (activates tab).
+   *
+   * @see {@link Page.bringToFront}
+   * @since 0.3.0
+   */
+  readonly bringToFront: Effect.Effect<void, PlaywrightError>;
+  /**
+   * Pauses the script execution.
+   *
+   * @see {@link Page.pause}
+   * @since 0.3.0
+   */
+  readonly pause: Effect.Effect<void, PlaywrightError>;
+  /**
+   * Closes the page.
+   *
+   * @see {@link Page.close}
+   * @since 0.1.0
+   */
+  readonly close: Effect.Effect<void, PlaywrightError>;
+  /**
+   * Indicates that the page has been closed.
+   *
+   * @see {@link Page.isClosed}
+   * @since 0.3.0
+   */
+  readonly isClosed: () => boolean;
+
+  /**
+   * Returns the current URL of the page.
+   *
+   * @example
+   * ```ts
+   * const url = page.url();
+   * ```
+   *
+   * @see {@link Page.url}
+   * @since 0.1.0
+   */
+  readonly url: () => string;
+
+  /**
+   * Returns all messages that have been logged to the console.
+   *
+   * @example
+   * ```ts
+   * const consoleMessages = yield* page.consoleMessages;
+   * ```
+   *
+   * @see {@link Page.consoleMessages}
+   * @since 0.3.0
+   */
+  readonly consoleMessages: Effect.Effect<
+    ReadonlyArray<ConsoleMessage>,
+    PlaywrightError
+  >;
+
+  /**
+   * Returns all errors that have been thrown in the page.
+   *
+   * @example
+   * ```ts
+   * const pageErrors = yield* page.pageErrors;
+   * ```
+   *
+   * @see {@link Page.pageErrors}
+   * @since 0.3.0
+   */
+  readonly pageErrors: Effect.Effect<ReadonlyArray<Error>, PlaywrightError>;
+  /**
+   * Returns all workers.
+   *
+   * @see {@link Page.workers}
+   * @since 0.3.0
+   */
+  readonly workers: () => ReadonlyArray<PlaywrightWorker>;
+
+  /**
+   * Get the browser context that the page belongs to.
+   *
+   * @see {@link Page.context}
+   * @since 0.3.0
+   */
+  readonly context: () => PlaywrightBrowserContextService;
+  /**
+   * Returns the opener for popup pages and `Option.none` for others.
+   *
+   * If the opener has been closed already, returns `Option.none`.
+   *
+   * @see {@link Page.opener}
+   * @since 0.3.0
+   */
+  readonly opener: Effect.Effect<
+    Option.Option<PlaywrightPageService>,
+    PlaywrightError
+  >;
+  /**
+   * Returns a frame matching the specified criteria.
+   *
+   * @example
+   * ```ts
+   * const frame = Option.getOrNull(page.frame("frame-name"));
+   * ```
+   *
+   * @see {@link Page.frame}
+   * @since 0.3.0
+   */
+  readonly frame: (
+    frameSelector: Parameters<Page["frame"]>[0],
+  ) => Option.Option<typeof PlaywrightFrame.Service>;
+
+  /**
+   * Returns all frames attached to the page.
+   *
+   * @see {@link Page.frames}
+   * @since 0.2.0
+   */
+  readonly frames: Effect.Effect<
+    ReadonlyArray<typeof PlaywrightFrame.Service>,
+    PlaywrightError
+  >;
+  /**
+   * The page's main frame. Page is guaranteed to have a main frame which persists during navigations.
+   *
+   * @see {@link Page.mainFrame}
+   * @since 0.3.0
+   */
+  readonly mainFrame: () => typeof PlaywrightFrame.Service;
+  /**
+   * Creates a stream of the given event from the page.
+   *
+   * @example
+   * ```ts
+   * const consoleStream = page.eventStream("console");
+   * ```
+   *
+   * @category custom
+   * @see {@link Page.on}
+   * @since 0.1.0
+   */
+  readonly eventStream: <K extends keyof PageEvents>(
+    event: K,
+  ) => Stream.Stream<ReturnType<(typeof eventMappings)[K]>>;
 }
 
 /**
@@ -312,13 +781,52 @@ export class PlaywrightPage extends Context.Tag(
     const use = useHelper(page);
 
     return PlaywrightPage.of({
+      clock: PlaywrightClock.make(page.clock),
+      keyboard: PlaywrightKeyboard.make(page.keyboard),
+      mouse: PlaywrightMouse.make(page.mouse),
+      touchscreen: PlaywrightTouchscreen.make(page.touchscreen),
       goto: (url, options) => use((p) => p.goto(url, options)),
+      setContent: (html, options) => use((p) => p.setContent(html, options)),
+      setDefaultNavigationTimeout: (timeout) =>
+        Effect.sync(() => page.setDefaultNavigationTimeout(timeout)),
+      setDefaultTimeout: (timeout) =>
+        Effect.sync(() => page.setDefaultTimeout(timeout)),
+      setExtraHTTPHeaders: (headers) =>
+        use((p) => p.setExtraHTTPHeaders(headers)),
+      setViewportSize: (viewportSize) =>
+        use((p) => p.setViewportSize(viewportSize)),
+      viewportSize: () => Option.fromNullable(page.viewportSize()),
       waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
       waitForLoadState: (state, options) =>
         use((p) => p.waitForLoadState(state, options)),
       title: use((p) => p.title()),
+      content: use((p) => p.content()),
       evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
         use((p) => p.evaluate<R, Arg>(f, arg as Arg)),
+      addInitScript: (script, arg) => use((p) => p.addInitScript(script, arg)),
+      addScriptTag: (options) => use((p) => p.addScriptTag(options)),
+      addStyleTag: (options) => use((p) => p.addStyleTag(options)),
+      exposeFunction: <A, E, R, Args extends unknown[]>(
+        name: string,
+        effectFn: (...args: Args) => Effect.Effect<A, E, R>,
+      ) =>
+        Effect.runtime<R>().pipe(
+          Effect.map((r) => Runtime.runPromise(r)),
+          Effect.flatMap((runPromise) =>
+            use((p) =>
+              p.exposeFunction(name, (...args: Args) =>
+                runPromise(effectFn(...args)),
+              ),
+            ),
+          ),
+        ),
+      exposeEffect: <A, E, R>(name: string, effectFn: Effect.Effect<A, E, R>) =>
+        Effect.runtime<R>().pipe(
+          Effect.map((r) => Runtime.runPromise(r)),
+          Effect.flatMap((runPromise) =>
+            use((p) => p.exposeFunction(name, () => runPromise(effectFn))),
+          ),
+        ),
       locator: (selector, options) =>
         PlaywrightLocator.make(page.locator(selector, options)),
       getByRole: (role, options) =>
@@ -328,11 +836,50 @@ export class PlaywrightPage extends Context.Tag(
       getByLabel: (label, options) =>
         PlaywrightLocator.make(page.getByLabel(label, options)),
       getByTestId: (testId) => PlaywrightLocator.make(page.getByTestId(testId)),
+      getByAltText: (text, options) =>
+        PlaywrightLocator.make(page.getByAltText(text, options)),
+      getByPlaceholder: (text, options) =>
+        PlaywrightLocator.make(page.getByPlaceholder(text, options)),
+      getByTitle: (text, options) =>
+        PlaywrightLocator.make(page.getByTitle(text, options)),
       url: () => page.url(),
+      context: () => PlaywrightBrowserContext.make(page.context()),
+      opener: use((p) => p.opener()).pipe(
+        Effect.map(Option.fromNullable),
+        Effect.map(Option.map(PlaywrightPage.make)),
+      ),
+      consoleMessages: use((p) => p.consoleMessages()),
+      pageErrors: use((p) => p.pageErrors()),
+      workers: () => page.workers().map(PlaywrightWorker.make),
+
+      frame: (frameSelector) =>
+        Option.fromNullable(page.frame(frameSelector)).pipe(
+          Option.map(PlaywrightFrame.make),
+        ),
       frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
+      mainFrame: () => PlaywrightFrame.make(page.mainFrame()),
       reload: use((p) => p.reload()),
+      goBack: (options) =>
+        use((p) => p.goBack(options)).pipe(
+          Effect.map(Option.fromNullable),
+          Effect.map(Option.map(PlaywrightResponse.make)),
+        ),
+      goForward: (options) =>
+        use((p) => p.goForward(options)).pipe(
+          Effect.map(Option.fromNullable),
+          Effect.map(Option.map(PlaywrightResponse.make)),
+        ),
+      requestGC: use((p) => p.requestGC()),
+      bringToFront: use((p) => p.bringToFront()),
+      pause: use((p) => p.pause()),
       close: use((p) => p.close()),
+      isClosed: () => page.isClosed(),
+      screenshot: (options) => use((p) => p.screenshot(options)),
+      pdf: (options) => use((p) => p.pdf(options)),
+      dragAndDrop: (source, target, options) =>
+        use((p) => p.dragAndDrop(source, target, options)),
       click: (selector, options) => use((p) => p.click(selector, options)),
+      emulateMedia: (options) => use((p) => p.emulateMedia(options)),
       eventStream: <K extends keyof PageEvents>(event: K) =>
         Stream.asyncPush<PageEvents[K]>((emit) =>
           Effect.acquireRelease(
