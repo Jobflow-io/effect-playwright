@@ -20,7 +20,7 @@ const accessFirst = Effect.gen(function* () {
   const first = contexts[0];
   assert(first, "Expected first context");
 
-  const pages = yield* first.pages;
+  const pages = first.pages();
   assert(pages.length > 0, "Expected pages");
 
   // append ?test=1 to the first page
@@ -39,7 +39,7 @@ const accessSecond = Effect.gen(function* () {
   const first = contexts[0];
   assert(first, "Expected first context");
 
-  const pages = yield* first.pages;
+  const pages = first.pages();
   assert(pages.length > 0, "Expected pages");
 
   // page should have ?test=1

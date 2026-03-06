@@ -83,7 +83,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       const context = yield* browser.newContext();
       assert.isDefined(context);
 
-      const pages = yield* context.pages;
+      const pages = context.pages();
       assert.strictEqual(pages.length, 0);
     }),
   );
@@ -97,7 +97,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       const page = yield* context.newPage;
       assert.isDefined(page);
 
-      const pages = yield* context.pages;
+      const pages = context.pages();
       assert.strictEqual(pages.length, 1);
     }),
   );
@@ -111,7 +111,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       const contexts = browser.contexts();
       assert.strictEqual(contexts.length, 1);
 
-      const pages = yield* contexts[0].pages;
+      const pages = contexts[0].pages();
       assert.strictEqual(pages.length, 1);
     }),
   );

@@ -6,8 +6,8 @@ import type { PlaywrightBrowserService } from "../browser";
  * @category util
  */
 export const allPages = (browser: PlaywrightBrowserService) =>
-  Effect.all(browser.contexts().map((context) => context.pages)).pipe(
-    Effect.map(Array.flatten),
+  Effect.sync(() =>
+    Array.flatten(browser.contexts().map((context) => context.pages())),
   );
 
 /**
@@ -30,9 +30,7 @@ export const allFrameNavigatedEventStream = (
 ) =>
   Effect.gen(function* () {
     const contexts = browser.contexts();
-    const pages = yield* Effect.all(contexts.map((c) => c.pages)).pipe(
-      Effect.map(Array.flatten),
-    );
+    const pages = Array.flatten(contexts.map((c) => c.pages()));
 
     // listen for framenavigated for all current pages
     const currentPages = pages.map((page) =>

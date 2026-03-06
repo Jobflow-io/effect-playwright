@@ -69,7 +69,7 @@ export interface PlaywrightBrowserContextService {
    * @see {@link BrowserContext.pages}
    * @since 0.1.0
    */
-  readonly pages: Effect.Effect<Array<typeof PlaywrightPage.Service>>;
+  readonly pages: () => Array<typeof PlaywrightPage.Service>;
   /**
    * Opens a new page in the browser context.
    *
@@ -140,7 +140,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
     const use = useHelper(context);
     return PlaywrightBrowserContext.of({
       clock: PlaywrightClock.make(context.clock),
-      pages: Effect.sync(() => context.pages().map(PlaywrightPage.make)),
+      pages: () => context.pages().map(PlaywrightPage.make),
       newPage: use((c) => c.newPage().then(PlaywrightPage.make)),
       close: use((c) => c.close()),
       addInitScript: (script, arg) => use((c) => c.addInitScript(script, arg)),

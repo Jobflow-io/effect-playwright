@@ -153,7 +153,7 @@ export interface PlaywrightPageService {
    */
   readonly setDefaultNavigationTimeout: (
     timeout: Parameters<Page["setDefaultNavigationTimeout"]>[0],
-  ) => Effect.Effect<void>;
+  ) => void;
   /**
    * This setting will change the default maximum time for all the methods accepting `timeout` option.
    *
@@ -162,7 +162,7 @@ export interface PlaywrightPageService {
    */
   readonly setDefaultTimeout: (
     timeout: Parameters<Page["setDefaultTimeout"]>[0],
-  ) => Effect.Effect<void>;
+  ) => void;
   /**
    * The extra HTTP headers will be sent with every request the page initiates.
    *
@@ -788,9 +788,8 @@ export class PlaywrightPage extends Context.Tag(
       goto: (url, options) => use((p) => p.goto(url, options)),
       setContent: (html, options) => use((p) => p.setContent(html, options)),
       setDefaultNavigationTimeout: (timeout) =>
-        Effect.sync(() => page.setDefaultNavigationTimeout(timeout)),
-      setDefaultTimeout: (timeout) =>
-        Effect.sync(() => page.setDefaultTimeout(timeout)),
+        page.setDefaultNavigationTimeout(timeout),
+      setDefaultTimeout: (timeout) => page.setDefaultTimeout(timeout),
       setExtraHTTPHeaders: (headers) =>
         use((p) => p.setExtraHTTPHeaders(headers)),
       setViewportSize: (viewportSize) =>

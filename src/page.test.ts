@@ -632,7 +632,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       // we can't do direct reference equality because they are wrapper objects,
       // but we can check if it has the right methods and doesn't crash
-      const pages = yield* pageContext.pages;
+      const pages = pageContext.pages();
       assert.strictEqual(pages.length, 1);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
@@ -883,7 +883,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();
 
-      yield* page.setDefaultNavigationTimeout(1000);
+      page.setDefaultNavigationTimeout(1000);
       assert.ok(true);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
@@ -893,7 +893,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();
 
-      yield* page.setDefaultTimeout(1);
+      page.setDefaultTimeout(1);
 
       const result = yield* page
         .locator("#non-existent")

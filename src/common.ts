@@ -37,7 +37,7 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
    * Returns the Frame that initiated this request.
    * @see {@link Request.frame}
    */
-  frame: Effect.Effect<PlaywrightFrameService>;
+  frame: Effect.Effect<PlaywrightFrameService, PlaywrightError>;
   /**
    * Returns the value of the header matching the name. The name is case insensitive.
    * @see {@link Request.headerValue}
@@ -135,7 +135,10 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
     return new PlaywrightRequest({
       allHeaders: use(() => request.allHeaders()),
       failure: Option.liftNullable(request.failure),
-      frame: Effect.sync(() => PlaywrightFrame.make(request.frame())),
+      frame: Effect.try({
+        try: () => PlaywrightFrame.make(request.frame()),
+        catch: wrapError,
+      }),
       headerValue: (name) =>
         use(() => request.headerValue(name)).pipe(
           Effect.map(Option.fromNullable),
@@ -187,7 +190,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
     Awaited<ReturnType<Response["finished"]>>,
     PlaywrightError
   >;
-  frame: Effect.Effect<PlaywrightFrameService>;
+  frame: Effect.Effect<PlaywrightFrameService, PlaywrightError>;
   fromServiceWorker: () => boolean;
   headers: () => ReturnType<Response["headers"]>;
   headersArray: Effect.Effect<
@@ -228,7 +231,10 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
       allHeaders: use(() => response.allHeaders()),
       body: use(() => response.body()),
       finished: use(() => response.finished()),
-      frame: Effect.sync(() => PlaywrightFrame.make(response.frame())),
+      frame: Effect.try({
+        try: () => PlaywrightFrame.make(response.frame()),
+        catch: wrapError,
+      }),
       fromServiceWorker: () => response.fromServiceWorker(),
       headers: () => response.headers(),
       headersArray: use(() => response.headersArray()),
