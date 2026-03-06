@@ -2,13 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## 2.0.1
+## 0.4.0
 
 ### Fixes
 
 - Changed `PlaywrightRequest.frame` and `PlaywrightResponse.frame` to correctly return `Effect.Effect<PlaywrightFrameService, PlaywrightError>` and safely catch synchronous errors (e.g., for Service Worker requests).
 - Changed `BrowserContext.pages` from an `Effect` property to a synchronous method (`pages()`) returning an array, since it does not throw errors.
 - Changed `PlaywrightPage.setDefaultNavigationTimeout` and `PlaywrightPage.setDefaultTimeout` from `Effect` methods to synchronous methods, since they do not throw errors.
+
+Minor bump because these are technically breaking changes.
 
 ## 0.3.0
 
