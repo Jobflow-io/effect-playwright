@@ -10,6 +10,11 @@ import { useHelper } from "./utils";
  */
 export interface PlaywrightLocatorService {
   /**
+   * The underlying Playwright Locator instance.
+   * @internal
+   */
+  readonly _raw: Locator;
+  /**
    * Clicks the element.
    *
    * @see {@link Locator.click}
@@ -17,6 +22,15 @@ export interface PlaywrightLocatorService {
    */
   readonly click: (
     options?: Parameters<Locator["click"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Checks the element.
+   *
+   * @see {@link Locator.check}
+   * @since 0.1.0
+   */
+  readonly check: (
+    options?: Parameters<Locator["check"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Fills the input field.
@@ -102,6 +116,94 @@ export interface PlaywrightLocatorService {
    */
   readonly nth: (index: number) => PlaywrightLocatorService;
   /**
+   * Returns a locator that points to a matched element.
+   *
+   * @see {@link Locator.locator}
+   * @since 0.1.0
+   */
+  readonly locator: (
+    selectorOrLocator: string | Locator,
+    options?: Parameters<Locator["locator"]>[1],
+  ) => PlaywrightLocatorService;
+  /**
+   * Allows locating elements by their ARIA role, ARIA attributes and accessible name.
+   *
+   * @see {@link Locator.getByRole}
+   * @since 0.1.0
+   */
+  readonly getByRole: (
+    role: Parameters<Locator["getByRole"]>[0],
+    options?: Parameters<Locator["getByRole"]>[1],
+  ) => PlaywrightLocatorService;
+  /**
+   * Allows locating elements that contain given text.
+   *
+   * @see {@link Locator.getByText}
+   * @since 0.1.0
+   */
+  readonly getByText: (
+    text: Parameters<Locator["getByText"]>[0],
+    options?: Parameters<Locator["getByText"]>[1],
+  ) => PlaywrightLocatorService;
+  /**
+   * Allows locating elements by their label text.
+   *
+   * @see {@link Locator.getByLabel}
+   * @since 0.1.0
+   */
+  readonly getByLabel: (
+    text: Parameters<Locator["getByLabel"]>[0],
+    options?: Parameters<Locator["getByLabel"]>[1],
+  ) => PlaywrightLocatorService;
+  /**
+   * Allows locating elements by their placeholder text.
+   *
+   * @see {@link Locator.getByPlaceholder}
+   * @since 0.1.0
+   */
+  readonly getByPlaceholder: (
+    text: Parameters<Locator["getByPlaceholder"]>[0],
+    options?: Parameters<Locator["getByPlaceholder"]>[1],
+  ) => PlaywrightLocatorService;
+  /**
+   * Allows locating elements by their alt text.
+   *
+   * @see {@link Locator.getByAltText}
+   * @since 0.1.0
+   */
+  readonly getByAltText: (
+    text: Parameters<Locator["getByAltText"]>[0],
+    options?: Parameters<Locator["getByAltText"]>[1],
+  ) => PlaywrightLocatorService;
+  /**
+   * Allows locating elements by their title attribute.
+   *
+   * @see {@link Locator.getByTitle}
+   * @since 0.1.0
+   */
+  readonly getByTitle: (
+    text: Parameters<Locator["getByTitle"]>[0],
+    options?: Parameters<Locator["getByTitle"]>[1],
+  ) => PlaywrightLocatorService;
+  /**
+   * Allows locating elements by their test id.
+   *
+   * @see {@link Locator.getByTestId}
+   * @since 0.1.0
+   */
+  readonly getByTestId: (
+    testId: Parameters<Locator["getByTestId"]>[0],
+  ) => PlaywrightLocatorService;
+  /**
+   * Returns when element specified by locator satisfies the `state` option.
+   *
+   * @see {@link Locator.waitFor}
+   * @since 0.1.0
+   */
+  readonly waitFor: (
+    options?: Parameters<Locator["waitFor"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
    * Evaluates a function on the matched element.
    *
    * @example
@@ -177,7 +279,9 @@ export class PlaywrightLocator extends Context.Tag(
     const use = useHelper(locator);
 
     return PlaywrightLocator.of({
+      _raw: locator,
       click: (options) => use((l) => l.click(options)),
+      check: (options) => use((l) => l.check(options)),
       fill: (value, options) => use((l) => l.fill(value, options)),
       getAttribute: (name, options) =>
         use((l) => l.getAttribute(name, options)),
@@ -189,6 +293,23 @@ export class PlaywrightLocator extends Context.Tag(
       first: () => PlaywrightLocator.make(locator.first()),
       last: () => PlaywrightLocator.make(locator.last()),
       nth: (index: number) => PlaywrightLocator.make(locator.nth(index)),
+      locator: (selectorOrLocator, options) =>
+        PlaywrightLocator.make(locator.locator(selectorOrLocator, options)),
+      getByRole: (role, options) =>
+        PlaywrightLocator.make(locator.getByRole(role, options)),
+      getByText: (text, options) =>
+        PlaywrightLocator.make(locator.getByText(text, options)),
+      getByLabel: (text, options) =>
+        PlaywrightLocator.make(locator.getByLabel(text, options)),
+      getByPlaceholder: (text, options) =>
+        PlaywrightLocator.make(locator.getByPlaceholder(text, options)),
+      getByAltText: (text, options) =>
+        PlaywrightLocator.make(locator.getByAltText(text, options)),
+      getByTitle: (text, options) =>
+        PlaywrightLocator.make(locator.getByTitle(text, options)),
+      getByTestId: (testId) =>
+        PlaywrightLocator.make(locator.getByTestId(testId)),
+      waitFor: (options) => use((l) => l.waitFor(options)),
       evaluate: <
         R,
         Arg = void,

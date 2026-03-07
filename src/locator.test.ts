@@ -41,6 +41,34 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("waitFor", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+      yield* page.setContent(`
+        <button id="hidden-btn" style="display: none;">Hidden</button>
+      `);
+
+      const btn = page.locator("#hidden-btn");
+
+      // Make it visible after a short delay
+      yield* page.evaluate(() => {
+        setTimeout(() => {
+          const el = document.getElementById("hidden-btn");
+          if (el) el.style.display = "block";
+        }, 1);
+      });
+
+      // waitFor should wait until it becomes visible
+      yield* btn.waitFor({ state: "visible" });
+
+      const isVisible = yield* btn.evaluate(
+        (el) => el.style.display === "block",
+      );
+      assert(isVisible === true);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("kitchensink", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
@@ -53,6 +81,15 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
             <button id="btn-2" class="btn" data-info="second">Button 2</button>
             <input id="input-1" value="initial value" />
             <div id="html-content"><span>Hello</span></div>
+            <label>
+              Username
+              <input type="text" id="username-input" value="john_doe" />
+            </label>
+            <input type="text" id="search-input" placeholder="Search..." />
+            <img src="dummy.png" alt="A test image" id="test-image" />
+            <span title="Hover me" id="test-title">Tooltip</span>
+            <div data-testid="custom-test-id" id="test-id-element">Test ID Element</div>
+            <input type="checkbox" id="checkbox-1" />
           </div>
         `;
       });
@@ -104,6 +141,18 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       );
       assert(isClicked === true);
 
+      // check
+      const checkbox = page.locator("#checkbox-1");
+      const isCheckedInitial = yield* checkbox.evaluate(
+        (el) => (el as HTMLInputElement).checked,
+      );
+      assert(isCheckedInitial === false);
+      yield* checkbox.check();
+      const isCheckedAfter = yield* checkbox.evaluate(
+        (el) => (el as HTMLInputElement).checked,
+      );
+      assert(isCheckedAfter === true);
+
       // first, last, nth
       const firstId = yield* buttons.first().getAttribute("id");
       assert(firstId === "btn-1");
@@ -111,6 +160,56 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       assert(lastId === "btn-2");
       const nthId = yield* buttons.nth(1).getAttribute("id");
       assert(nthId === "btn-2");
+
+      // locator
+      const spanHtml = yield* htmlDiv.locator("span").innerHTML();
+      assert(spanHtml === "Hello");
+
+      // locator with PlaywrightLocatorService
+      // const spanLocator = page.locator("span");
+      // const nestedSpanHtml = yield* htmlDiv.locator(spanLocator).innerHTML();
+      // assert(nestedSpanHtml === "Hello");
+
+      // getByRole
+      const btnRole = page
+        .locator("#container")
+        .getByRole("button", { name: "Button 1" });
+      const btnRoleText = yield* btnRole.textContent();
+      assert(btnRoleText === "Button 1");
+
+      // getByText
+      const btnText = page.locator("#container").getByText("Button 2");
+      const btnTextAttr = yield* btnText.getAttribute("data-info");
+      assert(btnTextAttr === "second");
+
+      // getByLabel
+      const usernameInput = page.locator("#container").getByLabel("Username");
+      const usernameValue = yield* usernameInput.inputValue();
+      assert(usernameValue === "john_doe");
+
+      // getByPlaceholder
+      const searchInput = page
+        .locator("#container")
+        .getByPlaceholder("Search...");
+      const searchInputId = yield* searchInput.getAttribute("id");
+      assert(searchInputId === "search-input");
+
+      // getByAltText
+      const testImage = page.locator("#container").getByAltText("A test image");
+      const testImageId = yield* testImage.getAttribute("id");
+      assert(testImageId === "test-image");
+
+      // getByTitle
+      const testTitle = page.locator("#container").getByTitle("Hover me");
+      const testTitleId = yield* testTitle.getAttribute("id");
+      assert(testTitleId === "test-title");
+
+      // getByTestId
+      const testIdElement = page
+        .locator("#container")
+        .getByTestId("custom-test-id");
+      const testIdElementId = yield* testIdElement.getAttribute("id");
+      assert(testIdElementId === "test-id-element");
 
       // evaluate
       const evalResult = yield* buttons.first().evaluate((el, arg) => {
