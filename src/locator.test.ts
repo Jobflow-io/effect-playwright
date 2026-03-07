@@ -166,9 +166,9 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       assert(spanHtml === "Hello");
 
       // locator with PlaywrightLocatorService
-      // const spanLocator = page.locator("span");
-      // const nestedSpanHtml = yield* htmlDiv.locator(spanLocator).innerHTML();
-      // assert(nestedSpanHtml === "Hello");
+      const spanLocator = page.locator("span");
+      const nestedSpanHtml = yield* htmlDiv.locator(spanLocator).innerHTML();
+      assert(nestedSpanHtml === "Hello");
 
       // getByRole
       const btnRole = page

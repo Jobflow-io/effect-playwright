@@ -122,7 +122,7 @@ export interface PlaywrightLocatorService {
    * @since 0.1.0
    */
   readonly locator: (
-    selectorOrLocator: string | Locator,
+    selectorOrLocator: string | Locator | PlaywrightLocatorService,
     options?: Parameters<Locator["locator"]>[1],
   ) => PlaywrightLocatorService;
   /**
@@ -294,7 +294,11 @@ export class PlaywrightLocator extends Context.Tag(
       last: () => PlaywrightLocator.make(locator.last()),
       nth: (index: number) => PlaywrightLocator.make(locator.nth(index)),
       locator: (selectorOrLocator, options) =>
-        PlaywrightLocator.make(locator.locator(selectorOrLocator, options)),
+        typeof selectorOrLocator === "object" && "_raw" in selectorOrLocator
+          ? PlaywrightLocator.make(
+              locator.locator(selectorOrLocator._raw, options),
+            )
+          : PlaywrightLocator.make(locator.locator(selectorOrLocator, options)),
       getByRole: (role, options) =>
         PlaywrightLocator.make(locator.getByRole(role, options)),
       getByText: (text, options) =>
