@@ -1,6 +1,11 @@
-import { Context, type Effect } from "effect";
-import type { Locator } from "playwright-core";
+import { Array, Context, Effect, Match, Option, Predicate } from "effect";
+import type { ElementHandle, JSHandle, Locator } from "playwright-core";
 import type { PlaywrightError } from "./errors";
+import {
+  PlaywrightFrameLocator,
+  type PlaywrightFrameLocatorService,
+} from "./frame-locator";
+import { PlaywrightPage } from "./page";
 import type { Unboxed } from "./playwright-types";
 import { useHelper } from "./utils";
 
@@ -88,6 +93,61 @@ export interface PlaywrightLocatorService {
   readonly textContent: (
     options?: Parameters<Locator["textContent"]>[0],
   ) => Effect.Effect<string | null, PlaywrightError>;
+  /**
+   * Gets all inner texts.
+   *
+   * @see {@link Locator.allInnerTexts}
+   * @since 0.1.0
+   */
+  readonly allInnerTexts: () => Effect.Effect<
+    ReadonlyArray<string>,
+    PlaywrightError
+  >;
+  /**
+   * Gets all text contents.
+   *
+   * @see {@link Locator.allTextContents}
+   * @since 0.1.0
+   */
+  readonly allTextContents: () => Effect.Effect<
+    ReadonlyArray<string>,
+    PlaywrightError
+  >;
+  /**
+   * Returns the accessibility tree snapshot.
+   *
+   * @see {@link Locator.ariaSnapshot}
+   * @since 0.1.0
+   */
+  readonly ariaSnapshot: (
+    options?: Parameters<Locator["ariaSnapshot"]>[0],
+  ) => Effect.Effect<string, PlaywrightError>;
+  /**
+   * Returns the bounding box of the element.
+   *
+   * @see {@link Locator.boundingBox}
+   * @since 0.1.0
+   */
+  readonly boundingBox: (
+    options?: Parameters<Locator["boundingBox"]>[0],
+  ) => Effect.Effect<
+    Option.Option<{ x: number; y: number; width: number; height: number }>,
+    PlaywrightError
+  >;
+  /**
+   * Describes the locator.
+   *
+   * @see {@link Locator.describe}
+   * @since 0.1.0
+   */
+  readonly describe: (description: string) => PlaywrightLocatorService;
+  /**
+   * Returns the description of the locator.
+   *
+   * @see {@link Locator.description}
+   * @since 0.1.0
+   */
+  readonly description: () => Option.Option<string>;
   /**
    * Counts the number of matched elements.
    *
@@ -195,6 +255,60 @@ export interface PlaywrightLocatorService {
     testId: Parameters<Locator["getByTestId"]>[0],
   ) => PlaywrightLocatorService;
   /**
+   * Returns whether the element is checked.
+   *
+   * @see {@link Locator.isChecked}
+   * @since 0.4.1
+   */
+  readonly isChecked: (
+    options?: Parameters<Locator["isChecked"]>[0],
+  ) => Effect.Effect<boolean, PlaywrightError>;
+  /**
+   * Returns whether the element is disabled.
+   *
+   * @see {@link Locator.isDisabled}
+   * @since 0.4.1
+   */
+  readonly isDisabled: (
+    options?: Parameters<Locator["isDisabled"]>[0],
+  ) => Effect.Effect<boolean, PlaywrightError>;
+  /**
+   * Returns whether the element is editable.
+   *
+   * @see {@link Locator.isEditable}
+   * @since 0.4.1
+   */
+  readonly isEditable: (
+    options?: Parameters<Locator["isEditable"]>[0],
+  ) => Effect.Effect<boolean, PlaywrightError>;
+  /**
+   * Returns whether the element is enabled.
+   *
+   * @see {@link Locator.isEnabled}
+   * @since 0.4.1
+   */
+  readonly isEnabled: (
+    options?: Parameters<Locator["isEnabled"]>[0],
+  ) => Effect.Effect<boolean, PlaywrightError>;
+  /**
+   * Returns whether the element is hidden.
+   *
+   * @see {@link Locator.isHidden}
+   * @since 0.4.1
+   */
+  readonly isHidden: (
+    options?: Parameters<Locator["isHidden"]>[0],
+  ) => Effect.Effect<boolean, PlaywrightError>;
+  /**
+   * Returns whether the element is visible.
+   *
+   * @see {@link Locator.isVisible}
+   * @since 0.4.1
+   */
+  readonly isVisible: (
+    options?: Parameters<Locator["isVisible"]>[0],
+  ) => Effect.Effect<boolean, PlaywrightError>;
+  /**
    * Returns when element specified by locator satisfies the `state` option.
    *
    * @see {@link Locator.waitFor}
@@ -233,6 +347,137 @@ export interface PlaywrightLocatorService {
     arg?: Arg,
     options?: { timeout?: number },
   ) => Effect.Effect<R, PlaywrightError>;
+  /**
+   * Highlights the corresponding element(s) on the screen.
+   *
+   * @see {@link Locator.highlight}
+   * @since 0.4.1
+   */
+  readonly highlight: () => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Captures a screenshot of the element.
+   *
+   * @see {@link Locator.screenshot}
+   * @since 0.4.1
+   */
+  readonly screenshot: (
+    options?: Parameters<Locator["screenshot"]>[0],
+  ) => Effect.Effect<Buffer, PlaywrightError>;
+  /**
+   * Returns the string representation of the locator.
+   *
+   * @see {@link Locator.toString}
+   * @since 0.4.1
+   */
+  readonly toString: () => string;
+  /**
+   * Evaluates a function on all matched elements.
+   *
+   * @see {@link Locator.evaluateAll}
+   * @since 0.3.0
+   */
+  readonly evaluateAll: <
+    R,
+    Arg = void,
+    E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+  >(
+    pageFunction: (elements: E[], arg: Unboxed<Arg>) => R | Promise<R>,
+    arg?: Arg,
+  ) => Effect.Effect<R, PlaywrightError>;
+  /**
+   * Evaluates a function on the matched element and returns the result as a handle.
+   *
+   * @see {@link Locator.evaluateHandle}
+   * @since 0.3.0
+   */
+  readonly evaluateHandle: <
+    R,
+    Arg = void,
+    E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+  >(
+    pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
+    arg?: Arg,
+  ) => Effect.Effect<JSHandle<R>, PlaywrightError>;
+  /**
+   * Resolves given locator to the first matching DOM element.
+   *
+   * @see {@link Locator.elementHandle}
+   * @since 0.3.0
+   */
+  readonly elementHandle: (
+    options?: Parameters<Locator["elementHandle"]>[0],
+  ) => Effect.Effect<
+    Option.Option<ElementHandle<SVGElement | HTMLElement>>,
+    PlaywrightError
+  >;
+  /**
+   * Resolves given locator to all matching DOM elements.
+   *
+   * @see {@link Locator.elementHandles}
+   * @since 0.3.0
+   */
+  readonly elementHandles: () => Effect.Effect<
+    ReadonlyArray<ElementHandle<SVGElement | HTMLElement>>,
+    PlaywrightError
+  >;
+  /**
+   * Returns an array of locators pointing to the matched elements.
+   *
+   * @see {@link Locator.all}
+   * @since 0.4.1
+   */
+  readonly all: () => Effect.Effect<
+    ReadonlyArray<PlaywrightLocatorService>,
+    PlaywrightError
+  >;
+  /**
+   * Creates a locator that matches both this locator and the argument locator.
+   *
+   * @see {@link Locator.and}
+   * @since 0.4.1
+   */
+  readonly and: (
+    locator: PlaywrightLocatorService | Locator,
+  ) => PlaywrightLocatorService;
+  /**
+   * Returns a FrameLocator object pointing to the same iframe as this locator.
+   *
+   * @see {@link Locator.contentFrame}
+   * @since 0.4.1
+   */
+  readonly contentFrame: () => PlaywrightFrameLocatorService;
+  /**
+   * Narrows existing locator according to the options.
+   *
+   * @see {@link Locator.filter}
+   * @since 0.4.1
+   */
+  readonly filter: (
+    options?: Parameters<Locator["filter"]>[0],
+  ) => PlaywrightLocatorService;
+  /**
+   * Creates a frame locator that will enter the iframe and allow selecting elements in that iframe.
+   *
+   * @see {@link Locator.frameLocator}
+   * @since 0.4.1
+   */
+  readonly frameLocator: (selector: string) => PlaywrightFrameLocatorService;
+  /**
+   * Creates a locator that matches either this locator or the argument locator.
+   *
+   * @see {@link Locator.or}
+   * @since 0.4.1
+   */
+  readonly or: (
+    locator: PlaywrightLocatorService | Locator,
+  ) => PlaywrightLocatorService;
+  /**
+   * A page this locator belongs to.
+   *
+   * @see {@link Locator.page}
+   * @since 0.4.1
+   */
+  readonly page: () => typeof PlaywrightPage.Service;
   /**
    * A generic utility to execute any promise-based method on the underlying Playwright `Locator`.
    * Can be used to access any Locator functionality not directly exposed by this service.
@@ -277,6 +522,10 @@ export class PlaywrightLocator extends Context.Tag(
    */
   static make(locator: Locator): typeof PlaywrightLocator.Service {
     const use = useHelper(locator);
+    const unwrap = Match.type<Locator | PlaywrightLocatorService>().pipe(
+      Match.when(Predicate.hasProperty("_raw"), (l) => l._raw),
+      Match.orElse((l) => l),
+    );
 
     return PlaywrightLocator.of({
       _raw: locator,
@@ -289,16 +538,37 @@ export class PlaywrightLocator extends Context.Tag(
       innerHTML: (options) => use((l) => l.innerHTML(options)),
       inputValue: (options) => use((l) => l.inputValue(options)),
       textContent: (options) => use((l) => l.textContent(options)),
+      allInnerTexts: () => use((l) => l.allInnerTexts()),
+      allTextContents: () => use((l) => l.allTextContents()),
+      ariaSnapshot: (options) => use((l) => l.ariaSnapshot(options)),
+      boundingBox: (options) =>
+        use((l) => l.boundingBox(options)).pipe(
+          Effect.map(Option.fromNullable),
+        ),
+      describe: (description) =>
+        PlaywrightLocator.make(locator.describe(description)),
+      description: () => Option.fromNullable(locator.description()),
       count: use((l) => l.count()),
       first: () => PlaywrightLocator.make(locator.first()),
       last: () => PlaywrightLocator.make(locator.last()),
       nth: (index: number) => PlaywrightLocator.make(locator.nth(index)),
+      all: () =>
+        use((l) => l.all()).pipe(Effect.map(Array.map(PlaywrightLocator.make))),
+      and: (locatorOrService) =>
+        PlaywrightLocator.make(locator.and(unwrap(locatorOrService))),
+      contentFrame: () => PlaywrightFrameLocator.make(locator.contentFrame()),
+      filter: (options) => PlaywrightLocator.make(locator.filter(options)),
+      frameLocator: (selector) =>
+        PlaywrightFrameLocator.make(locator.frameLocator(selector)),
+      or: (locatorOrService) =>
+        PlaywrightLocator.make(locator.or(unwrap(locatorOrService))),
+      page: () => PlaywrightPage.make(locator.page()),
       locator: (selectorOrLocator, options) =>
-        typeof selectorOrLocator === "object" && "_raw" in selectorOrLocator
-          ? PlaywrightLocator.make(
-              locator.locator(selectorOrLocator._raw, options),
-            )
-          : PlaywrightLocator.make(locator.locator(selectorOrLocator, options)),
+        PlaywrightLocator.make(
+          typeof selectorOrLocator === "string"
+            ? locator.locator(selectorOrLocator, options)
+            : locator.locator(unwrap(selectorOrLocator), options),
+        ),
       getByRole: (role, options) =>
         PlaywrightLocator.make(locator.getByRole(role, options)),
       getByText: (text, options) =>
@@ -313,6 +583,12 @@ export class PlaywrightLocator extends Context.Tag(
         PlaywrightLocator.make(locator.getByTitle(text, options)),
       getByTestId: (testId) =>
         PlaywrightLocator.make(locator.getByTestId(testId)),
+      isChecked: (options) => use((l) => l.isChecked(options)),
+      isDisabled: (options) => use((l) => l.isDisabled(options)),
+      isEditable: (options) => use((l) => l.isEditable(options)),
+      isEnabled: (options) => use((l) => l.isEnabled(options)),
+      isHidden: (options) => use((l) => l.isHidden(options)),
+      isVisible: (options) => use((l) => l.isVisible(options)),
       waitFor: (options) => use((l) => l.waitFor(options)),
       evaluate: <
         R,
@@ -323,6 +599,36 @@ export class PlaywrightLocator extends Context.Tag(
         arg?: Arg,
         options?: { timeout?: number },
       ) => use((l) => l.evaluate(pageFunction, arg as Arg, options)),
+      evaluateAll: <
+        R,
+        Arg = void,
+        E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+      >(
+        pageFunction: (elements: E[], arg: Unboxed<Arg>) => R | Promise<R>,
+        arg?: Arg,
+      ) => use((l) => l.evaluateAll(pageFunction, arg as Arg)),
+      evaluateHandle: <
+        R,
+        Arg = void,
+        E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+      >(
+        pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
+        arg?: Arg,
+      ) => use((l) => l.evaluateHandle(pageFunction, arg as Arg)),
+      elementHandle: (options) =>
+        use((l) => l.elementHandle(options)).pipe(
+          Effect.map(Option.fromNullable),
+        ),
+      elementHandles: () =>
+        use(
+          (l) =>
+            l.elementHandles() as Promise<
+              Array<ElementHandle<SVGElement | HTMLElement>>
+            >,
+        ),
+      highlight: () => use((l) => l.highlight()),
+      screenshot: (options) => use((l) => l.screenshot(options)),
+      toString: () => locator.toString(),
       use,
     });
   }

@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import { assert, layer } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { chromium } from "playwright-core";
 import { PlaywrightBrowser } from "./browser";
 import { PlaywrightEnvironment } from "./experimental";
@@ -110,6 +110,29 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       const htmlContent = yield* htmlDiv.innerHTML();
       assert(htmlContent === "<span>Hello</span>");
 
+      // allInnerTexts
+      const allTexts = yield* buttons.allInnerTexts();
+      assert.deepEqual(allTexts, ["Button 1", "Button 2"]);
+
+      // allTextContents
+      const allTextContents = yield* buttons.allTextContents();
+      assert.deepEqual(allTextContents, ["Button 1", "Button 2"]);
+
+      // boundingBox
+      const box = yield* buttons.first().boundingBox();
+      assert(Option.isSome(box));
+      assert(typeof box.value.x === "number");
+
+      // ariaSnapshot
+      const snapshot = yield* buttons.first().ariaSnapshot();
+      assert(typeof snapshot === "string");
+
+      // describe / description
+      const described = buttons.first().describe("first button");
+      const desc = described.description();
+      assert(Option.isSome(desc));
+      assert(desc.value === "first button");
+
       // count
       const btnCount = yield* buttons.count;
       assert(btnCount === 2);
@@ -211,11 +234,59 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       const testIdElementId = yield* testIdElement.getAttribute("id");
       assert(testIdElementId === "test-id-element");
 
+      // highlight
+      yield* buttons.first().highlight();
+
+      // screenshot
+      const screenshotBuffer = yield* buttons.first().screenshot();
+      assert(screenshotBuffer.length > 0);
+
+      // toString
+      const str = buttons.first().toString();
+      assert(typeof str === "string");
+      assert(str.includes("locator"));
+
+      // State checks
+      assert((yield* checkbox.isChecked()) === true);
+      assert((yield* buttons.first().isVisible()) === true);
+      assert((yield* buttons.first().isHidden()) === false);
+      assert((yield* buttons.first().isEnabled()) === true);
+      assert((yield* buttons.first().isDisabled()) === false);
+      assert((yield* input.isEditable()) === true);
+
       // evaluate
       const evalResult = yield* buttons.first().evaluate((el, arg) => {
         return el.getAttribute("data-info") + arg;
       }, "-suffix");
       assert(evalResult === "first-suffix");
+
+      // evaluateAll
+      const evalAllRes = yield* buttons.evaluateAll(
+        (els, prefix) => els.map((el) => prefix + el.id),
+        "id:",
+      );
+      assert.deepEqual(evalAllRes, ["id:btn-1", "id:btn-2"]);
+
+      // evaluateHandle
+      const handle = yield* buttons.first().evaluateHandle((el) => el);
+      const handleRes = yield* page.evaluate((el: any) => el.id, handle);
+      assert(handleRes === "btn-1");
+
+      // elementHandle
+      const elHandleOption = yield* buttons.first().elementHandle();
+      assert(Option.isSome(elHandleOption));
+      const elHandleRes = yield* Effect.promise(() =>
+        elHandleOption.value.evaluate((el) => el.id),
+      );
+      assert(elHandleRes === "btn-1");
+
+      // elementHandles
+      const handles = yield* buttons.elementHandles();
+      assert(handles.length === 2);
+      const firstHandleId = yield* Effect.promise(() =>
+        handles[0].evaluate((el) => el.id),
+      );
+      assert(firstHandleId === "btn-1");
 
       // use
       const useResult = yield* buttons
@@ -223,5 +294,66 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
         .use((l) => l.evaluate((el) => el.id));
       assert(useResult === "btn-1");
     }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped(
+    "new methods: all, and, filter, or, page, frameLocator, contentFrame",
+    () =>
+      Effect.gen(function* () {
+        const browser = yield* PlaywrightBrowser;
+        const page = yield* browser.newPage();
+
+        yield* page.evaluate(() => {
+          document.body.innerHTML = `
+          <div id="container">
+            <button id="btn-1" class="btn test-and">Button 1</button>
+            <button id="btn-2" class="btn">Button 2</button>
+            <iframe id="test-iframe" name="test-iframe" srcdoc="<body><div id='in-frame'>In Frame</div></body>"></iframe>
+          </div>
+        `;
+        });
+
+        const buttons = page.locator(".btn");
+
+        // all
+        const allLocators = yield* buttons.all();
+        assert(allLocators.length === 2);
+        const firstId = yield* allLocators[0].getAttribute("id");
+        assert(firstId === "btn-1");
+
+        // filter
+        const filtered = buttons.filter({ hasText: "Button 1" });
+        const filteredId = yield* filtered.getAttribute("id");
+        assert(filteredId === "btn-1");
+
+        // and
+        const andLocator = buttons.and(page.locator(".test-and"));
+        const andId = yield* andLocator.getAttribute("id");
+        assert(andId === "btn-1");
+
+        // or
+        const orLocator = page.locator("#btn-1").or(page.locator("#btn-2"));
+        const orCount = yield* orLocator.count;
+        assert(orCount === 2);
+
+        // page
+        const pageFromLocator = buttons.page();
+        assert(pageFromLocator !== undefined);
+
+        // frameLocator
+        const frameLoc = page
+          .locator("#container")
+          .frameLocator("#test-iframe");
+        const inFrameText = yield* frameLoc.locator("#in-frame").textContent();
+        assert(inFrameText === "In Frame");
+
+        // contentFrame
+        const iframeElement = page.locator("#test-iframe");
+        const contentFrame = iframeElement.contentFrame();
+        const contentFrameText = yield* contentFrame
+          .locator("#in-frame")
+          .textContent();
+        assert(contentFrameText === "In Frame");
+      }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });
