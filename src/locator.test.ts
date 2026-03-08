@@ -269,7 +269,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
 
       // evaluateHandle
       const handle = yield* buttons.first().evaluateHandle((el) => el);
-      const handleRes = yield* page.evaluate((el: any) => el.id, handle);
+      const handleRes = yield* page.evaluate((el) => el.id, handle);
       assert(handleRes === "btn-1");
 
       // elementHandle
@@ -355,5 +355,174 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
           .textContent();
         assert(contentFrameText === "In Frame");
       }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("action methods", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.setContent(`
+          <div id="new-methods-container" style="padding-top: 2000px;">
+            <input type="text" id="input-blur" />
+            <input type="text" id="input-clear" value="clear me" />
+            <button id="btn-dblclick">DblClick</button>
+            <div id="div-event">Event</div>
+            <div id="div-drag-source" style="width:50px;height:50px;background:red;">Source</div>
+            <div id="div-drag-target" style="width:50px;height:50px;background:blue;">Target</div>
+            <input type="text" id="input-focus" />
+            <div id="div-hover">Hover</div>
+            <input type="text" id="input-press" />
+            <input type="text" id="input-press-seq" />
+            <div id="div-scroll">Scroll</div>
+            <select id="select-option">
+              <option value="opt1">Opt 1</option>
+              <option value="opt2">Opt 2</option>
+            </select>
+            <div id="div-select-text">Some text to select</div>
+            <input type="checkbox" id="checkbox-checked" />
+            <input type="file" id="input-file" />
+            <input type="checkbox" id="checkbox-uncheck" checked />
+          </div>
+        `);
+
+      // focus & blur
+      const inputBlur = page.locator("#input-blur");
+      yield* inputBlur.focus();
+      assert(
+        (yield* inputBlur.evaluate((el) => document.activeElement === el)) ===
+          true,
+      );
+      yield* inputBlur.blur();
+      assert(
+        (yield* inputBlur.evaluate((el) => document.activeElement === el)) ===
+          false,
+      );
+
+      // clear
+      const inputClear = page.locator("#input-clear");
+      yield* inputClear.clear();
+      assert((yield* inputClear.inputValue()) === "");
+
+      // dblclick
+      const btnDblclick = page.locator("#btn-dblclick");
+      yield* btnDblclick.evaluate((el) => {
+        el.setAttribute("data-dblclicked", "false");
+        el.addEventListener("dblclick", () => {
+          el.setAttribute("data-dblclicked", "true");
+        });
+      });
+      yield* btnDblclick.dblclick();
+      assert(
+        (yield* btnDblclick.evaluate((el) =>
+          el.getAttribute("data-dblclicked"),
+        )) === "true",
+      );
+
+      // dispatchEvent
+      const divEvent = page.locator("#div-event");
+      yield* divEvent.evaluate((el) => {
+        el.setAttribute("data-custom-event-fired", "false");
+        el.addEventListener("my-event", () => {
+          el.setAttribute("data-custom-event-fired", "true");
+        });
+      });
+      yield* divEvent.dispatchEvent("my-event");
+      assert(
+        (yield* divEvent.evaluate((el) =>
+          el.getAttribute("data-custom-event-fired"),
+        )) === "true",
+      );
+
+      // dragTo
+      const dragSource = page.locator("#div-drag-source");
+      const dragTarget = page.locator("#div-drag-target");
+      yield* dragSource.dragTo(dragTarget);
+
+      // hover
+      const divHover = page.locator("#div-hover");
+      yield* divHover.evaluate((el) => {
+        el.setAttribute("data-hovered", "false");
+        el.addEventListener("mouseenter", () => {
+          el.setAttribute("data-hovered", "true");
+        });
+      });
+      yield* divHover.hover();
+      assert(
+        (yield* divHover.evaluate((el) => el.getAttribute("data-hovered"))) ===
+          "true",
+      );
+
+      // press
+      const inputPress = page.locator("#input-press");
+      yield* inputPress.press("A");
+      assert((yield* inputPress.inputValue()) === "A");
+
+      // pressSequentially
+      const inputPressSeq = page.locator("#input-press-seq");
+      yield* inputPressSeq.pressSequentially("Hello");
+      assert((yield* inputPressSeq.inputValue()) === "Hello");
+
+      // scrollIntoViewIfNeeded
+      const divScroll = page.locator("#div-scroll");
+      yield* divScroll.scrollIntoViewIfNeeded();
+      const isIntersecting = yield* divScroll.evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        return rect.top >= 0 && rect.bottom <= window.innerHeight;
+      });
+      assert(isIntersecting === true);
+
+      // selectOption
+      const selectOpt = page.locator("#select-option");
+      const selected = yield* selectOpt.selectOption("opt2");
+      assert(selected[0] === "opt2");
+      assert(
+        (yield* selectOpt.evaluate((el: HTMLSelectElement) => el.value)) ===
+          "opt2",
+      );
+
+      // selectText
+      const divSelectText = page.locator("#div-select-text");
+      yield* divSelectText.selectText();
+      const selectedText = yield* page.evaluate(() =>
+        window.getSelection()?.toString(),
+      );
+      assert(selectedText === "Some text to select");
+
+      // setChecked
+      const checkboxChecked = page.locator("#checkbox-checked");
+      yield* checkboxChecked.setChecked(true);
+      assert((yield* checkboxChecked.isChecked()) === true);
+
+      // setInputFiles
+      const inputFile = page.locator("#input-file");
+      yield* inputFile.setInputFiles({
+        name: "test.txt",
+        mimeType: "text/plain",
+        buffer: Buffer.from("test"),
+      });
+
+      // uncheck
+      const checkboxUncheck = page.locator("#checkbox-uncheck");
+      yield* checkboxUncheck.uncheck();
+      assert((yield* checkboxUncheck.isChecked()) === false);
+
+      // tap
+      const context = yield* browser.newContext({ hasTouch: true });
+      const mobilePage = yield* context.newPage;
+      yield* mobilePage.setContent('<button id="btn-tap">Tap</button>');
+      const btnTap = mobilePage.locator("#btn-tap");
+      yield* btnTap.evaluate((el) => {
+        el.setAttribute("data-tapped", "false");
+        el.addEventListener("click", () => {
+          el.setAttribute("data-tapped", "true");
+        });
+      });
+      yield* btnTap.tap();
+      assert(
+        (yield* btnTap.evaluate((el) => el.getAttribute("data-tapped"))) ===
+          "true",
+      );
+    }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });

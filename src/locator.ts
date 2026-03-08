@@ -479,6 +479,158 @@ export interface PlaywrightLocatorService {
    */
   readonly page: () => typeof PlaywrightPage.Service;
   /**
+   * Removes keyboard focus from the current element.
+   *
+   * @see {@link Locator.blur}
+   * @since 0.4.2
+   */
+  readonly blur: (
+    options?: Parameters<Locator["blur"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Clear the input field.
+   *
+   * @see {@link Locator.clear}
+   * @since 0.4.2
+   */
+  readonly clear: (
+    options?: Parameters<Locator["clear"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Double-clicks the element.
+   *
+   * @see {@link Locator.dblclick}
+   * @since 0.4.2
+   */
+  readonly dblclick: (
+    options?: Parameters<Locator["dblclick"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Dispatches an event.
+   *
+   * @see {@link Locator.dispatchEvent}
+   * @since 0.4.2
+   */
+  readonly dispatchEvent: (
+    type: Parameters<Locator["dispatchEvent"]>[0],
+    eventInit?: Parameters<Locator["dispatchEvent"]>[1],
+    options?: Parameters<Locator["dispatchEvent"]>[2],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Drags the locator to another target locator.
+   *
+   * @see {@link Locator.dragTo}
+   * @since 0.4.2
+   */
+  readonly dragTo: (
+    target: PlaywrightLocatorService | Locator,
+    options?: Parameters<Locator["dragTo"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Focuses the element.
+   *
+   * @see {@link Locator.focus}
+   * @since 0.4.2
+   */
+  readonly focus: (
+    options?: Parameters<Locator["focus"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Hovers over the element.
+   *
+   * @see {@link Locator.hover}
+   * @since 0.4.2
+   */
+  readonly hover: (
+    options?: Parameters<Locator["hover"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Focuses the element, and then uses `keyboard.down` and `keyboard.up`.
+   *
+   * @see {@link Locator.press}
+   * @since 0.4.2
+   */
+  readonly press: (
+    key: Parameters<Locator["press"]>[0],
+    options?: Parameters<Locator["press"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Focuses the element, and then sends a `keydown`, `keypress`/`input`, and `keyup` event for each character in the text.
+   *
+   * @see {@link Locator.pressSequentially}
+   * @since 0.4.2
+   */
+  readonly pressSequentially: (
+    text: Parameters<Locator["pressSequentially"]>[0],
+    options?: Parameters<Locator["pressSequentially"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Scrolls the element into view if needed.
+   *
+   * @see {@link Locator.scrollIntoViewIfNeeded}
+   * @since 0.4.2
+   */
+  readonly scrollIntoViewIfNeeded: (
+    options?: Parameters<Locator["scrollIntoViewIfNeeded"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Selects an option in a `<select>` element.
+   *
+   * @see {@link Locator.selectOption}
+   * @since 0.4.2
+   */
+  readonly selectOption: (
+    values: Parameters<Locator["selectOption"]>[0],
+    options?: Parameters<Locator["selectOption"]>[1],
+  ) => Effect.Effect<ReadonlyArray<string>, PlaywrightError>;
+  /**
+   * Selects text.
+   *
+   * @see {@link Locator.selectText}
+   * @since 0.4.2
+   */
+  readonly selectText: (
+    options?: Parameters<Locator["selectText"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Checks the element if not already checked.
+   *
+   * @see {@link Locator.setChecked}
+   * @since 0.4.2
+   */
+  readonly setChecked: (
+    checked: Parameters<Locator["setChecked"]>[0],
+    options?: Parameters<Locator["setChecked"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Sets the value of the file input.
+   *
+   * @see {@link Locator.setInputFiles}
+   * @since 0.4.2
+   */
+  readonly setInputFiles: (
+    files: Parameters<Locator["setInputFiles"]>[0],
+    options?: Parameters<Locator["setInputFiles"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Taps the element.
+   *
+   * @see {@link Locator.tap}
+   * @since 0.4.2
+   */
+  readonly tap: (
+    options?: Parameters<Locator["tap"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Unchecks the element.
+   *
+   * @see {@link Locator.uncheck}
+   * @since 0.4.2
+   */
+  readonly uncheck: (
+    options?: Parameters<Locator["uncheck"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
    * A generic utility to execute any promise-based method on the underlying Playwright `Locator`.
    * Can be used to access any Locator functionality not directly exposed by this service.
    *
@@ -628,6 +780,29 @@ export class PlaywrightLocator extends Context.Tag(
         ),
       highlight: () => use((l) => l.highlight()),
       screenshot: (options) => use((l) => l.screenshot(options)),
+      blur: (options) => use((l) => l.blur(options)),
+      clear: (options) => use((l) => l.clear(options)),
+      dblclick: (options) => use((l) => l.dblclick(options)),
+      dispatchEvent: (type, eventInit, options) =>
+        use((l) => l.dispatchEvent(type, eventInit, options)),
+      dragTo: (target, options) =>
+        use((l) => l.dragTo(unwrap(target), options)),
+      focus: (options) => use((l) => l.focus(options)),
+      hover: (options) => use((l) => l.hover(options)),
+      press: (key, options) => use((l) => l.press(key, options)),
+      pressSequentially: (text, options) =>
+        use((l) => l.pressSequentially(text, options)),
+      scrollIntoViewIfNeeded: (options) =>
+        use((l) => l.scrollIntoViewIfNeeded(options)),
+      selectOption: (values, options) =>
+        use((l) => l.selectOption(values, options)),
+      selectText: (options) => use((l) => l.selectText(options)),
+      setChecked: (checked, options) =>
+        use((l) => l.setChecked(checked, options)),
+      setInputFiles: (files, options) =>
+        use((l) => l.setInputFiles(files, options)),
+      tap: (options) => use((l) => l.tap(options)),
+      uncheck: (options) => use((l) => l.uncheck(options)),
       toString: () => locator.toString(),
       use,
     });
