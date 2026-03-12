@@ -58,6 +58,33 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       const byText = yield* frame.getByText("Hello from Frame").count;
       assert.strictEqual(byText, 1);
 
+      // Test getByPlaceholder
+      yield* frame.evaluate(() => {
+        const input = document.createElement("input");
+        input.placeholder = "Search...";
+        document.body.appendChild(input);
+      });
+      const byPlaceholder = yield* frame.getByPlaceholder("Search...").count;
+      assert.strictEqual(byPlaceholder, 1);
+
+      // Test getByAltText
+      yield* frame.evaluate(() => {
+        const img = document.createElement("img");
+        img.alt = "Playwright Logo";
+        document.body.appendChild(img);
+      });
+      const byAltText = yield* frame.getByAltText("Playwright Logo").count;
+      assert.strictEqual(byAltText, 1);
+
+      // Test getByTitle
+      yield* frame.evaluate(() => {
+        const span = document.createElement("span");
+        span.title = "Tooltip";
+        document.body.appendChild(span);
+      });
+      const byTitle = yield* frame.getByTitle("Tooltip").count;
+      assert.strictEqual(byTitle, 1);
+
       // Test name
       const name = frame.name();
       assert.strictEqual(name, "test-frame");

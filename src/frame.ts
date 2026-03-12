@@ -120,6 +120,39 @@ export interface PlaywrightFrameService {
   ) => typeof PlaywrightLocator.Service;
 
   /**
+   * Returns a locator that matches the given placeholder.
+   *
+   * @see {@link Frame.getByPlaceholder}
+   * @since 0.4.0
+   */
+  readonly getByPlaceholder: (
+    text: Parameters<Frame["getByPlaceholder"]>[0],
+    options?: Parameters<Frame["getByPlaceholder"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+
+  /**
+   * Returns a locator that matches the given alt text.
+   *
+   * @see {@link Frame.getByAltText}
+   * @since 0.4.0
+   */
+  readonly getByAltText: (
+    text: Parameters<Frame["getByAltText"]>[0],
+    options?: Parameters<Frame["getByAltText"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+
+  /**
+   * Returns a locator that matches the given title.
+   *
+   * @see {@link Frame.getByTitle}
+   * @since 0.4.0
+   */
+  readonly getByTitle: (
+    text: Parameters<Frame["getByTitle"]>[0],
+    options?: Parameters<Frame["getByTitle"]>[1],
+  ) => typeof PlaywrightLocator.Service;
+
+  /**
    * Returns the current URL of the frame.
    *
    * @see {@link Frame.url}
@@ -192,6 +225,12 @@ export class PlaywrightFrame extends Context.Tag(
         PlaywrightLocator.make(frame.getByLabel(label, options)),
       getByTestId: (testId) =>
         PlaywrightLocator.make(frame.getByTestId(testId)),
+      getByPlaceholder: (text, options) =>
+        PlaywrightLocator.make(frame.getByPlaceholder(text, options)),
+      getByAltText: (text, options) =>
+        PlaywrightLocator.make(frame.getByAltText(text, options)),
+      getByTitle: (text, options) =>
+        PlaywrightLocator.make(frame.getByTitle(text, options)),
       url: () => frame.url(),
       content: use((f) => f.content()),
       name: () => frame.name(),
