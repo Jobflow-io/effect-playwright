@@ -1,5 +1,5 @@
 import { assert, layer } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { chromium } from "playwright-core";
 import { PlaywrightBrowser } from "./browser";
 import { PlaywrightEnvironment } from "./experimental";
@@ -88,6 +88,29 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       // Test name
       const name = frame.name();
       assert.strictEqual(name, "test-frame");
+
+      // Test page
+      const framePage = frame.page();
+      assert.isOk(framePage);
+
+      // Test parentFrame
+      const parent = frame.parentFrame();
+      assert.isTrue(Option.isSome(parent));
+
+      // Test childFrames
+      const children = frame.childFrames();
+      assert.strictEqual(children.length, 0);
+
+      // Test isDetached
+      assert.isFalse(frame.isDetached());
+
+      // Test waitForTimeout
+      yield* frame.waitForTimeout(100);
+
+      // Test setContent
+      yield* frame.setContent("<h1>New Content</h1>");
+      const newContent = yield* frame.content;
+      assert.isTrue(newContent.includes("New Content"));
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 

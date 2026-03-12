@@ -140,6 +140,15 @@ export interface PlaywrightPageService {
     options?: Parameters<Page["setContent"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
+   * Waits for the given timeout in milliseconds.
+   *
+   * @see {@link Page.waitForTimeout}
+   * @since 0.4.0
+   */
+  readonly waitForTimeout: (
+    timeout: number,
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
    * This setting will change the default maximum navigation time for the following methods:
    * - {@link PlaywrightPageService.goBack}
    * - {@link PlaywrightPageService.goForward}
@@ -787,6 +796,7 @@ export class PlaywrightPage extends Context.Tag(
       touchscreen: PlaywrightTouchscreen.make(page.touchscreen),
       goto: (url, options) => use((p) => p.goto(url, options)),
       setContent: (html, options) => use((p) => p.setContent(html, options)),
+      waitForTimeout: (timeout) => use((p) => p.waitForTimeout(timeout)),
       setDefaultNavigationTimeout: (timeout) =>
         page.setDefaultNavigationTimeout(timeout),
       setDefaultTimeout: (timeout) => page.setDefaultTimeout(timeout),

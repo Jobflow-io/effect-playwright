@@ -1,4 +1,4 @@
-import { Context, Effect, identity, Stream } from "effect";
+import { Context, Effect, identity, Option, Stream } from "effect";
 import type {
   BrowserContext,
   ConsoleMessage,
@@ -9,6 +9,7 @@ import type {
   WebError,
   Worker,
 } from "playwright-core";
+import { PlaywrightBrowser, type PlaywrightBrowserService } from "./browser";
 import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import {
   PlaywrightDialog,
@@ -106,6 +107,114 @@ export interface PlaywrightBrowserContextService {
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
+   * Returns the browser that the context belongs to.
+   *
+   * @see {@link BrowserContext.browser}
+   * @since 0.4.0
+   */
+  readonly browser: () => Option.Option<PlaywrightBrowserService>;
+
+  /**
+   * Clears the cookies from the browser context.
+   *
+   * @see {@link BrowserContext.clearCookies}
+   * @since 0.4.0
+   */
+  readonly clearCookies: (options?: {
+    name?: string | RegExp;
+    domain?: string | RegExp;
+    path?: string | RegExp;
+  }) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Clears the permissions from the browser context.
+   *
+   * @see {@link BrowserContext.clearPermissions}
+   * @since 0.4.0
+   */
+  readonly clearPermissions: Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Returns the cookies for the browser context.
+   *
+   * @see {@link BrowserContext.cookies}
+   * @since 0.4.0
+   */
+  readonly cookies: (
+    urls?: string | string[],
+  ) => Effect.Effect<
+    Awaited<ReturnType<BrowserContext["cookies"]>>,
+    PlaywrightError
+  >;
+
+  /**
+   * Sets the cookies for the browser context.
+   *
+   * @see {@link BrowserContext.addCookies}
+   * @since 0.4.0
+   */
+  readonly addCookies: (
+    cookies: Parameters<BrowserContext["addCookies"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Grants permissions to the browser context.
+   *
+   * @see {@link BrowserContext.grantPermissions}
+   * @since 0.4.0
+   */
+  readonly grantPermissions: (
+    permissions: Parameters<BrowserContext["grantPermissions"]>[0],
+    options?: Parameters<BrowserContext["grantPermissions"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Sets the extra HTTP headers for the browser context.
+   *
+   * @see {@link BrowserContext.setExtraHTTPHeaders}
+   * @since 0.4.0
+   */
+  readonly setExtraHTTPHeaders: (
+    headers: Parameters<BrowserContext["setExtraHTTPHeaders"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Sets the geolocation for the browser context.
+   *
+   * @see {@link BrowserContext.setGeolocation}
+   * @since 0.4.0
+   */
+  readonly setGeolocation: (
+    geolocation: Parameters<BrowserContext["setGeolocation"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Sets the offline state for the browser context.
+   *
+   * @see {@link BrowserContext.setOffline}
+   * @since 0.4.0
+   */
+  readonly setOffline: (
+    offline: boolean,
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Sets the default navigation timeout for the browser context.
+   *
+   * @see {@link BrowserContext.setDefaultNavigationTimeout}
+   * @since 0.4.0
+   */
+  readonly setDefaultNavigationTimeout: (timeout: number) => void;
+
+  /**
+   * Sets the default timeout for the browser context.
+   *
+   * @see {@link BrowserContext.setDefaultTimeout}
+   * @since 0.4.0
+   */
+  readonly setDefaultTimeout: (timeout: number) => void;
+
+  /**
    * Creates a stream of the given event from the browser context.
    *
    * @example
@@ -144,6 +253,24 @@ export class PlaywrightBrowserContext extends Context.Tag(
       newPage: use((c) => c.newPage().then(PlaywrightPage.make)),
       close: use((c) => c.close()),
       addInitScript: (script, arg) => use((c) => c.addInitScript(script, arg)),
+      browser: () =>
+        Option.fromNullable(context.browser()).pipe(
+          Option.map(PlaywrightBrowser.make),
+        ),
+      clearCookies: (options) => use((c) => c.clearCookies(options)),
+      clearPermissions: use((c) => c.clearPermissions()),
+      cookies: (urls) => use((c) => c.cookies(urls)),
+      addCookies: (cookies) => use((c) => c.addCookies(cookies)),
+      grantPermissions: (permissions, options) =>
+        use((c) => c.grantPermissions(permissions, options)),
+      setExtraHTTPHeaders: (headers) =>
+        use((c) => c.setExtraHTTPHeaders(headers)),
+      setGeolocation: (geolocation) =>
+        use((c) => c.setGeolocation(geolocation)),
+      setOffline: (offline) => use((c) => c.setOffline(offline)),
+      setDefaultNavigationTimeout: (timeout) =>
+        context.setDefaultNavigationTimeout(timeout),
+      setDefaultTimeout: (timeout) => context.setDefaultTimeout(timeout),
       eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
         Stream.asyncPush<BrowserContextEvents[K]>((emit) =>
           Effect.acquireRelease(

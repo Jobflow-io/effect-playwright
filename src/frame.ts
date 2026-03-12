@@ -1,7 +1,8 @@
-import { Context, type Effect } from "effect";
+import { Array, Context, type Effect, Option } from "effect";
 import type { Frame } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightLocator } from "./locator";
+import { PlaywrightPage, type PlaywrightPageService } from "./page";
 import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
 
@@ -153,6 +154,59 @@ export interface PlaywrightFrameService {
   ) => typeof PlaywrightLocator.Service;
 
   /**
+   * Returns the page that the frame belongs to.
+   *
+   * @see {@link Frame.page}
+   * @since 0.4.0
+   */
+  readonly page: () => PlaywrightPageService;
+
+  /**
+   * Returns the parent frame, if any.
+   *
+   * @see {@link Frame.parentFrame}
+   * @since 0.4.0
+   */
+  readonly parentFrame: () => Option.Option<PlaywrightFrameService>;
+
+  /**
+   * Returns an array of child frames.
+   *
+   * @see {@link Frame.childFrames}
+   * @since 0.4.0
+   */
+  readonly childFrames: () => ReadonlyArray<PlaywrightFrameService>;
+
+  /**
+   * Returns whether the frame is detached.
+   *
+   * @see {@link Frame.isDetached}
+   * @since 0.4.0
+   */
+  readonly isDetached: () => boolean;
+
+  /**
+   * Waits for the given timeout in milliseconds.
+   *
+   * @see {@link Frame.waitForTimeout}
+   * @since 0.4.0
+   */
+  readonly waitForTimeout: (
+    timeout: number,
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Sets the HTML content of the frame.
+   *
+   * @see {@link Frame.setContent}
+   * @since 0.4.0
+   */
+  readonly setContent: (
+    html: string,
+    options?: Parameters<Frame["setContent"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
    * Returns the current URL of the frame.
    *
    * @see {@link Frame.url}
@@ -231,6 +285,16 @@ export class PlaywrightFrame extends Context.Tag(
         PlaywrightLocator.make(frame.getByAltText(text, options)),
       getByTitle: (text, options) =>
         PlaywrightLocator.make(frame.getByTitle(text, options)),
+      page: () => PlaywrightPage.make(frame.page()),
+      parentFrame: () =>
+        Option.fromNullable(frame.parentFrame()).pipe(
+          Option.map(PlaywrightFrame.make),
+        ),
+      childFrames: () =>
+        Array.map(frame.childFrames(), (f) => PlaywrightFrame.make(f)),
+      isDetached: () => frame.isDetached(),
+      waitForTimeout: (timeout) => use((f) => f.waitForTimeout(timeout)),
+      setContent: (html, options) => use((f) => f.setContent(html, options)),
       url: () => frame.url(),
       content: use((f) => f.content()),
       name: () => frame.name(),
