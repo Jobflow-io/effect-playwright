@@ -13,6 +13,11 @@ const MAPPINGS = [
   },
   { pw: "Page", ep: "PlaywrightPageService", type: "interface" as const },
   { pw: "Frame", ep: "PlaywrightFrameService", type: "interface" as const },
+  {
+    pw: "FrameLocator",
+    ep: "PlaywrightFrameLocatorService",
+    type: "interface" as const,
+  },
   { pw: "Locator", ep: "PlaywrightLocatorService", type: "interface" as const },
   { pw: "Request", ep: "PlaywrightRequest", type: "class" as const },
   { pw: "Response", ep: "PlaywrightResponse", type: "class" as const },
