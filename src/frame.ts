@@ -124,7 +124,7 @@ export interface PlaywrightFrameService {
    * Returns a locator that matches the given placeholder.
    *
    * @see {@link Frame.getByPlaceholder}
-   * @since 0.4.0
+   * @since 0.4.1
    */
   readonly getByPlaceholder: (
     text: Parameters<Frame["getByPlaceholder"]>[0],
@@ -135,7 +135,7 @@ export interface PlaywrightFrameService {
    * Returns a locator that matches the given alt text.
    *
    * @see {@link Frame.getByAltText}
-   * @since 0.4.0
+   * @since 0.4.1
    */
   readonly getByAltText: (
     text: Parameters<Frame["getByAltText"]>[0],
@@ -146,7 +146,7 @@ export interface PlaywrightFrameService {
    * Returns a locator that matches the given title.
    *
    * @see {@link Frame.getByTitle}
-   * @since 0.4.0
+   * @since 0.4.1
    */
   readonly getByTitle: (
     text: Parameters<Frame["getByTitle"]>[0],
@@ -157,7 +157,7 @@ export interface PlaywrightFrameService {
    * Returns the page that the frame belongs to.
    *
    * @see {@link Frame.page}
-   * @since 0.4.0
+   * @since 0.4.1
    */
   readonly page: () => PlaywrightPageService;
 
@@ -165,7 +165,7 @@ export interface PlaywrightFrameService {
    * Returns the parent frame, if any.
    *
    * @see {@link Frame.parentFrame}
-   * @since 0.4.0
+   * @since 0.4.1
    */
   readonly parentFrame: () => Option.Option<PlaywrightFrameService>;
 
@@ -173,7 +173,7 @@ export interface PlaywrightFrameService {
    * Returns an array of child frames.
    *
    * @see {@link Frame.childFrames}
-   * @since 0.4.0
+   * @since 0.4.1
    */
   readonly childFrames: () => ReadonlyArray<PlaywrightFrameService>;
 
@@ -181,7 +181,7 @@ export interface PlaywrightFrameService {
    * Returns whether the frame is detached.
    *
    * @see {@link Frame.isDetached}
-   * @since 0.4.0
+   * @since 0.4.1
    */
   readonly isDetached: () => boolean;
 
@@ -189,7 +189,7 @@ export interface PlaywrightFrameService {
    * Waits for the given timeout in milliseconds.
    *
    * @see {@link Frame.waitForTimeout}
-   * @since 0.4.0
+   * @since 0.4.1
    */
   readonly waitForTimeout: (
     timeout: number,
@@ -199,7 +199,7 @@ export interface PlaywrightFrameService {
    * Sets the HTML content of the frame.
    *
    * @see {@link Frame.setContent}
-   * @since 0.4.0
+   * @since 0.4.1
    */
   readonly setContent: (
     html: string,
