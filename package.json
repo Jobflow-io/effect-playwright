@@ -4,7 +4,7 @@
   "version": "0.4.1",
   "description": "An Effect-based Playwright library.",
   "author": "Jobflow GmbH",
-  "license": "ISC",
+  "license": "MIT",
   "homepage": "https://github.com/Jobflow-io/effect-playwright",
   "repository": {
     "type": "git",
