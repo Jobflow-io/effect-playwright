@@ -92,6 +92,18 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("waitForTimeout should wait", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      const start = Date.now();
+      yield* page.waitForTimeout(100);
+      const end = Date.now();
+      assert(end - start >= 100);
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped(
     "evaluate should run code in the page context with destructured arg",
     () =>
