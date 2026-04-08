@@ -9,8 +9,7 @@ import type { PlaywrightError } from "../errors";
  * `PlaywrightEnvironment` is a service that allows you to configure how browsers are launched once. You can then
  * use `PlaywrightEnvironment.browser` to start browsers scoped to the current lifetime. They will be closed when the scope is closed.
  *
- * You can use {@link withBrowser} to provide the `PlaywrightBrowser` service to the wrapped effect. This
- * also allows you to re-use the same browser as many times as you want.
+ * This service will not start a browser on its own. You can use {@link withBrowser} to provide the `PlaywrightBrowser` service to the wrapped effect.
  *
  * @since 0.1.0
  * @category tag
@@ -54,24 +53,28 @@ export class PlaywrightEnvironment extends Context.Tag(
  * @since 0.1.0
  * @category layer
  */
-export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) => {
-  return Layer.effect(
-    PlaywrightEnvironment,
-    Playwright.pipe(
-      Effect.map((playwright) => {
-        return PlaywrightEnvironment.of({
-          browser: playwright.launchScoped(browser, launchOptions),
-        });
+export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) =>
+  Playwright.pipe(
+    Effect.map((playwright) =>
+      PlaywrightEnvironment.of({
+        browser: playwright.launchScoped(browser, launchOptions),
       }),
-      Effect.provide(Playwright.layer),
     ),
+    Layer.effect(PlaywrightEnvironment),
+    Layer.provide(Playwright.layer),
   );
-};
+
+const withBrowserUnscoped = Effect.provideServiceEffect(
+  PlaywrightBrowser,
+  PlaywrightEnvironment.pipe(Effect.flatMap((e) => e.browser)),
+);
 
 /**
  * Provides a scoped `PlaywrightBrowser` service, allowing you to access the browser from the context (e.g. by yielding `PlaywrightBrowser`).
  *
  * You will need to provide the `PlaywrightEnvironment` layer first.
+ *
+ * This will start a browser and close it when the scope is closed.
  *
  * @example
  *
@@ -91,10 +94,5 @@ export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) => {
  * @since 0.1.0
  * @category util
  */
-export const withBrowser = Effect.provide(
-  PlaywrightEnvironment.pipe(
-    Effect.map((e) => e.browser),
-    Effect.flatten,
-    Layer.scoped(PlaywrightBrowser),
-  ),
-);
+export const withBrowser = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+  Effect.scoped(withBrowserUnscoped(self)); // TODO: roast check if using Effect.scope here is an anti-pattern

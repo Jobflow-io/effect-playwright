@@ -64,7 +64,7 @@ export interface PlaywrightBrowserService {
   readonly close: Effect.Effect<void, PlaywrightError>;
 
   /**
-   * An Effect that returns the list of all open browser contexts.
+   * Returns the list of all open browser contexts.
    * @see {@link Browser.contexts}
    */
   readonly contexts: () => Array<typeof PlaywrightBrowserContext.Service>;
@@ -78,18 +78,18 @@ export interface PlaywrightBrowserService {
   >;
 
   /**
-   * An Effect that returns the browser type (chromium, firefox or webkit) that the browser belongs to.
+   * Returns the browser type (chromium, firefox or webkit) that the browser belongs to.
    * @see {@link Browser.browserType}
    */
   readonly browserType: () => BrowserType;
 
   /**
-   * An Effect that returns the version of the browser.
+   * Returns the version of the browser.
    * @see {@link Browser.version}
    */
   readonly version: () => string;
   /**
-   * An Effect that returns whether the browser is connected.
+   * Returns whether the browser is connected.
    * @see {@link Browser.isConnected}
    */
   readonly isConnected: () => boolean;
