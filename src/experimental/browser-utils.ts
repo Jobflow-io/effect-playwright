@@ -6,17 +6,14 @@ import type { PlaywrightBrowserService } from "../browser";
  * @category util
  */
 export const allPages = (browser: PlaywrightBrowserService) =>
-  Effect.sync(() =>
-    Array.flatten(browser.contexts().map((context) => context.pages())),
-  );
+  Array.flatten(browser.contexts().map((context) => context.pages()));
 
 /**
  * Returns all frames in the browser from all pages in all contexts.
  * @category util
  */
 export const allFrames = (browser: PlaywrightBrowserService) =>
-  allPages(browser).pipe(
-    Effect.flatMap((pages) => Effect.all(pages.map((page) => page.frames))),
+  Effect.all(allPages(browser).map((page) => page.frames)).pipe(
     Effect.map(Array.flatten),
   );
 
