@@ -17,7 +17,7 @@ layer(Playwright.layer)("BrowserUtils", (it) => {
       const context2 = yield* browser.newContext();
       yield* context2.newPage;
 
-      const pages = yield* BrowserUtils.allPages(browser);
+      const pages = BrowserUtils.allPages(browser);
       assert.strictEqual(pages.length, 3);
     }),
   );
