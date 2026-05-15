@@ -1,4 +1,12 @@
-import { Context, Effect, identity, Option, Runtime, Stream } from "effect";
+import {
+  Array,
+  Context,
+  Effect,
+  identity,
+  Option,
+  Runtime,
+  Stream,
+} from "effect";
 import type {
   ConsoleMessage,
   Dialog,
@@ -31,6 +39,10 @@ import { PlaywrightKeyboard, type PlaywrightKeyboardService } from "./keyboard";
 import { PlaywrightLocator } from "./locator";
 import { PlaywrightMouse, type PlaywrightMouseService } from "./mouse";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
+import {
+  PlaywrightScreencast,
+  type PlaywrightScreencastService,
+} from "./screencast";
 import {
   PlaywrightTouchscreen,
   type PlaywrightTouchscreenService,
@@ -113,6 +125,12 @@ export interface PlaywrightPageService {
    * @since 0.3.0
    */
   readonly touchscreen: PlaywrightTouchscreenService;
+  /**
+   * Access the screencast.
+   *
+   * @since 0.5.0
+   */
+  readonly screencast: PlaywrightScreencastService;
   /**
    * Navigates the page to the given URL.
    *
@@ -671,33 +689,99 @@ export interface PlaywrightPageService {
   readonly url: () => string;
 
   /**
+   * Clears all highlights.
+   *
+   * @see {@link Page.hideHighlight}
+   * @since 0.5.0
+   */
+  readonly hideHighlight: Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Clears stored console messages.
+   *
+   * @see {@link Page.clearConsoleMessages}
+   * @since 0.5.0
+   */
+  readonly clearConsoleMessages: Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Clears stored page errors.
+   *
+   * @see {@link Page.clearPageErrors}
+   * @since 0.5.0
+   */
+  readonly clearPageErrors: Effect.Effect<void, PlaywrightError>;
+
+  /**
    * Returns all messages that have been logged to the console.
    *
    * @example
    * ```ts
-   * const consoleMessages = yield* page.consoleMessages;
+   * const consoleMessages = yield* page.consoleMessages();
    * ```
    *
    * @see {@link Page.consoleMessages}
    * @since 0.3.0
    */
-  readonly consoleMessages: Effect.Effect<
-    ReadonlyArray<ConsoleMessage>,
-    PlaywrightError
-  >;
+  readonly consoleMessages: (
+    options?: Parameters<Page["consoleMessages"]>[0],
+  ) => Effect.Effect<ReadonlyArray<ConsoleMessage>, PlaywrightError>;
 
   /**
    * Returns all errors that have been thrown in the page.
    *
    * @example
    * ```ts
-   * const pageErrors = yield* page.pageErrors;
+   * const pageErrors = yield* page.pageErrors();
    * ```
    *
    * @see {@link Page.pageErrors}
    * @since 0.3.0
    */
-  readonly pageErrors: Effect.Effect<ReadonlyArray<Error>, PlaywrightError>;
+  readonly pageErrors: (
+    options?: Parameters<Page["pageErrors"]>[0],
+  ) => Effect.Effect<ReadonlyArray<Error>, PlaywrightError>;
+
+  /**
+   * Returns the most recent network requests from the page.
+   *
+   * @see {@link Page.requests}
+   * @since 0.5.0
+   */
+  readonly requests: Effect.Effect<
+    ReadonlyArray<PlaywrightRequest>,
+    PlaywrightError
+  >;
+
+  /**
+   * Enters an interactive mode where hovering over elements highlights them and shows the corresponding locator.
+   *
+   * @see {@link Page.pickLocator}
+   * @since 0.5.0
+   */
+  readonly pickLocator: Effect.Effect<
+    typeof PlaywrightLocator.Service,
+    PlaywrightError
+  >;
+
+  /**
+   * Cancels the locator picking mode.
+   *
+   * @see {@link Page.cancelPickLocator}
+   * @since 0.5.0
+   */
+  readonly cancelPickLocator: Effect.Effect<void, PlaywrightError>;
+
+  /**
+   * Captures the aria snapshot of the page.
+   *
+   * @see {@link Page.ariaSnapshot}
+   * @since 0.5.0
+   */
+  readonly ariaSnapshot: (
+    options?: Parameters<Page["ariaSnapshot"]>[0],
+  ) => Effect.Effect<string, PlaywrightError>;
+
   /**
    * Returns all workers.
    *
@@ -794,6 +878,7 @@ export class PlaywrightPage extends Context.Tag(
       keyboard: PlaywrightKeyboard.make(page.keyboard),
       mouse: PlaywrightMouse.make(page.mouse),
       touchscreen: PlaywrightTouchscreen.make(page.touchscreen),
+      screencast: PlaywrightScreencast.make(page.screencast),
       goto: (url, options) => use((p) => p.goto(url, options)),
       setContent: (html, options) => use((p) => p.setContent(html, options)),
       waitForTimeout: (timeout) => use((p) => p.waitForTimeout(timeout)),
@@ -852,13 +937,22 @@ export class PlaywrightPage extends Context.Tag(
       getByTitle: (text, options) =>
         PlaywrightLocator.make(page.getByTitle(text, options)),
       url: () => page.url(),
+      hideHighlight: use((p) => p.hideHighlight()),
+      clearConsoleMessages: use((p) => p.clearConsoleMessages()),
+      clearPageErrors: use((p) => p.clearPageErrors()),
+      consoleMessages: (options) => use((p) => p.consoleMessages(options)),
+      pageErrors: (options) => use((p) => p.pageErrors(options)),
+      requests: use((p) => p.requests()).pipe(
+        Effect.map(Array.map(PlaywrightRequest.make)),
+      ),
+      pickLocator: use((p) => p.pickLocator().then(PlaywrightLocator.make)),
+      cancelPickLocator: use((p) => p.cancelPickLocator()),
+      ariaSnapshot: (options) => use((p) => p.ariaSnapshot(options)),
       context: () => PlaywrightBrowserContext.make(page.context()),
       opener: use((p) => p.opener()).pipe(
         Effect.map(Option.fromNullable),
         Effect.map(Option.map(PlaywrightPage.make)),
       ),
-      consoleMessages: use((p) => p.consoleMessages()),
-      pageErrors: use((p) => p.pageErrors()),
       workers: () => page.workers().map(PlaywrightWorker.make),
 
       frame: (frameSelector) =>

@@ -578,7 +578,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         console.warn("Warning from page");
       });
 
-      const messages = yield* page.consoleMessages;
+      const messages = yield* page.consoleMessages();
 
       assert.strictEqual(messages.length, 2);
       assert.strictEqual(messages[0].text(), "Hello from page");
@@ -628,7 +628,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       yield* Fiber.join(errorFiber);
 
-      const errors = yield* page.pageErrors;
+      const errors = yield* page.pageErrors();
       assert.ok(errors.length >= 1);
       assert.strictEqual(errors[0].message, "Test Error");
     }).pipe(PlaywrightEnvironment.withBrowser),

@@ -1,6 +1,11 @@
 import { Context, Effect, Stream } from "effect";
 import type { Scope } from "effect/Scope";
-import type { Browser, BrowserType, chromium } from "playwright-core";
+import type {
+  Browser,
+  BrowserContext,
+  BrowserType,
+  chromium,
+} from "playwright-core";
 import { PlaywrightBrowserContext } from "./browser-context";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightPage } from "./page";
@@ -13,10 +18,12 @@ export type NewContextOptions = Parameters<Browser["newContext"]>[0];
 
 interface BrowserEvents {
   disconnected: Browser;
+  context: BrowserContext;
 }
 
 const eventMappings = {
   disconnected: (browser: Browser) => PlaywrightBrowser.make(browser),
+  context: (context: BrowserContext) => PlaywrightBrowserContext.make(context),
 } as const;
 
 type BrowserWithPatchedEvents = PatchedEvents<Browser, BrowserEvents>;
@@ -95,6 +102,25 @@ export interface PlaywrightBrowserService {
   readonly isConnected: () => boolean;
 
   /**
+   * Binds the browser to a title.
+   *
+   * @see {@link Browser.bind}
+   * @since 0.5.0
+   */
+  readonly bind: (
+    title: string,
+    options?: Parameters<Browser["bind"]>[1],
+  ) => Effect.Effect<{ endpoint: string }, PlaywrightError>;
+
+  /**
+   * Unbinds the browser.
+   *
+   * @see {@link Browser.unbind}
+   * @since 0.5.0
+   */
+  readonly unbind: Effect.Effect<void, PlaywrightError>;
+
+  /**
    * Creates a stream of the given event from the browser.
    *
    * @example
@@ -138,6 +164,8 @@ export class PlaywrightBrowser extends Context.Tag(
       browserType: () => browser.browserType(),
       version: () => browser.version(),
       isConnected: () => browser.isConnected(),
+      bind: (title, options) => use((browser) => browser.bind(title, options)),
+      unbind: use((browser) => browser.unbind()),
       eventStream: <K extends keyof BrowserEvents>(event: K) =>
         Stream.asyncPush<BrowserEvents[K]>((emit) =>
           Effect.acquireRelease(

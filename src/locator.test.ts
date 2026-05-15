@@ -237,6 +237,9 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       // highlight
       yield* buttons.first().highlight();
 
+      // hideHighlight
+      yield* buttons.first().hideHighlight;
+
       // screenshot
       const screenshotBuffer = yield* buttons.first().screenshot();
       assert(screenshotBuffer.length > 0);
