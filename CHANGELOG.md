@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.0
+
+### ⚠️ Breaking Changes
+
+- **Page Property-to-Method Conversions**: Converted `PlaywrightPage.consoleMessages` and `PlaywrightPage.pageErrors` from simple `Effect` properties to methods taking optional options parameters, resolving to `Effect.Effect<...>` to align with playwright-core 1.60.
+  - **Impact**: Any code utilizing these as properties (e.g. `const messages = yield* page.consoleMessages`) will now cause type errors. They must be called as methods (e.g. `const messages = yield* page.consoleMessages()`).
+
+### Features
+
+- **Playwright 1.60.0 Upgrade**: Upgraded underlying `playwright-core` and development dependency `playwright` to version `1.60.0`.
+- **Re-exported Browser Creators**: Re-exported `chromium`, `firefox`, and `webkit` directly from `effect-playwright`, allowing users to import them directly from the library rather than needing `playwright-core`.
+- **CLI Wrapper**: Added an `effect-playwright` CLI wrapper which forwards commands directly to the `playwright-core` CLI.
+- **New Tracing Service**: Added `PlaywrightTracing` and `PlaywrightTracingService` to provide structured tracing capabilities on `PlaywrightBrowserContext`.
+- **New Screencast Service**: Added `PlaywrightScreencast` and `PlaywrightScreencastService` to provide structured screencast recording capabilities on `PlaywrightPage`.
+- **Expanded Page Methods**: Implemented and wrapped additional `Page` APIs:
+  - `hideHighlight` - Clears all element highlights.
+  - `clearConsoleMessages` - Clears stored console messages.
+  - `clearPageErrors` - Clears stored page errors.
+  - `requests` - Returns the most recent network requests.
+  - `pickLocator` - Enters interactive locator picking mode.
+  - `cancelPickLocator` - Cancels locator picking mode.
+  - `ariaSnapshot` - Captures the ARIA snapshot of the page.
+- **Expanded Locator Methods**: Implemented and wrapped additional `Locator` APIs:
+  - `hideHighlight` - Hides the element highlight previously added by highlight.
+  - `drop` - Drops the locator.
+  - `normalize` - Normalizes the locator.
+  - Updated `highlight` to accept optional options parameter.
+- **Expanded Browser & Context Methods**: Implemented and wrapped additional APIs:
+  - Added `bind` and `unbind` to `PlaywrightBrowser`.
+  - Added `setStorageState` to `PlaywrightBrowserContext`.
+- **New Event Streams**: Added several new event mappings:
+  - Added the `context` event stream to `PlaywrightBrowser` (maps to `PlaywrightBrowserContext`).
+  - Added `download` (maps to `PlaywrightDownload`), `frameattached`, `framedetached`, `framenavigated` (map to `PlaywrightFrame`), and `pageclose`, `pageload` (map to `PlaywrightPage`) event streams to `PlaywrightBrowserContext`.
+
 ## 0.4.0
 
 ### Fixes
