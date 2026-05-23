@@ -1,6 +1,5 @@
 /**
- * An Effect-based wrapper for Playwright, bringing the power of functional programming
- * and structured concurrency to browser automation.
+ * An Effect-based wrapper for Playwright.
  *
  * ## Features
  *
@@ -14,6 +13,7 @@
  * @packageDocumentation
  */
 
+export { chromium, firefox, webkit } from "playwright-core";
 export * from "./browser";
 export {
   PlaywrightBrowserContext,

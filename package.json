@@ -18,8 +18,12 @@
     "./experimental": "./dist/experimental/index.mjs",
     "./package.json": "./package.json"
   },
+  "bin": {
+    "effect-playwright": "./bin/cli.mjs"
+  },
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "scripts": {
     "build": "tsdown",
@@ -28,7 +32,8 @@
     "type-check": "tsc --noEmit",
     "coverage": "tsx scripts/coverage.ts",
     "generate-docs": "typedoc",
-    "format": "biome format --fix"
+    "format": "biome format --fix",
+    "check": "biome check --fix"
   },
   "keywords": [
     "effect",

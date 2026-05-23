@@ -26,12 +26,12 @@ export interface PlaywrightService {
    * {@link launchScoped} instead.
    *
    * ```ts
+   * import { Playwright, chromium } from "effect-playwright";
    * import { Effect } from "effect";
-   * import { Playwright } from "effect-playwright";
-   * import { chromium } from "playwright-core";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* Playwright.launch(chromium);
+   *   const playwright = yield* Playwright;
+   *   const browser = yield* playwright.launch(chromium);
    *   // ... use browser ...
    *   yield* browser.close;
    * });
@@ -53,12 +53,12 @@ export interface PlaywrightService {
    * This method automatically closes the browser when the scope is closed.
    *
    * ```ts
+   * import { Playwright, chromium } from "effect-playwright";
    * import { Effect } from "effect";
-   * import { Playwright } from "effect-playwright";
-   * import { chromium } from "playwright-core";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* Playwright.launchScoped(chromium);
+   *   const playwright = yield* Playwright;
+   *   const browser = yield* playwright.launchScoped(chromium);
    *   // Browser will be closed automatically when scope closes
    * });
    *
@@ -89,9 +89,8 @@ export interface PlaywrightService {
    * Closing this context also closes the underlying browser process.
    *
    * ```ts
+   * import { Playwright, chromium } from "effect-playwright";
    * import { Effect } from "effect";
-   * import { Playwright } from "effect-playwright";
-   * import { chromium } from "playwright-core";
    *
    * const program = Effect.gen(function* () {
    *   const playwright = yield* Playwright;
@@ -113,6 +112,9 @@ export interface PlaywrightService {
    * If you call this non-scoped variant inside a scope, add a finalizer for cleanup:
    *
    * ```ts
+   * import { Playwright, chromium } from "effect-playwright";
+   * import { Effect } from "effect";
+   *
    * const program = Effect.gen(function* () {
    *   const playwright = yield* Playwright;
    *   const context = yield* playwright.launchPersistentContext(
@@ -143,9 +145,8 @@ export interface PlaywrightService {
    * when the scope is closed.
    *
    * ```ts
+   * import { Playwright, chromium } from "effect-playwright";
    * import { Effect } from "effect";
-   * import { Playwright } from "effect-playwright";
-   * import { chromium } from "playwright-core";
    *
    * const program = Effect.gen(function* () {
    *   const playwright = yield* Playwright;

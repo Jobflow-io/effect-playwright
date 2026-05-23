@@ -49,9 +49,8 @@ Use `pnpm` for all package management tasks.
   ```typescript
   import { assert, layer } from "@effect/vitest";
   import { Effect } from "effect";
-  import { chromium } from "playwright-core";
-  import { PlaywrightBrowser } from "./browser";
-  import { PlaywrightEnvironment } from "./experimental";
+  import { PlaywrightBrowser, chromium } from "effect-playwright";
+  import { PlaywrightEnvironment } from "effect-playwright/experimental";
 
   // Use the PlaywrightEnvironment layer
   layer(PlaywrightEnvironment.layer(chromium))("Suite Name", (it) => {
