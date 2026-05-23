@@ -33,8 +33,8 @@ export class PlaywrightEnvironment extends Context.Tag(
  * @example
  *
  * ```ts
+ * import { chromium } from "effect-playwright";
  * import { PlaywrightEnvironment } from "effect-playwright/experimental";
- * import { chromium } from "playwright-core";
  *
  * const playwrightEnv = PlaywrightEnvironment.layer(chromium);
  *
@@ -79,8 +79,8 @@ const withBrowserUnscoped = Effect.provideServiceEffect(
  * @example
  *
  * ```ts
+ * import { chromium } from "effect-playwright";
  * import { PlaywrightEnvironment } from "effect-playwright/experimental";
- * import { chromium } from "playwright-core";
  *
  * const env = PlaywrightEnvironment.layer(chromium);
  *

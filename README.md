@@ -13,23 +13,17 @@ A Playwright wrapper for the Effect ecosystem. This library provides a set of se
 ## Installation
 
 ```bash
-pnpm add effect-playwright playwright-core
+pnpm add effect-playwright
+pnpm effect-playwright install chromium
 ```
 
-or
-
-```bash
-npm install effect-playwright playwright-core
-```
-
-You can also install `playwright` instead of `playwright-core` if you want the post-build auto install of the browsers.
+Browser installation is not required if connecting to an existing browser via CDP or using a local browser.
 
 ## Quick Start
 
 ```ts
-import { Playwright } from "effect-playwright";
+import { Playwright, chromium } from "effect-playwright";
 import { Effect } from "effect";
-import { chromium } from "playwright-core";
 
 const program = Effect.gen(function* () {
   const playwright = yield* Playwright;
@@ -37,7 +31,8 @@ const program = Effect.gen(function* () {
   const page = yield* browser.newPage();
 
   yield* page.goto("https://example.com");
-  console.log(`Page title: ${page.title()}`);
+  const title = yield* page.title;
+  yield* Effect.log(`Page title: ${title}`);
 }).pipe(Effect.scoped, Effect.provide(Playwright.layer));
 
 await Effect.runPromise(program);
@@ -92,10 +87,9 @@ The `PlaywrightEnvironment` simplifies setup by allowing you to configure the br
 ### Usage
 
 ```ts
-import { PlaywrightBrowser } from "effect-playwright";
+import { PlaywrightBrowser, chromium } from "effect-playwright";
 import { PlaywrightEnvironment } from "effect-playwright/experimental";
 import { Effect } from "effect";
-import { chromium } from "playwright-core";
 
 const liveLayer = PlaywrightEnvironment.layer(chromium, {
   headless: false /** any other launch options */,
@@ -164,9 +158,8 @@ const program = Effect.gen(function* () {
 If you need to access functionality from the underlying Playwright objects that isn't directly exposed, you can use the `use` method available on most services/objects (browsers, pages, locators).
 
 ```ts
-import { Playwright } from "effect-playwright";
+import { Playwright, chromium } from "effect-playwright";
 import { Effect } from "effect";
-import { chromium } from "playwright-core";
 
 const program = Effect.gen(function* () {
   const playwright = yield* Playwright;
@@ -183,3 +176,18 @@ const program = Effect.gen(function* () {
 All methods return effects that can fail with a `PlaywrightError`. This error wraps the original error from Playwright.
 Note that Playwright does not support interruption, so `Effect.timeout` or similar code does not behave like you
 might expect. Playwright provides its own `timeout` option for almost every method.
+
+## CLI Wrapper
+
+`effect-playwright` includes a lightweight command-line wrapper that forwards all commands directly to the underlying `playwright-core` CLI. You can use it to install browsers, generate code, or inspect traces:
+
+```bash
+# Install browsers
+pnpm effect-playwright install chromium
+
+# Code generation
+pnpm effect-playwright codegen https://example.com
+
+# Open inspector / trace viewer
+pnpm effect-playwright show-trace trace.zip
+```
