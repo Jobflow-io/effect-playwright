@@ -11,7 +11,7 @@ type TestWindow = Window & {
 layer(PlaywrightEnvironment.layer(chromium))(
   "PlaywrightBrowserContext",
   (it) => {
-    it.scoped("should wrap context methods", () =>
+    it.effect("should wrap context methods", () =>
       Effect.gen(function* () {
         const browser = yield* PlaywrightBrowser;
         const context = yield* browser.newContext();
@@ -51,7 +51,7 @@ layer(PlaywrightEnvironment.layer(chromium))(
       }).pipe(PlaywrightEnvironment.withBrowser),
     );
 
-    it.scoped("addInitScript should execute script in all new pages", () =>
+    it.effect("addInitScript should execute script in all new pages", () =>
       Effect.gen(function* () {
         const browser = yield* PlaywrightBrowser;
         const context = yield* browser.newContext();

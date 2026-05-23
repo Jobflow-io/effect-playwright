@@ -74,9 +74,10 @@ export interface PlaywrightMouseService {
 /**
  * @category tag
  */
-export class PlaywrightMouse extends Context.Tag(
-  "effect-playwright/PlaywrightMouse",
-)<PlaywrightMouse, PlaywrightMouseService>() {
+export class PlaywrightMouse extends Context.Service<
+  PlaywrightMouse,
+  PlaywrightMouseService
+>()("effect-playwright/PlaywrightMouse") {
   /**
    * Creates a `PlaywrightMouse` from a Playwright `Mouse` instance.
    *

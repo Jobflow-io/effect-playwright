@@ -49,7 +49,7 @@ const accessSecond = Effect.gen(function* () {
 });
 
 layer(layerPlaywrightEnvironment(chromium))("PlaywrightEnvironment", (it) => {
-  it.scoped("should launch a browser", () =>
+  it.effect("should launch a browser", () =>
     Effect.gen(function* () {
       const program = Effect.gen(function* () {
         const playwright = yield* PlaywrightEnvironment;
@@ -94,7 +94,7 @@ layer(layerPlaywrightEnvironment(chromium))("PlaywrightEnvironment", (it) => {
 
   it.effect("withBrowser scope cleanup", () =>
     Effect.gen(function* () {
-      let capturedBrowser: typeof PlaywrightBrowser.Service | undefined;
+      let capturedBrowser: PlaywrightBrowser["Service"] | undefined;
 
       yield* withBrowser(
         Effect.gen(function* () {

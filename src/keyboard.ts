@@ -60,9 +60,10 @@ export interface PlaywrightKeyboardService {
 /**
  * @category tag
  */
-export class PlaywrightKeyboard extends Context.Tag(
-  "effect-playwright/PlaywrightKeyboard",
-)<PlaywrightKeyboard, PlaywrightKeyboardService>() {
+export class PlaywrightKeyboard extends Context.Service<
+  PlaywrightKeyboard,
+  PlaywrightKeyboardService
+>()("effect-playwright/PlaywrightKeyboard") {
   /**
    * Creates a `PlaywrightKeyboard` from a Playwright `Keyboard` instance.
    *
@@ -73,11 +74,18 @@ export class PlaywrightKeyboard extends Context.Tag(
     const use = useHelper(keyboard);
 
     return PlaywrightKeyboard.of({
-      down: (key) => use((k) => k.down(key)),
-      insertText: (text) => use((k) => k.insertText(text)),
-      press: (key, options) => use((k) => k.press(key, options)),
-      type: (text, options) => use((k) => k.type(text, options)),
-      up: (key) => use((k) => k.up(key)),
+      down: (key: Parameters<Keyboard["down"]>[0]) => use((k) => k.down(key)),
+      insertText: (text: Parameters<Keyboard["insertText"]>[0]) =>
+        use((k) => k.insertText(text)),
+      press: (
+        key: Parameters<Keyboard["press"]>[0],
+        options?: Parameters<Keyboard["press"]>[1],
+      ) => use((k) => k.press(key, options)),
+      type: (
+        text: Parameters<Keyboard["type"]>[0],
+        options?: Parameters<Keyboard["type"]>[1],
+      ) => use((k) => k.type(text, options)),
+      up: (key: Parameters<Keyboard["up"]>[0]) => use((k) => k.up(key)),
     });
   }
 }

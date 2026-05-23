@@ -6,7 +6,7 @@ import { PlaywrightBrowser } from "./browser";
 import { PlaywrightEnvironment } from "./experimental";
 
 layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
-  it.scoped("should work", () =>
+  it.effect("should work", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();
@@ -19,7 +19,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
-  it.scoped("evaluate", () =>
+  it.effect("evaluate", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();
@@ -41,7 +41,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
-  it.scoped("waitFor", () =>
+  it.effect("waitFor", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();
@@ -69,7 +69,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
-  it.scoped("kitchensink", () =>
+  it.effect("kitchensink", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();
@@ -299,7 +299,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
-  it.scoped(
+  it.effect(
     "new methods: all, and, filter, or, page, frameLocator, contentFrame",
     () =>
       Effect.gen(function* () {
@@ -360,7 +360,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
-  it.scoped("action methods", () =>
+  it.effect("action methods", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();

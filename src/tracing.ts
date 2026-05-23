@@ -70,9 +70,10 @@ export interface PlaywrightTracingService {
 /**
  * @category tag
  */
-export class PlaywrightTracing extends Context.Tag(
-  "effect-playwright/PlaywrightTracing",
-)<PlaywrightTracing, PlaywrightTracingService>() {
+export class PlaywrightTracing extends Context.Service<
+  PlaywrightTracing,
+  PlaywrightTracingService
+>()("effect-playwright/PlaywrightTracing") {
   /**
    * @category constructor
    */

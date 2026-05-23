@@ -1,11 +1,11 @@
 import { assert, layer } from "@effect/vitest";
-import { Chunk, Effect, Fiber, Stream } from "effect";
+import { Effect, Fiber, Stream } from "effect";
 import { chromium } from "playwright-core";
 import type { PlaywrightBrowser } from "./browser";
 import { Playwright } from "./index";
 
 layer(Playwright.layer)("PlaywrightBrowser", (it) => {
-  it.scoped("newPage should create a page", () =>
+  it.effect("newPage should create a page", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -15,7 +15,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
     }),
   );
 
-  it.scoped("use should allow accessing raw browser", () =>
+  it.effect("use should allow accessing raw browser", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -27,7 +27,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
     }),
   );
 
-  it.scoped("browserType should return the browser type", () =>
+  it.effect("browserType should return the browser type", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -37,7 +37,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
     }),
   );
 
-  it.scoped("version should return the browser version", () =>
+  it.effect("version should return the browser version", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -48,7 +48,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
     }),
   );
 
-  it.scoped("close should close the browser", () =>
+  it.effect("close should close the browser", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -61,7 +61,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       assert.isFalse(isConnected);
     }),
   );
-  it.scoped("contexts should return the list of contexts", () =>
+  it.effect("contexts should return the list of contexts", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -75,7 +75,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
     }),
   );
 
-  it.scoped("newContext should create a new context", () =>
+  it.effect("newContext should create a new context", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -88,7 +88,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
     }),
   );
 
-  it.scoped("newContext should allow creating pages", () =>
+  it.effect("newContext should allow creating pages", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -102,7 +102,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
     }),
   );
 
-  it.scoped("contexts should reflect newPage creation", () =>
+  it.effect("contexts should reflect newPage creation", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -119,7 +119,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
   it.effect("newContext and browser finalizers should work", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
-      let capturedBrowser: typeof PlaywrightBrowser.Service | undefined;
+      let capturedBrowser: PlaywrightBrowser["Service"] | undefined;
 
       yield* Effect.scoped(
         Effect.gen(function* () {
@@ -144,20 +144,20 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
       assert.isFalse(isConnected);
     }),
   );
-  it.scoped("eventStream should emit disconnected event", () =>
+  it.effect("eventStream should emit disconnected event", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
       const browser = yield* playwright.launchScoped(chromium);
 
       const eventsFiber = yield* browser
         .eventStream("disconnected")
-        .pipe(Stream.runCollect, Effect.fork);
+        .pipe(Stream.runCollect, Effect.forkChild());
 
       yield* browser.close;
       const events = yield* Fiber.join(eventsFiber);
-      assert.strictEqual(Chunk.size(events), 1);
+      assert.strictEqual(events.length, 1);
 
-      const firstEvent = yield* Chunk.head(events);
+      const firstEvent = events[0];
       assert.strictEqual(firstEvent.version(), browser.version());
     }),
   );

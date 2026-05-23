@@ -148,9 +148,10 @@ export interface PlaywrightFrameLocatorService {
  * @since 0.1.0
  * @category tag
  */
-export class PlaywrightFrameLocator extends Context.Tag(
-  "effect-playwright/PlaywrightFrameLocator",
-)<PlaywrightFrameLocator, PlaywrightFrameLocatorService>() {
+export class PlaywrightFrameLocator extends Context.Service<
+  PlaywrightFrameLocator,
+  PlaywrightFrameLocatorService
+>()("effect-playwright/PlaywrightFrameLocator") {
   /**
    * Creates a `PlaywrightFrameLocator` from a Playwright `FrameLocator` instance.
    *
@@ -158,9 +159,7 @@ export class PlaywrightFrameLocator extends Context.Tag(
    * @since 0.1.0
    * @category constructor
    */
-  static make(
-    frameLocator: FrameLocator,
-  ): typeof PlaywrightFrameLocator.Service {
+  static make(frameLocator: FrameLocator): PlaywrightFrameLocator["Service"] {
     const unwrap = Match.type<
       string | Locator | PlaywrightLocatorService
     >().pipe(

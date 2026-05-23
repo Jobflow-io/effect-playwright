@@ -25,9 +25,10 @@ export interface PlaywrightTouchscreenService {
  * @category tag
  * @since 0.3.0
  */
-export class PlaywrightTouchscreen extends Context.Tag(
-  "effect-playwright/PlaywrightTouchscreen",
-)<PlaywrightTouchscreen, PlaywrightTouchscreenService>() {
+export class PlaywrightTouchscreen extends Context.Service<
+  PlaywrightTouchscreen,
+  PlaywrightTouchscreenService
+>()("effect-playwright/PlaywrightTouchscreen") {
   /**
    * Creates a `PlaywrightTouchscreen` from a Playwright `Touchscreen` instance.
    *

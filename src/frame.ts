@@ -79,7 +79,7 @@ export interface PlaywrightFrameService {
   readonly locator: (
     selector: string,
     options?: Parameters<Frame["locator"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+  ) => PlaywrightLocator["Service"];
   /**
    * Returns a locator that matches the given role.
    *
@@ -89,7 +89,7 @@ export interface PlaywrightFrameService {
   readonly getByRole: (
     role: Parameters<Frame["getByRole"]>[0],
     options?: Parameters<Frame["getByRole"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+  ) => PlaywrightLocator["Service"];
   /**
    * Returns a locator that matches the given text.
    *
@@ -99,7 +99,7 @@ export interface PlaywrightFrameService {
   readonly getByText: (
     text: Parameters<Frame["getByText"]>[0],
     options?: Parameters<Frame["getByText"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+  ) => PlaywrightLocator["Service"];
   /**
    * Returns a locator that matches the given label.
    *
@@ -109,7 +109,7 @@ export interface PlaywrightFrameService {
   readonly getByLabel: (
     label: Parameters<Frame["getByLabel"]>[0],
     options?: Parameters<Frame["getByLabel"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+  ) => PlaywrightLocator["Service"];
   /**
    * Returns a locator that matches the given test id.
    *
@@ -118,7 +118,7 @@ export interface PlaywrightFrameService {
    */
   readonly getByTestId: (
     testId: Parameters<Frame["getByTestId"]>[0],
-  ) => typeof PlaywrightLocator.Service;
+  ) => PlaywrightLocator["Service"];
 
   /**
    * Returns a locator that matches the given placeholder.
@@ -129,7 +129,7 @@ export interface PlaywrightFrameService {
   readonly getByPlaceholder: (
     text: Parameters<Frame["getByPlaceholder"]>[0],
     options?: Parameters<Frame["getByPlaceholder"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+  ) => PlaywrightLocator["Service"];
 
   /**
    * Returns a locator that matches the given alt text.
@@ -140,7 +140,7 @@ export interface PlaywrightFrameService {
   readonly getByAltText: (
     text: Parameters<Frame["getByAltText"]>[0],
     options?: Parameters<Frame["getByAltText"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+  ) => PlaywrightLocator["Service"];
 
   /**
    * Returns a locator that matches the given title.
@@ -151,7 +151,7 @@ export interface PlaywrightFrameService {
   readonly getByTitle: (
     text: Parameters<Frame["getByTitle"]>[0],
     options?: Parameters<Frame["getByTitle"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+  ) => PlaywrightLocator["Service"];
 
   /**
    * Returns the page that the frame belongs to.
@@ -248,9 +248,10 @@ export interface PlaywrightFrameService {
  * @category tag
  * @since 0.1.2
  */
-export class PlaywrightFrame extends Context.Tag(
-  "effect-playwright/PlaywrightFrame",
-)<PlaywrightFrame, PlaywrightFrameService>() {
+export class PlaywrightFrame extends Context.Service<
+  PlaywrightFrame,
+  PlaywrightFrameService
+>()("effect-playwright/PlaywrightFrame") {
   /**
    * Creates a `PlaywrightFrame` from a Playwright `Frame` instance.
    *
@@ -287,7 +288,7 @@ export class PlaywrightFrame extends Context.Tag(
         PlaywrightLocator.make(frame.getByTitle(text, options)),
       page: () => PlaywrightPage.make(frame.page()),
       parentFrame: () =>
-        Option.fromNullable(frame.parentFrame()).pipe(
+        Option.fromNullishOr(frame.parentFrame()).pipe(
           Option.map(PlaywrightFrame.make),
         ),
       childFrames: () =>
