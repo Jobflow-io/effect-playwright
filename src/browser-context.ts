@@ -3,6 +3,8 @@ import type {
   BrowserContext,
   ConsoleMessage,
   Dialog,
+  Download,
+  Frame,
   Page,
   Request,
   Response,
@@ -13,21 +15,31 @@ import { PlaywrightBrowser, type PlaywrightBrowserService } from "./browser";
 import { PlaywrightClock, type PlaywrightClockService } from "./clock";
 import {
   PlaywrightDialog,
+  PlaywrightDownload,
   PlaywrightRequest,
   PlaywrightResponse,
   PlaywrightWorker,
 } from "./common";
 import type { PlaywrightError } from "./errors";
+import { PlaywrightFrame } from "./frame";
 import { PlaywrightPage } from "./page";
 import type { PatchedEvents } from "./playwright-types";
+import { PlaywrightTracing, type PlaywrightTracingService } from "./tracing";
 import { useHelper } from "./utils";
 
 interface BrowserContextEvents {
+  /** @deprecated Since Playwright 1.56.0. This event is no longer emitted. */
   backgroundpage: Page;
   close: BrowserContext;
   console: ConsoleMessage;
   dialog: Dialog;
+  download: Download;
+  frameattached: Frame;
+  framedetached: Frame;
+  framenavigated: Frame;
   page: Page;
+  pageclose: Page;
+  pageload: Page;
   request: Request;
   requestfailed: Request;
   requestfinished: Request;
@@ -41,7 +53,13 @@ const eventMappings = {
   close: (context: BrowserContext) => PlaywrightBrowserContext.make(context),
   console: identity<ConsoleMessage>,
   dialog: (dialog: Dialog) => PlaywrightDialog.make(dialog),
+  download: (download: Download) => PlaywrightDownload.make(download),
+  frameattached: (frame: Frame) => PlaywrightFrame.make(frame),
+  framedetached: (frame: Frame) => PlaywrightFrame.make(frame),
+  framenavigated: (frame: Frame) => PlaywrightFrame.make(frame),
   page: (page: Page) => PlaywrightPage.make(page),
+  pageclose: (page: Page) => PlaywrightPage.make(page),
+  pageload: (page: Page) => PlaywrightPage.make(page),
   request: (request: Request) => PlaywrightRequest.make(request),
   requestfailed: (request: Request) => PlaywrightRequest.make(request),
   requestfinished: (request: Request) => PlaywrightRequest.make(request),
@@ -64,6 +82,12 @@ export interface PlaywrightBrowserContextService {
    * Access the clock.
    */
   readonly clock: PlaywrightClockService;
+  /**
+   * Access the tracing.
+   *
+   * @since 0.5.0
+   */
+  readonly tracing: PlaywrightTracingService;
   /**
    * Returns the list of all open pages in the browser context.
    *
@@ -215,6 +239,16 @@ export interface PlaywrightBrowserContextService {
   readonly setDefaultTimeout: (timeout: number) => void;
 
   /**
+   * Sets the storage state for the browser context.
+   *
+   * @see {@link BrowserContext.setStorageState}
+   * @since 0.5.0
+   */
+  readonly setStorageState: (
+    options: Parameters<BrowserContext["setStorageState"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+
+  /**
    * Creates a stream of the given event from the browser context.
    *
    * @example
@@ -249,6 +283,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
     const use = useHelper(context);
     return PlaywrightBrowserContext.of({
       clock: PlaywrightClock.make(context.clock),
+      tracing: PlaywrightTracing.make(context.tracing),
       pages: () => context.pages().map(PlaywrightPage.make),
       newPage: use((c) => c.newPage().then(PlaywrightPage.make)),
       close: use((c) => c.close()),
@@ -271,6 +306,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
       setDefaultNavigationTimeout: (timeout) =>
         context.setDefaultNavigationTimeout(timeout),
       setDefaultTimeout: (timeout) => context.setDefaultTimeout(timeout),
+      setStorageState: (options) => use((c) => c.setStorageState(options)),
       eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
         Stream.asyncPush<BrowserContextEvents[K]>((emit) =>
           Effect.acquireRelease(

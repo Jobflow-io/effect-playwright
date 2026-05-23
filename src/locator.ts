@@ -353,7 +353,36 @@ export interface PlaywrightLocatorService {
    * @see {@link Locator.highlight}
    * @since 0.4.1
    */
-  readonly highlight: () => Effect.Effect<void, PlaywrightError>;
+  readonly highlight: (
+    options?: Parameters<Locator["highlight"]>[0],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Hides the element highlight previously added by highlight.
+   *
+   * @see {@link Locator.hideHighlight}
+   * @since 0.5.0
+   */
+  readonly hideHighlight: Effect.Effect<void, PlaywrightError>;
+  /**
+   * Drops the locator.
+   *
+   * @see {@link Locator.drop}
+   * @since 0.5.0
+   */
+  readonly drop: (
+    data: Parameters<Locator["drop"]>[0],
+    options?: Parameters<Locator["drop"]>[1],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
+   * Normalizes the locator.
+   *
+   * @see {@link Locator.normalize}
+   * @since 0.5.0
+   */
+  readonly normalize: () => Effect.Effect<
+    PlaywrightLocatorService,
+    PlaywrightError
+  >;
   /**
    * Captures a screenshot of the element.
    *
@@ -778,7 +807,10 @@ export class PlaywrightLocator extends Context.Tag(
               Array<ElementHandle<SVGElement | HTMLElement>>
             >,
         ),
-      highlight: () => use((l) => l.highlight()),
+      highlight: (options) => use((l) => l.highlight(options)),
+      hideHighlight: use((l) => l.hideHighlight()),
+      drop: (data, options) => use((l) => l.drop(data, options)),
+      normalize: () => use((l) => l.normalize().then(PlaywrightLocator.make)),
       screenshot: (options) => use((l) => l.screenshot(options)),
       blur: (options) => use((l) => l.blur(options)),
       clear: (options) => use((l) => l.clear(options)),

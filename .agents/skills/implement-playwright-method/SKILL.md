@@ -169,4 +169,5 @@ Implement the method in the `make` function of the implementation class (e.g., `
 ### 6. Verify
 
 - Ensure types match `PlaywrightXService`.
+- Run `pnpm exec biome check --write .` to ensure code style and lint rules are followed.
 - Run `pnpm type-check` and `pnpm test` to verify implementation.

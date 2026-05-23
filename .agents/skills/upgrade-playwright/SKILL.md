@@ -60,6 +60,7 @@ pnpm exec playwright install
 
 ### 6. Verification
 
+- Run `pnpm exec biome check --write .` to ensure code style and lint rules are followed.
 - Run `pnpm type-check`.
 - Run `pnpm test` to ensure no regressions.
 - Ensure no temporary files remain
