@@ -86,9 +86,10 @@ export interface PlaywrightScreencastService {
 /**
  * @category tag
  */
-export class PlaywrightScreencast extends Context.Tag(
-  "effect-playwright/PlaywrightScreencast",
-)<PlaywrightScreencast, PlaywrightScreencastService>() {
+export class PlaywrightScreencast extends Context.Service<
+  PlaywrightScreencast,
+  PlaywrightScreencastService
+>()("effect-playwright/PlaywrightScreencast") {
   /**
    * @category constructor
    */

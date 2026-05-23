@@ -6,7 +6,7 @@ import { PlaywrightEnvironment } from "./experimental";
 import type { PlaywrightFrameService } from "./frame";
 
 layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
-  it.scoped("should wrap frame methods", () =>
+  it.effect("should wrap frame methods", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();
@@ -30,10 +30,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
         Effect.succeed(f.name() === "test-frame");
 
       const frame = yield* Effect.findFirst(frames, isTestFrame).pipe(
-        Effect.flatten,
-        Effect.retry({
-          times: 3,
-        }),
+        Effect.flatMap(Effect.fromOption),
       );
 
       assert.isOk(frame, "Frame not found");
@@ -114,7 +111,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
-  it.scoped("waitForLoadState should resolve on frame", () =>
+  it.effect("waitForLoadState should resolve on frame", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();

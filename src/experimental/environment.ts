@@ -1,8 +1,9 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, pipe } from "effect";
 import type { Scope } from "effect/Scope";
-import { Playwright, PlaywrightBrowser } from "effect-playwright";
 import type { BrowserType, LaunchOptions } from "playwright-core";
+import { PlaywrightBrowser } from "../browser";
 import type { PlaywrightError } from "../errors";
+import { Playwright } from "../playwright";
 
 /**
  * Most of the time you want to use the same kind of browser and configuration every time you use Playwright.
@@ -14,18 +15,16 @@ import type { PlaywrightError } from "../errors";
  * @since 0.1.0
  * @category tag
  */
-export class PlaywrightEnvironment extends Context.Tag(
-  "effect-playwright/experimental/PlaywrightEnvironment",
-)<
+export class PlaywrightEnvironment extends Context.Service<
   PlaywrightEnvironment,
   {
     browser: Effect.Effect<
-      typeof PlaywrightBrowser.Service,
+      PlaywrightBrowser["Service"],
       PlaywrightError,
       Scope
     >;
   }
->() {}
+>()("effect-playwright/experimental/PlaywrightEnvironment") {}
 
 /**
  * Creates a Layer that initializes the `PlaywrightEnvironment`.
@@ -54,7 +53,8 @@ export class PlaywrightEnvironment extends Context.Tag(
  * @category layer
  */
 export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) =>
-  Playwright.pipe(
+  pipe(
+    Playwright,
     Effect.map((playwright) =>
       PlaywrightEnvironment.of({
         browser: playwright.launchScoped(browser, launchOptions),
@@ -64,10 +64,20 @@ export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) =>
     Layer.provide(Playwright.layer),
   );
 
-const withBrowserUnscoped = Effect.provideServiceEffect(
-  PlaywrightBrowser,
-  PlaywrightEnvironment.pipe(Effect.flatMap((e) => e.browser)),
-);
+const withBrowserUnscoped = <A, E, R>(
+  self: Effect.Effect<A, E, R>,
+): Effect.Effect<
+  A,
+  E | PlaywrightError,
+  Exclude<R, PlaywrightBrowser> | Scope | PlaywrightEnvironment
+> =>
+  Effect.provideServiceEffect(
+    PlaywrightBrowser,
+    pipe(
+      PlaywrightEnvironment,
+      Effect.flatMap((e) => e.browser),
+    ),
+  )(self);
 
 /**
  * Provides a scoped `PlaywrightBrowser` service, allowing you to access the browser from the context (e.g. by yielding `PlaywrightBrowser`).
@@ -94,5 +104,10 @@ const withBrowserUnscoped = Effect.provideServiceEffect(
  * @since 0.1.0
  * @category util
  */
-export const withBrowser = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-  Effect.scoped(withBrowserUnscoped(self)); // TODO: roast check if using Effect.scope here is an anti-pattern
+export const withBrowser = <A, E, R>(
+  self: Effect.Effect<A, E, R>,
+): Effect.Effect<
+  A,
+  E | PlaywrightError,
+  Exclude<R, PlaywrightBrowser> | PlaywrightEnvironment
+> => Effect.scoped(withBrowserUnscoped(self));

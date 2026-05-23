@@ -1,4 +1,4 @@
-import { Context, Effect, identity, Option, Stream } from "effect";
+import { Context, Effect, identity, Option, Queue, Stream } from "effect";
 import type {
   BrowserContext,
   ConsoleMessage,
@@ -94,7 +94,7 @@ export interface PlaywrightBrowserContextService {
    * @see {@link BrowserContext.pages}
    * @since 0.1.0
    */
-  readonly pages: () => Array<typeof PlaywrightPage.Service>;
+  readonly pages: () => Array<PlaywrightPage["Service"]>;
   /**
    * Opens a new page in the browser context.
    *
@@ -106,10 +106,7 @@ export interface PlaywrightBrowserContextService {
    * @see {@link BrowserContext.newPage}
    * @since 0.1.0
    */
-  readonly newPage: Effect.Effect<
-    typeof PlaywrightPage.Service,
-    PlaywrightError
-  >;
+  readonly newPage: Effect.Effect<PlaywrightPage["Service"], PlaywrightError>;
   /**
    * Closes the browser context.
    *
@@ -268,9 +265,10 @@ export interface PlaywrightBrowserContextService {
 /**
  * @category tag
  */
-export class PlaywrightBrowserContext extends Context.Tag(
-  "effect-playwright/PlaywrightBrowserContext",
-)<PlaywrightBrowserContext, PlaywrightBrowserContextService>() {
+export class PlaywrightBrowserContext extends Context.Service<
+  PlaywrightBrowserContext,
+  PlaywrightBrowserContextService
+>()("effect-playwright/PlaywrightBrowserContext") {
   /**
    * Creates a `PlaywrightBrowserContext` from a Playwright `BrowserContext` instance.
    *
@@ -289,7 +287,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
       close: use((c) => c.close()),
       addInitScript: (script, arg) => use((c) => c.addInitScript(script, arg)),
       browser: () =>
-        Option.fromNullable(context.browser()).pipe(
+        Option.fromNullishOr(context.browser()).pipe(
           Option.map(PlaywrightBrowser.make),
         ),
       clearCookies: (options) => use((c) => c.clearCookies(options)),
@@ -307,20 +305,23 @@ export class PlaywrightBrowserContext extends Context.Tag(
         context.setDefaultNavigationTimeout(timeout),
       setDefaultTimeout: (timeout) => context.setDefaultTimeout(timeout),
       setStorageState: (options) => use((c) => c.setStorageState(options)),
-      eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
-        Stream.asyncPush<BrowserContextEvents[K]>((emit) =>
-          Effect.acquireRelease(
+      eventStream: <K extends keyof typeof eventMappings>(event: K) =>
+        Stream.callback<BrowserContextEvents[K]>((queue) => {
+          const handler = (value: BrowserContextEvents[K]) =>
+            Queue.offerUnsafe(queue, value);
+          const closeHandler = () => Queue.endUnsafe(queue);
+          return Effect.acquireRelease(
             Effect.sync(() => {
-              context.on(event, emit.single);
-              context.once("close", emit.end);
+              context.on(event, handler);
+              context.once("close", closeHandler);
             }),
             () =>
               Effect.sync(() => {
-                context.off(event, emit.single);
-                context.off("close", emit.end);
+                context.off(event, handler);
+                context.off("close", closeHandler);
               }),
-          ),
-        ).pipe(
+          );
+        }).pipe(
           Stream.map((e) => {
             const mapping = eventMappings[event];
             // biome-ignore lint/suspicious/noExplicitAny: Don't know how to fix this …

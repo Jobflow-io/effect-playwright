@@ -97,9 +97,10 @@ export interface PlaywrightClockService {
  * @since 0.1.0
  * @category tag
  */
-export class PlaywrightClock extends Context.Tag(
-  "effect-playwright/PlaywrightClock",
-)<PlaywrightClock, PlaywrightClockService>() {
+export class PlaywrightClock extends Context.Service<
+  PlaywrightClock,
+  PlaywrightClockService
+>()("effect-playwright/PlaywrightClock") {
   /**
    * Creates a `PlaywrightClock` from a Playwright `Clock` instance.
    *
@@ -107,7 +108,7 @@ export class PlaywrightClock extends Context.Tag(
    * @since 0.1.0
    * @category constructor
    */
-  static make(clock: Clock): typeof PlaywrightClock.Service {
+  static make(clock: Clock): PlaywrightClock["Service"] {
     const use = useHelper(clock);
 
     return PlaywrightClock.of({

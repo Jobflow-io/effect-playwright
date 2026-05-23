@@ -46,7 +46,7 @@ export interface PlaywrightService {
   launch: (
     browserType: BrowserType,
     options?: LaunchOptions,
-  ) => Effect.Effect<typeof PlaywrightBrowser.Service, PlaywrightError>;
+  ) => Effect.Effect<PlaywrightBrowser["Service"], PlaywrightError>;
   /**
    * Launches a new browser instance managed by a Scope.
    *
@@ -73,7 +73,7 @@ export interface PlaywrightService {
     browserType: BrowserType,
     options?: LaunchOptions,
   ) => Effect.Effect<
-    typeof PlaywrightBrowser.Service,
+    PlaywrightBrowser["Service"],
     PlaywrightError,
     Scope.Scope
   >;
@@ -137,7 +137,7 @@ export interface PlaywrightService {
     browserType: BrowserType,
     userDataDir: string,
     options?: LaunchPersistentContextOptions,
-  ) => Effect.Effect<typeof PlaywrightBrowserContext.Service, PlaywrightError>;
+  ) => Effect.Effect<PlaywrightBrowserContext["Service"], PlaywrightError>;
   /**
    * Launches a persistent browser context managed by a Scope.
    *
@@ -173,7 +173,7 @@ export interface PlaywrightService {
     userDataDir: string,
     options?: LaunchPersistentContextOptions,
   ) => Effect.Effect<
-    typeof PlaywrightBrowserContext.Service,
+    PlaywrightBrowserContext["Service"],
     PlaywrightError,
     Scope.Scope
   >;
@@ -206,7 +206,7 @@ export interface PlaywrightService {
   connectCDP: (
     cdpUrl: string,
     options?: ConnectOverCDPOptions,
-  ) => Effect.Effect<typeof PlaywrightBrowser.Service, PlaywrightError>;
+  ) => Effect.Effect<PlaywrightBrowser["Service"], PlaywrightError>;
   /**
    * Connects to a browser instance via Chrome DevTools Protocol (CDP) managed by a Scope.
    *
@@ -236,7 +236,7 @@ export interface PlaywrightService {
     cdpUrl: string,
     options?: ConnectOverCDPOptions,
   ) => Effect.Effect<
-    typeof PlaywrightBrowser.Service,
+    PlaywrightBrowser["Service"],
     PlaywrightError,
     Scope.Scope
   >;
@@ -245,34 +245,36 @@ export interface PlaywrightService {
 const launch: (
   browserType: BrowserType,
   options?: LaunchOptions,
-) => Effect.Effect<typeof PlaywrightBrowser.Service, PlaywrightError> =
-  Effect.fn(function* (browserType: BrowserType, options?: LaunchOptions) {
+) => Effect.Effect<PlaywrightBrowser["Service"], PlaywrightError> = Effect.fn(
+  function* (browserType: BrowserType, options?: LaunchOptions) {
     const rawBrowser = yield* Effect.tryPromise({
       try: () => browserType.launch(options),
       catch: wrapError,
     });
 
     return PlaywrightBrowser.make(rawBrowser);
-  });
+  },
+);
 
 const connectCDP: (
   cdpUrl: string,
   options?: ConnectOverCDPOptions,
-) => Effect.Effect<typeof PlaywrightBrowser.Service, PlaywrightError> =
-  Effect.fn(function* (cdpUrl: string, options?: ConnectOverCDPOptions) {
+) => Effect.Effect<PlaywrightBrowser["Service"], PlaywrightError> = Effect.fn(
+  function* (cdpUrl: string, options?: ConnectOverCDPOptions) {
     const browser = yield* Effect.tryPromise({
       try: () => chromium.connectOverCDP(cdpUrl, options),
       catch: wrapError,
     });
 
     return PlaywrightBrowser.make(browser);
-  });
+  },
+);
 
 const launchPersistentContext: (
   browserType: BrowserType,
   userDataDir: string,
   options?: LaunchPersistentContextOptions,
-) => Effect.Effect<typeof PlaywrightBrowserContext.Service, PlaywrightError> =
+) => Effect.Effect<PlaywrightBrowserContext["Service"], PlaywrightError> =
   Effect.fn(function* (
     browserType: BrowserType,
     userDataDir: string,
@@ -290,9 +292,10 @@ const launchPersistentContext: (
  * @category tag
  * @since 0.1.0
  */
-export class Playwright extends Context.Tag(
-  "effect-playwright/index/Playwright",
-)<Playwright, PlaywrightService>() {
+export class Playwright extends Context.Service<
+  Playwright,
+  PlaywrightService
+>()("effect-playwright/index/Playwright") {
   /**
    * @category layer
    */

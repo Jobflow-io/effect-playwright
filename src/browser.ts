@@ -1,4 +1,4 @@
-import { Context, Effect, Stream } from "effect";
+import { Context, Effect, Queue, Stream } from "effect";
 import type { Scope } from "effect/Scope";
 import type {
   Browser,
@@ -47,7 +47,7 @@ export interface PlaywrightBrowserService {
    */
   readonly newPage: (
     options?: NewPageOptions,
-  ) => Effect.Effect<typeof PlaywrightPage.Service, PlaywrightError>;
+  ) => Effect.Effect<PlaywrightPage["Service"], PlaywrightError>;
   /**
    * A generic utility to execute any promise-based method on the underlying Playwright `Browser`.
    * Can be used to access any Browser functionality not directly exposed by this service.
@@ -74,12 +74,12 @@ export interface PlaywrightBrowserService {
    * Returns the list of all open browser contexts.
    * @see {@link Browser.contexts}
    */
-  readonly contexts: () => Array<typeof PlaywrightBrowserContext.Service>;
+  readonly contexts: () => Array<PlaywrightBrowserContext["Service"]>;
 
   readonly newContext: (
     options?: NewContextOptions,
   ) => Effect.Effect<
-    typeof PlaywrightBrowserContext.Service,
+    PlaywrightBrowserContext["Service"],
     PlaywrightError,
     Scope
   >;
@@ -140,9 +140,10 @@ export interface PlaywrightBrowserService {
 /**
  * @category tag
  */
-export class PlaywrightBrowser extends Context.Tag(
-  "effect-playwright/PlaywrightBrowser",
-)<PlaywrightBrowser, PlaywrightBrowserService>() {
+export class PlaywrightBrowser extends Context.Service<
+  PlaywrightBrowser,
+  PlaywrightBrowserService
+>()("effect-playwright/PlaywrightBrowser") {
   /**
    * @category constructor
    */
@@ -159,27 +160,30 @@ export class PlaywrightBrowser extends Context.Tag(
           use((browser) =>
             browser.newContext(options).then(PlaywrightBrowserContext.make),
           ),
-          (context) => context.close.pipe(Effect.ignoreLogged),
+          (context) => context.close.pipe(Effect.ignore),
         ),
       browserType: () => browser.browserType(),
       version: () => browser.version(),
       isConnected: () => browser.isConnected(),
       bind: (title, options) => use((browser) => browser.bind(title, options)),
       unbind: use((browser) => browser.unbind()),
-      eventStream: <K extends keyof BrowserEvents>(event: K) =>
-        Stream.asyncPush<BrowserEvents[K]>((emit) =>
-          Effect.acquireRelease(
+      eventStream: <K extends keyof typeof eventMappings>(event: K) =>
+        Stream.callback<BrowserEvents[K]>((queue) => {
+          const handler = (value: BrowserEvents[K]) =>
+            Queue.offerUnsafe(queue, value);
+          const closeHandler = () => Queue.endUnsafe(queue);
+          return Effect.acquireRelease(
             Effect.sync(() => {
-              browser.on(event, emit.single);
-              browser.once("disconnected", emit.end);
+              browser.on(event, handler);
+              browser.once("disconnected", closeHandler);
             }),
             () =>
               Effect.sync(() => {
-                browser.off(event, emit.single);
-                browser.off("disconnected", emit.end);
+                browser.off(event, handler);
+                browser.off("disconnected", closeHandler);
               }),
-          ),
-        ).pipe(
+          );
+        }).pipe(
           Stream.map((e) => {
             const mapping = eventMappings[event];
             // biome-ignore lint/suspicious/noExplicitAny: Don't know how to fix this …
