@@ -118,6 +118,13 @@ export interface PlaywrightBrowserContextService {
    */
   readonly close: Effect.Effect<void, PlaywrightError>;
   /**
+   * Indicates that the browser context is in the process of closing or has already been closed.
+   *
+   * @see {@link BrowserContext.isClosed}
+   * @since 0.5.1
+   */
+  readonly isClosed: () => boolean;
+  /**
    * Adds a script which would be evaluated in one of the following scenarios:
    * - Whenever a page is created in the browser context or is navigated.
    * - Whenever a child frame is attached or navigated. In this case, the script is evaluated in the context of the newly attached frame.
@@ -239,6 +246,20 @@ export interface PlaywrightBrowserContextService {
   readonly setDefaultTimeout: (timeout: number) => void;
 
   /**
+   * Returns storage state for this browser context, contains current cookies, local storage snapshot and IndexedDB
+   * snapshot.
+   *
+   * @see {@link BrowserContext.storageState}
+   * @since 0.5.1
+   */
+  readonly storageState: (
+    options?: Parameters<BrowserContext["storageState"]>[0],
+  ) => Effect.Effect<
+    Awaited<ReturnType<BrowserContext["storageState"]>>,
+    PlaywrightError
+  >;
+
+  /**
    * Sets the storage state for the browser context.
    *
    * @see {@link BrowserContext.setStorageState}
@@ -287,6 +308,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
       pages: () => context.pages().map(PlaywrightPage.make),
       newPage: use((c) => c.newPage().then(PlaywrightPage.make)),
       close: use((c) => c.close()),
+      isClosed: () => context.isClosed(),
       addInitScript: (script, arg) => use((c) => c.addInitScript(script, arg)),
       browser: () =>
         Option.fromNullable(context.browser()).pipe(
@@ -306,6 +328,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
       setDefaultNavigationTimeout: (timeout) =>
         context.setDefaultNavigationTimeout(timeout),
       setDefaultTimeout: (timeout) => context.setDefaultTimeout(timeout),
+      storageState: (options) => use((c) => c.storageState(options)),
       setStorageState: (options) => use((c) => c.setStorageState(options)),
       eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
         Stream.asyncPush<BrowserContextEvents[K]>((emit) =>

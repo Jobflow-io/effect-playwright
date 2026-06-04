@@ -40,6 +40,14 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       const requestResponse = yield* request.response;
       assert(Option.isSome(requestResponse));
       assert(requestResponse.value.url() === response.url());
+
+      const existingResponse = request.existingResponse();
+      assert(Option.isSome(existingResponse));
+      assert(existingResponse.value.url() === response.url());
+
+      const httpVersion = yield* response.httpVersion;
+      assert(typeof httpVersion === "string");
+      assert(httpVersion.length > 0);
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
