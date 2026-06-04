@@ -107,6 +107,14 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       // Test waitForTimeout
       yield* frame.waitForTimeout(100);
 
+      // Test frameElement
+      const frameEl = yield* frame.frameElement;
+      assert.isOk(frameEl, "Frame element not found");
+      const tagName = yield* Effect.promise(() =>
+        frameEl.evaluate((el) => (el as any).tagName),
+      );
+      assert.strictEqual(tagName, "IFRAME");
+
       // Test setContent
       yield* frame.setContent("<h1>New Content</h1>");
       const newContent = yield* frame.content;

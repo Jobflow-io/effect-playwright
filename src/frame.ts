@@ -1,5 +1,5 @@
 import { Array, Context, type Effect, Option } from "effect";
-import type { Frame } from "playwright-core";
+import type { ElementHandle, Frame } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightLocator } from "./locator";
 import { PlaywrightPage, type PlaywrightPageService } from "./page";
@@ -223,6 +223,14 @@ export interface PlaywrightFrameService {
   readonly content: Effect.Effect<string, PlaywrightError>;
 
   /**
+   * Returns the owner iframe element for the frame.
+   *
+   * @see {@link Frame.frameElement}
+   * @since 0.5.1
+   */
+  readonly frameElement: Effect.Effect<ElementHandle, PlaywrightError>;
+
+  /**
    * Returns the frame name.
    *
    * @see {@link Frame.name}
@@ -297,6 +305,7 @@ export class PlaywrightFrame extends Context.Tag(
       setContent: (html, options) => use((f) => f.setContent(html, options)),
       url: () => frame.url(),
       content: use((f) => f.content()),
+      frameElement: use((f) => f.frameElement()),
       name: () => frame.name(),
       click: (selector, options) => use((f) => f.click(selector, options)),
     });
