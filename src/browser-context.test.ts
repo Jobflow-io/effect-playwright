@@ -32,11 +32,28 @@ layer(PlaywrightEnvironment.layer(chromium))(
         assert.strictEqual(cookies.length, 1);
         assert.strictEqual(cookies[0].name, "test-cookie");
 
+        // Test storageState & setStorageState
+        const state = yield* context.storageState();
+        assert.isTrue(
+          state.cookies.some(
+            (c) => c.name === "test-cookie" && c.value === "test-value",
+          ),
+        );
+
         yield* context.clearCookies();
         const cookiesAfterClear = yield* context.cookies([
           "https://example.com",
         ]);
         assert.strictEqual(cookiesAfterClear.length, 0);
+
+        yield* context.setStorageState(state);
+        const cookiesAfterRestore = yield* context.cookies([
+          "https://example.com",
+        ]);
+        assert.strictEqual(cookiesAfterRestore.length, 1);
+        assert.strictEqual(cookiesAfterRestore[0].name, "test-cookie");
+
+        yield* context.clearCookies();
 
         // Test grantPermissions/clearPermissions
         yield* context.grantPermissions(["notifications"]);

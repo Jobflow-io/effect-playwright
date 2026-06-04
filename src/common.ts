@@ -29,6 +29,12 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
     PlaywrightError
   >;
   /**
+   * Returns the matching Response object, or null if the response was not received yet.
+   * @see {@link Request.existingResponse}
+   * @since 0.5.1
+   */
+  existingResponse: () => Option.Option<PlaywrightResponse>;
+  /**
    * The method returns null unless this request was a failed one.
    * @see {@link Request.failure}
    */
@@ -134,6 +140,10 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
 
     return new PlaywrightRequest({
       allHeaders: use(() => request.allHeaders()),
+      existingResponse: (): Option.Option<PlaywrightResponse> =>
+        Option.fromNullable(request.existingResponse()).pipe(
+          Option.map(PlaywrightResponse.make),
+        ),
       failure: Option.liftNullable(request.failure),
       frame: Effect.try({
         try: () => PlaywrightFrame.make(request.frame()),
@@ -206,6 +216,15 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
     Awaited<ReturnType<Response["headerValues"]>>,
     PlaywrightError
   >;
+  /**
+   * Returns the HTTP version of the response.
+   * @see {@link Response.httpVersion}
+   * @since 0.5.1
+   */
+  httpVersion: Effect.Effect<
+    Awaited<ReturnType<Response["httpVersion"]>>,
+    PlaywrightError
+  >;
   json: Effect.Effect<Awaited<ReturnType<Response["json"]>>, PlaywrightError>;
   ok: () => boolean;
   request: () => PlaywrightRequest;
@@ -243,6 +262,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
           Effect.map(Option.fromNullable),
         ),
       headerValues: (name) => use(() => response.headerValues(name)),
+      httpVersion: use(() => response.httpVersion()),
       json: use(() => response.json()),
       ok: () => response.ok(),
       request: () => PlaywrightRequest.make(response.request()),

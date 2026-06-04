@@ -121,7 +121,7 @@ export interface PlaywrightBrowserContextService {
    * Indicates that the browser context is in the process of closing or has already been closed.
    *
    * @see {@link BrowserContext.isClosed}
-   * @since 0.6.0
+   * @since 0.5.1
    */
   readonly isClosed: () => boolean;
   /**
@@ -246,6 +246,20 @@ export interface PlaywrightBrowserContextService {
   readonly setDefaultTimeout: (timeout: number) => void;
 
   /**
+   * Returns storage state for this browser context, contains current cookies, local storage snapshot and IndexedDB
+   * snapshot.
+   *
+   * @see {@link BrowserContext.storageState}
+   * @since 0.5.1
+   */
+  readonly storageState: (
+    options?: Parameters<BrowserContext["storageState"]>[0],
+  ) => Effect.Effect<
+    Awaited<ReturnType<BrowserContext["storageState"]>>,
+    PlaywrightError
+  >;
+
+  /**
    * Sets the storage state for the browser context.
    *
    * @see {@link BrowserContext.setStorageState}
@@ -314,6 +328,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
       setDefaultNavigationTimeout: (timeout) =>
         context.setDefaultNavigationTimeout(timeout),
       setDefaultTimeout: (timeout) => context.setDefaultTimeout(timeout),
+      storageState: (options) => use((c) => c.storageState(options)),
       setStorageState: (options) => use((c) => c.setStorageState(options)),
       eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
         Stream.asyncPush<BrowserContextEvents[K]>((emit) =>
