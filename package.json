@@ -42,7 +42,7 @@
     "browser",
     "automation"
   ],
-  "packageManager": "pnpm@10.27.0",
+  "packageManager": "pnpm@11.5.1",
   "dependencies": {
     "playwright-core": "^1.60.0"
   },
