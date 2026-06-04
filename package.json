@@ -51,22 +51,22 @@
     "effect": "^3.19.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.14",
-    "@effect/cli": "^0.75.1",
-    "@effect/language-service": "0.85.1",
+    "@biomejs/biome": "2.4.16",
+    "@effect/cli": "^0.75.2",
+    "@effect/language-service": "0.86.2",
     "@effect/platform": "^0.96.1",
-    "@effect/platform-node": "^0.106.0",
+    "@effect/platform-node": "^0.107.0",
     "@effect/vitest": "^0.29.0",
-    "@types/node": "^25.6.1",
+    "@types/node": "^25.9.1",
     "effect": "^3.21.2",
     "playwright": "^1.60.0",
     "ts-morph": "^28.0.0",
-    "tsdown": "0.22.0",
-    "tsx": "^4.21.0",
+    "tsdown": "0.22.1",
+    "tsx": "^4.22.4",
     "typedoc": "^0.28.19",
     "typescript": "^6.0.3",
-    "vite": "^8.0.11",
-    "vitest": "^4.1.5"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
   },
   "types": "./dist/index.d.mts"
 }
