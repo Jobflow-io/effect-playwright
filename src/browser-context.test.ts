@@ -75,5 +75,20 @@ layer(PlaywrightEnvironment.layer(chromium))(
         assert.strictEqual(magicValue2, 84);
       }).pipe(PlaywrightEnvironment.withBrowser),
     );
+
+    it.scoped(
+      "isClosed should return the closed state of the browser context",
+      () =>
+        Effect.gen(function* () {
+          const browser = yield* PlaywrightBrowser;
+          const context = yield* browser.newContext();
+
+          assert.strictEqual(context.isClosed(), false);
+
+          yield* context.close;
+
+          assert.strictEqual(context.isClosed(), true);
+        }).pipe(PlaywrightEnvironment.withBrowser),
+    );
   },
 );

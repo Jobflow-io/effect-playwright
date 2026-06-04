@@ -118,6 +118,13 @@ export interface PlaywrightBrowserContextService {
    */
   readonly close: Effect.Effect<void, PlaywrightError>;
   /**
+   * Indicates that the browser context is in the process of closing or has already been closed.
+   *
+   * @see {@link BrowserContext.isClosed}
+   * @since 0.6.0
+   */
+  readonly isClosed: () => boolean;
+  /**
    * Adds a script which would be evaluated in one of the following scenarios:
    * - Whenever a page is created in the browser context or is navigated.
    * - Whenever a child frame is attached or navigated. In this case, the script is evaluated in the context of the newly attached frame.
@@ -287,6 +294,7 @@ export class PlaywrightBrowserContext extends Context.Tag(
       pages: () => context.pages().map(PlaywrightPage.make),
       newPage: use((c) => c.newPage().then(PlaywrightPage.make)),
       close: use((c) => c.close()),
+      isClosed: () => context.isClosed(),
       addInitScript: (script, arg) => use((c) => c.addInitScript(script, arg)),
       browser: () =>
         Option.fromNullable(context.browser()).pipe(
