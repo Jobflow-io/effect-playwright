@@ -36,6 +36,9 @@ jobs:
 
       - name: Install chromium
         run: pnpm exec playwright install chromium
+      - name: Playwright Test integration
+        run: pnpm test:playwright
+
 
       - name: Test
         run: pnpm test

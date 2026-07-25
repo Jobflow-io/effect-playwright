@@ -18,7 +18,8 @@
     "types": ["vitest/importMeta", "node"],
     "paths": {
       "effect-playwright": ["./src/index.ts"],
-      "effect-playwright/experimental": ["./src/experimental/index.ts"]
+      "effect-playwright/experimental": ["./src/experimental/index.ts"],
+      "effect-playwright/test": ["./src/test.ts"]
     },
     "plugins": [
       {
