@@ -20,10 +20,14 @@ import {
   PlaywrightResponse,
   PlaywrightWorker,
 } from "./common";
+import {
+  PlaywrightCredentials,
+  type PlaywrightCredentialsService,
+} from "./credentials";
 import type { PlaywrightError } from "./errors";
 import { PlaywrightFrame } from "./frame";
 import { PlaywrightPage } from "./page";
-import type { PatchedEvents } from "./playwright-types";
+import type { PageFunction, PatchedEvents } from "./playwright-types";
 import { PlaywrightTracing, type PlaywrightTracingService } from "./tracing";
 import { useHelper } from "./utils";
 
@@ -83,6 +87,13 @@ export interface PlaywrightBrowserContextService {
    */
   readonly clock: PlaywrightClockService;
   /**
+   * Access the virtual WebAuthn credentials manager.
+   *
+   * @see {@link BrowserContext.credentials}
+   * @since 0.5.1
+   */
+  readonly credentials: PlaywrightCredentialsService;
+  /**
    * Access the tracing.
    *
    * @since 0.5.0
@@ -132,9 +143,10 @@ export interface PlaywrightBrowserContextService {
    * @see {@link BrowserContext.addInitScript}
    * @since 0.2.0
    */
-  readonly addInitScript: (
-    script: Parameters<BrowserContext["addInitScript"]>[0],
-    arg?: Parameters<BrowserContext["addInitScript"]>[1],
+  readonly addInitScript: <Arg>(
+    script: PageFunction<Arg, unknown> | { path?: string; content?: string },
+    arg?: Arg,
+    options?: Parameters<BrowserContext["addInitScript"]>[2],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
@@ -304,12 +316,26 @@ export class PlaywrightBrowserContext extends Context.Tag(
     const use = useHelper(context);
     return PlaywrightBrowserContext.of({
       clock: PlaywrightClock.make(context.clock),
+      credentials: PlaywrightCredentials.make(context.credentials),
       tracing: PlaywrightTracing.make(context.tracing),
       pages: () => context.pages().map(PlaywrightPage.make),
       newPage: use((c) => c.newPage().then(PlaywrightPage.make)),
       close: use((c) => c.close()),
       isClosed: () => context.isClosed(),
-      addInitScript: (script, arg) => use((c) => c.addInitScript(script, arg)),
+      addInitScript: <Arg>(
+        script:
+          | PageFunction<Arg, unknown>
+          | { path?: string; content?: string },
+        arg?: Arg,
+        options?: Parameters<BrowserContext["addInitScript"]>[2],
+      ) =>
+        use((c) =>
+          c.addInitScript<Arg>(
+            script as unknown as Parameters<typeof c.addInitScript<Arg>>[0],
+            arg,
+            options,
+          ),
+        ).pipe(Effect.asVoid),
       browser: () =>
         Option.fromNullable(context.browser()).pipe(
           Option.map(PlaywrightBrowser.make),

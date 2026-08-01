@@ -50,6 +50,7 @@ export interface PlaywrightFrameService {
   readonly evaluate: <R, Arg = void>(
     pageFunction: PageFunction<Arg, R>,
     arg?: Arg,
+    options?: Parameters<Frame["evaluate"]>[2],
   ) => Effect.Effect<R, PlaywrightError>;
   /**
    * Returns the frame title.
@@ -273,8 +274,18 @@ export class PlaywrightFrame extends Context.Tag(
       waitForURL: (url, options) => use((f) => f.waitForURL(url, options)),
       waitForLoadState: (state, options) =>
         use((f) => f.waitForLoadState(state, options)),
-      evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
-        use((frame) => frame.evaluate<R, Arg>(f, arg as Arg)),
+      evaluate: <R, Arg>(
+        f: PageFunction<Arg, R>,
+        arg?: Arg,
+        options?: Parameters<Frame["evaluate"]>[2],
+      ) =>
+        use((frame) =>
+          frame.evaluate<R, Arg>(
+            f as unknown as Parameters<typeof frame.evaluate<R, Arg>>[0],
+            arg as Arg,
+            options,
+          ),
+        ),
       title: use((f) => f.title()),
       use,
       locator: (selector, options) =>

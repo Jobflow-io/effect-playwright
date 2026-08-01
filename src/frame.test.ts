@@ -111,7 +111,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       const frameEl = yield* frame.frameElement;
       assert.isOk(frameEl, "Frame element not found");
       const tagName = yield* Effect.promise(() =>
-        frameEl.evaluate((el) => (el as any).tagName),
+        frameEl.evaluate((el) => (el as Element).tagName),
       );
       assert.strictEqual(tagName, "IFRAME");
 
@@ -120,6 +120,25 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       const newContent = yield* frame.content;
       assert.isTrue(newContent.includes("New Content"));
     }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped(
+    "evaluate should expose a function-valued argument in the frame context",
+    () =>
+      Effect.gen(function* () {
+        const browser = yield* PlaywrightBrowser;
+        const page = yield* browser.newPage();
+        const frame = page.mainFrame();
+
+        const result = yield* frame.evaluate(
+          async (triple: (value: number) => Promise<number>) =>
+            await triple(14),
+          async (value: number) => value * 3,
+          { exposeFunctions: true },
+        );
+
+        assert.strictEqual(result, 42);
+      }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
   it.scoped("waitForLoadState should resolve on frame", () =>
