@@ -108,11 +108,12 @@ layer(sharedLayer)("shared Effect layer", (it) => {
       }),
     );
   });
-});
 
-test("releases a shared Effect layer", () => {
-  expect(sharedLayerAcquisitions).toBe(1);
-  expect(sharedLayerReleases).toBe(1);
+  // Runs after the layer's own release hook, which is registered first.
+  it.afterAll(() => {
+    expect(sharedLayerAcquisitions).toBe(1);
+    expect(sharedLayerReleases).toBe(1);
+  });
 });
 
 layer(anonymousLayer)((it) => {
@@ -121,11 +122,11 @@ layer(anonymousLayer)((it) => {
       expect(yield* AnonymousValue).toBe("anonymous");
     }),
   );
-});
 
-test("releases an anonymous Effect layer", () => {
-  expect(anonymousLayerAcquisitions).toBe(1);
-  expect(anonymousLayerReleases).toBe(1);
+  it.afterAll(() => {
+    expect(anonymousLayerAcquisitions).toBe(1);
+    expect(anonymousLayerReleases).toBe(1);
+  });
 });
 
 const customTest = makeMethods(
