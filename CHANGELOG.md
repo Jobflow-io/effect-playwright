@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Features
+
+- **Playwright Test Shared Layers**: Added `layer` and `test.layer` to `effect-playwright/test`, with worker-scoped acquisition, nested layer composition, shared memoization, and custom fixture support.
+
 ## 0.5.0
 
 ### ⚠️ Breaking Changes

@@ -232,9 +232,34 @@ test.effect("cleans up after the test", () =>
 
 Effect scope finalizers run during test-scoped fixture teardown. On test timeout, this occurs after user `afterEach`.
 
-### Custom fixtures
+### Using Effect layers
 
-Call `makeMethods` after extending or merging a custom `TestType`:
+Effect layers are the preferred way to provide dependencies to Effect-based
+Playwright tests. Use `layer` to acquire a layer once per Playwright worker and
+share it between the tests in a block. Layer finalizers run after every test in
+the block has finished. Nested layers reuse their parent services.
+
+```ts
+import { Context, Effect, Layer } from "effect";
+import { expect, layer } from "effect-playwright/test";
+
+class Greeting extends Context.Tag("Greeting")<Greeting, string>() {}
+
+layer(Layer.succeed(Greeting, "hello"))("Greeting", (it) => {
+  it.effect("uses a shared service", () =>
+    Effect.gen(function* () {
+      expect(yield* Greeting).toBe("hello");
+    }),
+  );
+});
+```
+
+### Custom Playwright fixtures
+
+Custom Playwright fixtures are supported mainly for compatibility with existing
+Playwright Test suites. Prefer Effect layers.
+When integration with an existing custom `TestType` is required, call
+`makeMethods` after extending or merging it:
 
 ```ts
 import { test as base } from "@playwright/test";

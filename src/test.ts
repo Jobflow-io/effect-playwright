@@ -20,7 +20,16 @@ import {
   type TestInfo,
   type TestType,
 } from "@playwright/test";
-import { Cause, Context, Effect, Exit, Logger, type Scope } from "effect";
+import {
+  Cause,
+  Context,
+  Duration,
+  Effect,
+  Exit,
+  Layer,
+  Logger,
+  Scope,
+} from "effect";
 import { PlaywrightBrowser } from "./browser";
 import { PlaywrightBrowserContext } from "./browser-context";
 import { PlaywrightPage } from "./page";
@@ -75,10 +84,10 @@ export type PlaywrightTestEnvironment =
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
-export type EffectTestFunction<Args extends object, A, E> = (
+export type EffectTestFunction<Args extends object, A, E, R = never> = (
   args: Args,
   testInfo: TestInfo,
-) => Effect.Effect<A, E, PlaywrightTestEnvironment>;
+) => Effect.Effect<A, E, PlaywrightTestEnvironment | R>;
 
 /**
  * Registers Effect-based Playwright tests.
@@ -101,12 +110,12 @@ export type EffectTestFunction<Args extends object, A, E> = (
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
-export interface EffectTest<Args extends object> {
-  <A, E>(title: string, body: EffectTestFunction<Args, A, E>): void;
+export interface EffectTest<Args extends object, R = never> {
+  <A, E>(title: string, body: EffectTestFunction<Args, A, E, R>): void;
   <A, E>(
     title: string,
     details: TestDetails,
-    body: EffectTestFunction<Args, A, E>,
+    body: EffectTestFunction<Args, A, E, R>,
   ): void;
 }
 
@@ -131,12 +140,44 @@ export interface EffectTest<Args extends object> {
  * @see https://playwright.dev/docs/test-annotations
  * @since 0.6.0
  */
-export interface EffectTester<Args extends object> extends EffectTest<Args> {
-  readonly only: EffectTest<Args>;
-  readonly skip: EffectTest<Args>;
-  readonly fixme: EffectTest<Args>;
-  readonly fail: EffectTest<Args> & { readonly only: EffectTest<Args> };
+export interface EffectTester<Args extends object, R = never>
+  extends EffectTest<Args, R> {
+  readonly only: EffectTest<Args, R>;
+  readonly skip: EffectTest<Args, R>;
+  readonly fixme: EffectTest<Args, R>;
+  readonly fail: EffectTest<Args, R> & { readonly only: EffectTest<Args, R> };
 }
+
+interface LayerOptions {
+  readonly memoMap?: Layer.MemoMap;
+  readonly timeout?: Duration.DurationInput;
+}
+
+interface NestedLayerOptions {
+  readonly timeout?: Duration.DurationInput;
+}
+
+interface LayerRegistration<T extends object, W extends object, R> {
+  (f: (test: LayerTestMethods<T, W, R>) => void): void;
+  (name: string, f: (test: LayerTestMethods<T, W, R>) => void): void;
+}
+
+type LayerTestMethods<T extends object, W extends object, R> = TestType<
+  T,
+  W
+> & {
+  readonly effect: EffectTester<T & W, R>;
+  readonly scoped: EffectTester<T & W, R>;
+  readonly layer: <R2, E>(
+    layer: Layer.Layer<R2, E, R>,
+    options?: NestedLayerOptions,
+  ) => LayerRegistration<T, W, R | R2>;
+};
+
+type LayerMethod<T extends object, W extends object> = <R, E>(
+  layer: Layer.Layer<R, E>,
+  options?: LayerOptions,
+) => LayerRegistration<T, W, R>;
 
 /**
  * A Playwright `TestType` enhanced with Effect-based registration methods.
@@ -162,7 +203,10 @@ export interface EffectTester<Args extends object> extends EffectTest<Args> {
 export type PlaywrightTestMethods<
   T extends object,
   W extends object,
-> = TestType<T, W> & { readonly effect: EffectTester<T & W> };
+> = TestType<T, W> & {
+  readonly effect: EffectTester<T & W>;
+  readonly layer: LayerMethod<T, W>;
+};
 
 interface EffectRunner {
   readonly abortController: AbortController;
@@ -184,7 +228,7 @@ const noActiveRuntimeMessage =
 
 const runPromise = <A, E>(
   effect: Effect.Effect<A, E>,
-  signal: AbortSignal,
+  signal?: AbortSignal,
 ): Promise<A> =>
   Effect.runPromise(
     Effect.gen(function* () {
@@ -201,26 +245,33 @@ const runPromise = <A, E>(
     { signal },
   );
 
-const makeEffectTest = <Args extends object>(
+type EffectTransform<R> = <A, E>(
+  effect: Effect.Effect<A, E, PlaywrightTestEnvironment | R>,
+) => Effect.Effect<A, E, PlaywrightTestEnvironment>;
+
+const withoutLayer: EffectTransform<never> = (effect) => effect;
+
+const makeEffectTest = <Args extends object, R>(
   register: (
     title: string,
     details: TestDetails | undefined,
     body: (args: Args, testInfo: TestInfo) => Promise<void>,
   ) => void,
-): EffectTest<Args> => {
+  transform: EffectTransform<R>,
+): EffectTest<Args, R> => {
   function effectTest<A, E>(
     title: string,
-    body: EffectTestFunction<Args, A, E>,
+    body: EffectTestFunction<Args, A, E, R>,
   ): void;
   function effectTest<A, E>(
     title: string,
     details: TestDetails,
-    body: EffectTestFunction<Args, A, E>,
+    body: EffectTestFunction<Args, A, E, R>,
   ): void;
   function effectTest<A, E>(
     title: string,
-    detailsOrBody: TestDetails | EffectTestFunction<Args, A, E>,
-    possibleBody?: EffectTestFunction<Args, A, E>,
+    detailsOrBody: TestDetails | EffectTestFunction<Args, A, E, R>,
+    possibleBody?: EffectTestFunction<Args, A, E, R>,
   ): void {
     const details =
       typeof detailsOrBody === "function" ? undefined : detailsOrBody;
@@ -236,11 +287,9 @@ const makeEffectTest = <Args extends object>(
         return Promise.reject(new Error(noActiveRuntimeMessage));
       }
 
-      const program = Effect.suspend(() => body(args, testInfo)).pipe(
-        Effect.provide(runner.context),
-        Effect.scoped,
-        Effect.asVoid,
-      );
+      const program = transform(
+        Effect.suspend(() => body(args, testInfo)),
+      ).pipe(Effect.provide(runner.context), Effect.scoped, Effect.asVoid);
       const promise = runPromise(program, runner.abortController.signal);
       runner.running.add(promise);
       void promise.then(
@@ -269,24 +318,26 @@ type EffectRegistration<Args extends object> = {
   ): void;
 };
 
-const makeTester = <Args extends object>(
+const makeTester = <Args extends object, R>(
   effectTestType: TestType<Args & InternalFixtures, object>,
-): EffectTester<Args> => {
+  transform: EffectTransform<R>,
+): EffectTester<Args, R> => {
   const makeRegistration = (
     method: EffectRegistration<Args & InternalFixtures>,
-  ): EffectTest<Args> =>
+  ): EffectTest<Args, R> =>
     makeEffectTest((title, details, body) => {
       if (details === undefined) {
         method(title, body);
       } else {
         method(title, details, body);
       }
-    });
+    }, transform);
 
   const tester = makeRegistration(effectTestType);
-  const fail = makeRegistration(
-    effectTestType.fail,
-  ) as EffectTester<Args>["fail"];
+  const fail = makeRegistration(effectTestType.fail) as EffectTester<
+    Args,
+    R
+  >["fail"];
   Object.defineProperties(fail, {
     only: { value: makeRegistration(effectTestType.fail.only) },
   });
@@ -296,7 +347,114 @@ const makeTester = <Args extends object>(
     fixme: { value: makeRegistration(effectTestType.fixme) },
     fail: { value: fail },
   });
-  return tester as EffectTester<Args>;
+  return tester as EffectTester<Args, R>;
+};
+type TestBody<Args extends object> = (
+  args: Args,
+  testInfo: TestInfo,
+) => Promise<void> | void;
+
+const makeLayer = <T extends object, W extends object, R, E>(
+  testType: TestType<T, W>,
+  effectTestType: TestType<T & W & InternalFixtures, object>,
+  layer: Layer.Layer<R, E>,
+  options?: LayerOptions,
+): LayerRegistration<T, W, R> => {
+  const memoMap = options?.memoMap ?? Effect.runSync(Layer.makeMemoMap);
+  const scope = Effect.runSync(Scope.make());
+  const runtimeEffect = Layer.toRuntimeWithMemoMap(layer, memoMap).pipe(
+    Scope.extend(scope),
+    Effect.orDie,
+    Effect.cached,
+    Effect.runSync,
+  );
+  const transform: EffectTransform<R> = (effect) =>
+    Effect.flatMap(runtimeEffect, (runtime) => Effect.provide(effect, runtime));
+  const tester = makeTester<T & W, R>(effectTestType, transform);
+
+  const makeLayerMethods = (): LayerTestMethods<T, W, R> => {
+    function layerTest(title: string, body: TestBody<T & W>): void;
+    function layerTest(
+      title: string,
+      details: TestDetails,
+      body: TestBody<T & W>,
+    ): void;
+    function layerTest(
+      title: string,
+      detailsOrBody: TestDetails | TestBody<T & W>,
+      possibleBody?: TestBody<T & W>,
+    ): void {
+      if (typeof detailsOrBody === "function") {
+        testType(title, detailsOrBody);
+      } else if (possibleBody !== undefined) {
+        testType(title, detailsOrBody, possibleBody);
+      } else {
+        throw new TypeError("effect-playwright/test: missing test body");
+      }
+    }
+
+    Object.assign(layerTest, testType);
+    const nestedLayer = <R2, E2>(
+      nested: Layer.Layer<R2, E2, R>,
+      nestedOptions?: NestedLayerOptions,
+    ): LayerRegistration<T, W, R | R2> =>
+      makeLayer(testType, effectTestType, Layer.provideMerge(nested, layer), {
+        memoMap,
+        timeout: nestedOptions?.timeout,
+      });
+    Object.defineProperties(layerTest, {
+      effect: { value: tester },
+      layer: { value: nestedLayer },
+      scoped: { value: tester },
+    });
+    return layerTest as LayerTestMethods<T, W, R>;
+  };
+
+  const registerHooks = (): void => {
+    testType.beforeAll(
+      // biome-ignore lint/correctness/noEmptyPattern: Playwright requires fixture object destructuring.
+      async ({}, testInfo) => {
+        if (options?.timeout !== undefined) {
+          testInfo.setTimeout(Duration.toMillis(options.timeout));
+        }
+        await runPromise(Effect.asVoid(runtimeEffect));
+      },
+    );
+    testType.afterAll(
+      // biome-ignore lint/correctness/noEmptyPattern: Playwright requires fixture object destructuring.
+      async ({}, testInfo) => {
+        if (options?.timeout !== undefined) {
+          testInfo.setTimeout(Duration.toMillis(options.timeout));
+        }
+        await runPromise(Scope.close(scope, Exit.void));
+      },
+    );
+  };
+
+  function register(f: (test: LayerTestMethods<T, W, R>) => void): void;
+  function register(
+    name: string,
+    f: (test: LayerTestMethods<T, W, R>) => void,
+  ): void;
+  function register(
+    nameOrFunction: string | ((test: LayerTestMethods<T, W, R>) => void),
+    possibleFunction?: (test: LayerTestMethods<T, W, R>) => void,
+  ): void {
+    if (typeof nameOrFunction === "function") {
+      registerHooks();
+      nameOrFunction(makeLayerMethods());
+      return;
+    }
+    if (possibleFunction === undefined) {
+      throw new TypeError("effect-playwright/test: missing layer test body");
+    }
+    testType.describe(nameOrFunction, () => {
+      registerHooks();
+      possibleFunction(makeLayerMethods());
+    });
+  }
+
+  return register;
 };
 
 /**
@@ -355,9 +513,10 @@ export const makeMethods: <
   if (cached !== undefined) {
     return testType as PlaywrightTestMethods<T, W>;
   }
-  if (Object.hasOwn(testType, "effect")) {
+  if (Object.hasOwn(testType, "effect") || Object.hasOwn(testType, "layer")) {
+    const method = Object.hasOwn(testType, "effect") ? "effect" : "layer";
     throw new Error(
-      'effect-playwright/test: the supplied TestType already defines "effect"',
+      `effect-playwright/test: the supplied TestType already defines "${method}"`,
     );
   }
 
@@ -396,16 +555,23 @@ export const makeMethods: <
     // biome-ignore lint/complexity/noBannedTypes: Matches Playwright's empty worker fixture type.
   } as unknown as Fixtures<InternalFixtures, {}, T, W>;
   const effectTestType = testType.extend<InternalFixtures>(internalFixtures);
-  const tester = makeTester<T & W>(
-    effectTestType as TestType<T & W & InternalFixtures, object>,
-  );
+  const typedEffectTestType = effectTestType as TestType<
+    T & W & InternalFixtures,
+    object
+  >;
+  const tester = makeTester<T & W, never>(typedEffectTestType, withoutLayer);
+  const layerMethod: LayerMethod<T, W> = (layer, options) =>
+    makeLayer(testType, typedEffectTestType, layer, options);
   augmentedTesters.set(testType, tester as EffectTester<object>);
-  Object.defineProperty(testType, "effect", { value: tester });
+  Object.defineProperties(testType, {
+    effect: { value: tester },
+    layer: { value: layerMethod },
+  });
   return testType as PlaywrightTestMethods<T, W>;
 };
 
 /**
- * The standard Playwright Test API enhanced with `test.effect`.
+ * The standard Playwright Test API enhanced with Effect test and layer methods.
  *
  * @example
  * ```ts
@@ -426,6 +592,35 @@ export const makeMethods: <
  * @since 0.6.0
  */
 export const test = makeMethods(playwrightTest);
+
+/**
+ * Shares an Effect `Layer` between Playwright tests in the current worker.
+ *
+ * The layer is acquired before the tests in the block and released after all
+ * tests in the block finish. Passing a name wraps the tests in a Playwright
+ * `describe` block. Layers can be nested and reuse their parent services.
+ *
+ * @example
+ * ```ts
+ * import { Context, Effect, Layer } from "effect";
+ * import { expect, layer } from "effect-playwright/test";
+ *
+ * class Greeting extends Context.Tag("Greeting")<Greeting, string>() {}
+ *
+ * layer(Layer.succeed(Greeting, "hello"))("Greeting", (it) => {
+ *   it.effect("provides the layer", () =>
+ *     Effect.gen(function* () {
+ *       expect(yield* Greeting).toBe("hello");
+ *     }),
+ *   );
+ * });
+ * ```
+ *
+ * @see https://playwright.dev/docs/api/class-test#test-before-all
+ * @since 0.6.0
+ */
+export const layer: LayerMethod<PlaywrightTestArgs, PlaywrightWorkerArgs> =
+  test.layer;
 
 /**
  * Standalone alias for `test.effect`.

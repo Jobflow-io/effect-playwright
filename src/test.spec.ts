@@ -1,13 +1,49 @@
 import { test as base } from "@playwright/test";
-import { Data, Effect } from "effect";
+import { Context, Data, Effect, Layer } from "effect";
 import {
   PlaywrightBrowser,
   PlaywrightBrowserContext,
   PlaywrightPage,
 } from "effect-playwright";
-import { expect, makeMethods, test } from "effect-playwright/test";
+import { expect, layer, makeMethods, test } from "effect-playwright/test";
 
 class ExpectedTestError extends Data.TaggedError("ExpectedTestError") {}
+
+class SharedValue extends Context.Tag("SharedValue")<
+  SharedValue,
+  { readonly acquisition: number }
+>() {}
+
+class NestedValue extends Context.Tag("NestedValue")<NestedValue, number>() {}
+
+class AnonymousValue extends Context.Tag("AnonymousValue")<
+  AnonymousValue,
+  string
+>() {}
+
+class CustomLayerValue extends Context.Tag("CustomLayerValue")<
+  CustomLayerValue,
+  string
+>() {}
+
+let sharedLayerAcquisitions = 0;
+let sharedLayerReleases = 0;
+
+const sharedLayer = Layer.scoped(
+  SharedValue,
+  Effect.acquireRelease(
+    Effect.sync(() => ({ acquisition: ++sharedLayerAcquisitions })),
+    () =>
+      Effect.sync(() => {
+        sharedLayerReleases += 1;
+      }),
+  ),
+);
+
+const nestedLayer = Layer.effect(
+  NestedValue,
+  Effect.map(SharedValue, ({ acquisition }) => acquisition + 1),
+);
 
 test("runs an ordinary Promise-style test", async ({ page }) => {
   await page.goto("data:text/html,<title>Promise</title>");
@@ -27,6 +63,45 @@ test.effect("uses the Playwright services", () =>
   }),
 );
 
+layer(sharedLayer)("shared Effect layer", (it) => {
+  it.effect("provides the layer service", () =>
+    Effect.gen(function* () {
+      const value = yield* SharedValue;
+      expect(value.acquisition).toBe(1);
+    }),
+  );
+
+  it.scoped("reuses one layer acquisition", () =>
+    Effect.gen(function* () {
+      const value = yield* SharedValue;
+      expect(value.acquisition).toBe(1);
+      expect(sharedLayerAcquisitions).toBe(1);
+    }),
+  );
+
+  it.layer(nestedLayer)("nested Effect layer", (nestedIt) => {
+    nestedIt.effect("provides parent and nested services", () =>
+      Effect.gen(function* () {
+        expect((yield* SharedValue).acquisition).toBe(1);
+        expect(yield* NestedValue).toBe(2);
+      }),
+    );
+  });
+});
+
+test("releases a shared Effect layer", () => {
+  expect(sharedLayerAcquisitions).toBe(1);
+  expect(sharedLayerReleases).toBe(1);
+});
+
+layer(Layer.succeed(AnonymousValue, "anonymous"))((it) => {
+  it.effect("supports an anonymous layer block", () =>
+    Effect.gen(function* () {
+      expect(yield* AnonymousValue).toBe("anonymous");
+    }),
+  );
+});
+
 const customTest = makeMethods(
   base.extend<{ value: string }>({
     // biome-ignore lint/correctness/noEmptyPattern: Playwright requires fixture object destructuring.
@@ -38,6 +113,18 @@ customTest.effect("uses a custom fixture", ({ value }) =>
   Effect.sync(() => expect(value).toBe("custom fixture")),
 );
 
+customTest.layer(Layer.succeed(CustomLayerValue, "custom layer"))(
+  "custom test layer",
+  (it) => {
+    it.effect("combines custom fixtures and layer services", ({ value }) =>
+      Effect.gen(function* () {
+        expect(value).toBe("custom fixture");
+        expect(yield* CustomLayerValue).toBe("custom layer");
+      }),
+    );
+  },
+);
+
 test.effect("supports test details", { tag: "@effect" }, () => Effect.void);
 
 test("exposes every Effect modifier", async () => {
@@ -46,6 +133,7 @@ test("exposes every Effect modifier", async () => {
   expect(typeof test.effect.fixme).toBe("function");
   expect(typeof test.effect.fail).toBe("function");
   expect(typeof test.effect.fail.only).toBe("function");
+  expect(typeof test.layer).toBe("function");
 });
 
 test.effect.skip("supports skipped Effect tests", () => Effect.void);
