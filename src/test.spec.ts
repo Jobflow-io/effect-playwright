@@ -28,6 +28,8 @@ class CustomLayerValue extends Context.Tag("CustomLayerValue")<
 
 let sharedLayerAcquisitions = 0;
 let sharedLayerReleases = 0;
+let anonymousLayerAcquisitions = 0;
+let anonymousLayerReleases = 0;
 
 const sharedLayer = Layer.scoped(
   SharedValue,
@@ -43,6 +45,20 @@ const sharedLayer = Layer.scoped(
 const nestedLayer = Layer.effect(
   NestedValue,
   Effect.map(SharedValue, ({ acquisition }) => acquisition + 1),
+);
+
+const anonymousLayer = Layer.scoped(
+  AnonymousValue,
+  Effect.acquireRelease(
+    Effect.sync(() => {
+      anonymousLayerAcquisitions += 1;
+      return "anonymous";
+    }),
+    () =>
+      Effect.sync(() => {
+        anonymousLayerReleases += 1;
+      }),
+  ),
 );
 
 test("runs an ordinary Promise-style test", async ({ page }) => {
@@ -79,6 +95,11 @@ layer(sharedLayer)("shared Effect layer", (it) => {
     }),
   );
 
+  it("preserves plain test source locations", ({ page }, testInfo) => {
+    expect(page).toBeDefined();
+    expect(testInfo.file).toMatch(/src[\\/]test\.spec\.ts$/);
+  });
+
   it.layer(nestedLayer)("nested Effect layer", (nestedIt) => {
     nestedIt.effect("provides parent and nested services", () =>
       Effect.gen(function* () {
@@ -94,12 +115,17 @@ test("releases a shared Effect layer", () => {
   expect(sharedLayerReleases).toBe(1);
 });
 
-layer(Layer.succeed(AnonymousValue, "anonymous"))((it) => {
+layer(anonymousLayer)((it) => {
   it.effect("supports an anonymous layer block", () =>
     Effect.gen(function* () {
       expect(yield* AnonymousValue).toBe("anonymous");
     }),
   );
+});
+
+test("releases an anonymous Effect layer", () => {
+  expect(anonymousLayerAcquisitions).toBe(1);
+  expect(anonymousLayerReleases).toBe(1);
 });
 
 const customTest = makeMethods(

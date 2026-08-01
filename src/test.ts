@@ -349,10 +349,6 @@ const makeTester = <Args extends object, R>(
   });
   return tester as EffectTester<Args, R>;
 };
-type TestBody<Args extends object> = (
-  args: Args,
-  testInfo: TestInfo,
-) => Promise<void> | void;
 
 const makeLayer = <T extends object, W extends object, R, E>(
   testType: TestType<T, W>,
@@ -373,26 +369,7 @@ const makeLayer = <T extends object, W extends object, R, E>(
   const tester = makeTester<T & W, R>(effectTestType, transform);
 
   const makeLayerMethods = (): LayerTestMethods<T, W, R> => {
-    function layerTest(title: string, body: TestBody<T & W>): void;
-    function layerTest(
-      title: string,
-      details: TestDetails,
-      body: TestBody<T & W>,
-    ): void;
-    function layerTest(
-      title: string,
-      detailsOrBody: TestDetails | TestBody<T & W>,
-      possibleBody?: TestBody<T & W>,
-    ): void {
-      if (typeof detailsOrBody === "function") {
-        testType(title, detailsOrBody);
-      } else if (possibleBody !== undefined) {
-        testType(title, detailsOrBody, possibleBody);
-      } else {
-        throw new TypeError("effect-playwright/test: missing test body");
-      }
-    }
-
+    const layerTest = testType.bind(undefined);
     Object.assign(layerTest, testType);
     const nestedLayer = <R2, E2>(
       nested: Layer.Layer<R2, E2, R>,
@@ -441,8 +418,10 @@ const makeLayer = <T extends object, W extends object, R, E>(
     possibleFunction?: (test: LayerTestMethods<T, W, R>) => void,
   ): void {
     if (typeof nameOrFunction === "function") {
-      registerHooks();
-      nameOrFunction(makeLayerMethods());
+      testType.describe(() => {
+        registerHooks();
+        nameOrFunction(makeLayerMethods());
+      });
       return;
     }
     if (possibleFunction === undefined) {
