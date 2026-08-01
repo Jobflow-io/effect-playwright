@@ -7,8 +7,7 @@
 
 A Playwright wrapper for the Effect ecosystem. This library provides a set of services and layers to interact with Playwright in a type-safe way using Effect.
 
-> [!NOTE]
-> This library is currently focused on using Playwright for **automation** and **scraping**. It does not provide a wrapper for `@playwright/test` (the test runner).
+[Playwright Test Integration](README.md#playwright-test-integration) is also supported.
 
 ## Installation
 
@@ -190,4 +189,90 @@ pnpm effect-playwright codegen https://example.com
 
 # Open inspector / trace viewer
 pnpm effect-playwright show-trace trace.zip
+```
+
+## Playwright Test integration
+
+Install the optional Playwright Test peer dependency to use Effect programs in the upstream test runner:
+
+```bash
+pnpm add -D @playwright/test effect-playwright
+```
+
+```ts
+import { Effect } from "effect";
+import { PlaywrightPage } from "effect-playwright";
+import { expect, test } from "effect-playwright/test";
+
+test.effect("shows the example.com headline", () =>
+  Effect.gen(function* () {
+    const page = yield* PlaywrightPage;
+    yield* page.goto("https://example.com");
+
+    const headline = page.getByRole("heading", { name: "Example Domain" });
+    expect(yield* headline.innerText()).toBe("Example Domain");
+  }),
+);
+```
+
+### Utilizing Effect finalizers
+
+`test.effect` runs each Effect in a scope, so acquired resources are released when the test finishes, fails, or times out:
+
+```ts
+import { Effect } from "effect";
+import { test } from "effect-playwright/test";
+
+test.effect("cleans up after the test", () =>
+  Effect.acquireRelease(Effect.log("Creating User"), () =>
+    Effect.log("Cleanup: Deleting user"),
+  ),
+);
+```
+
+Effect scope finalizers run during test-scoped fixture teardown. On test timeout, this occurs after user `afterEach`.
+
+### Using Effect layers
+
+Effect layers are the preferred way to provide dependencies to Effect-based
+Playwright tests. Use `layer` to acquire a layer once per Playwright worker and
+share it between the tests in a block. Layer finalizers run after every test in
+the block has finished. Nested layers reuse their parent services.
+
+```ts
+import { Context, Effect, Layer } from "effect";
+import { expect, layer } from "effect-playwright/test";
+
+class Greeting extends Context.Tag("Greeting")<Greeting, string>() {}
+
+layer(Layer.succeed(Greeting, "hello"))("Greeting", (it) => {
+  it.effect("uses a shared service", () =>
+    Effect.gen(function* () {
+      expect(yield* Greeting).toBe("hello");
+    }),
+  );
+});
+```
+
+### Custom Playwright fixtures
+
+Custom Playwright fixtures are supported mainly for compatibility with existing
+Playwright Test suites. Prefer Effect layers.
+When integration with an existing custom `TestType` is required, call
+`makeMethods` after extending or merging it:
+
+```ts
+import { test as base } from "@playwright/test";
+import { Effect } from "effect";
+import { expect, makeMethods } from "effect-playwright/test";
+
+const test = makeMethods(
+  base.extend<{ answer: number }>({
+    answer: async ({}, use) => use(42),
+  }),
+);
+
+test.effect("uses a custom fixture", ({ answer }) =>
+  Effect.sync(() => expect(answer).toBe(42)),
+);
 ```

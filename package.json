@@ -16,6 +16,7 @@
   "exports": {
     ".": "./dist/index.mjs",
     "./experimental": "./dist/experimental/index.mjs",
+    "./test": "./dist/test.mjs",
     "./package.json": "./package.json"
   },
   "bin": {
@@ -29,6 +30,7 @@
     "build": "tsdown",
     "prepublishOnly": "pnpm build",
     "test": "vitest run",
+    "test:playwright": "playwright test src/test.spec.ts --workers=1 --output=tmp/playwright-test-results",
     "type-check": "tsc --noEmit",
     "coverage": "tsx scripts/coverage.ts",
     "generate-docs": "typedoc",
@@ -48,7 +50,13 @@
   },
   "peerDependencies": {
     "@effect/platform": "^0.93.3",
+    "@playwright/test": "^1.60.0",
     "effect": "^3.19.6"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.16",
@@ -57,6 +65,7 @@
     "@effect/platform": "^0.96.1",
     "@effect/platform-node": "^0.107.0",
     "@effect/vitest": "^0.29.0",
+    "@playwright/test": "^1.60.0",
     "@types/node": "^25.9.1",
     "effect": "^3.21.2",
     "playwright": "^1.60.0",
