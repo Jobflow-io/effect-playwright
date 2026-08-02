@@ -129,6 +129,24 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped(
+    "evaluate should expose a function-valued argument in the page context",
+    () =>
+      Effect.gen(function* () {
+        const browser = yield* PlaywrightBrowser;
+        const page = yield* browser.newPage();
+
+        const result = yield* page.evaluate(
+          async (double: (value: number) => Promise<number>) =>
+            await double(21),
+          async (value: number) => value * 2,
+          { exposeFunctions: true },
+        );
+
+        assert.strictEqual(result, 42);
+      }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("click should work with options", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;
@@ -394,9 +412,13 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const browser = yield* PlaywrightBrowser;
       const page = yield* browser.newPage();
 
-      yield* page.addInitScript(() => {
-        (window as TestWindow).magicValue = 42;
-      });
+      yield* page.addInitScript(
+        async (double: (value: number) => Promise<number>) => {
+          (window as TestWindow).magicValue = await double(21);
+        },
+        async (value: number) => value * 2,
+        { exposeFunctions: true },
+      );
 
       yield* page.goto("about:blank");
 
@@ -934,6 +956,43 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const workers = page.workers();
       assert(workers.length >= 1);
       assert.strictEqual(typeof workers[0].url(), "string");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+  it.scoped("web storage should round-trip items on a page origin", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+
+      yield* page.use((playwrightPage) =>
+        playwrightPage.route("http://storage.test/", (route) =>
+          route.fulfill({ body: "<!doctype html><title>Storage</title>" }),
+        ),
+      );
+      yield* page.goto("http://storage.test/");
+
+      for (const storage of [page.localStorage, page.sessionStorage]) {
+        yield* storage.clear;
+
+        yield* storage.setItem("first", "one");
+        yield* storage.setItem("second", "two");
+
+        const first = yield* storage.getItem("first");
+        assert.deepStrictEqual(first, Option.some("one"));
+
+        const items = yield* storage.items;
+        assert.deepStrictEqual(items, [
+          { name: "first", value: "one" },
+          { name: "second", value: "two" },
+        ]);
+
+        yield* storage.removeItem("first");
+        const removed = yield* storage.getItem("first");
+        assert.isTrue(Option.isNone(removed));
+
+        yield* storage.clear;
+        const afterClear = yield* storage.items;
+        assert.deepStrictEqual(afterClear, []);
+      }
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 });

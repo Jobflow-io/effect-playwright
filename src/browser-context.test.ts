@@ -73,9 +73,13 @@ layer(PlaywrightEnvironment.layer(chromium))(
         const browser = yield* PlaywrightBrowser;
         const context = yield* browser.newContext();
 
-        yield* context.addInitScript(() => {
-          (window as TestWindow).magicValue = 84;
-        });
+        yield* context.addInitScript(
+          async (double: (value: number) => Promise<number>) => {
+            (window as TestWindow).magicValue = await double(42);
+          },
+          async (value: number) => value * 2,
+          { exposeFunctions: true },
+        );
 
         const page1 = yield* context.newPage;
         yield* page1.goto("about:blank");
@@ -106,6 +110,30 @@ layer(PlaywrightEnvironment.layer(chromium))(
 
           assert.strictEqual(context.isClosed(), true);
         }).pipe(PlaywrightEnvironment.withBrowser),
+    );
+    it.scoped("credentials should create, get, and delete credentials", () =>
+      Effect.gen(function* () {
+        const browser = yield* PlaywrightBrowser;
+        const context = yield* browser.newContext();
+
+        yield* context.credentials.install;
+
+        const created = yield* context.credentials.create("example.test");
+        assert.strictEqual(created.rpId, "example.test");
+
+        const credentials = yield* context.credentials.get({
+          id: created.id,
+        });
+        assert.strictEqual(credentials.length, 1);
+        assert.deepStrictEqual(credentials[0], created);
+
+        yield* context.credentials.delete(created.id);
+
+        const afterDelete = yield* context.credentials.get({
+          id: created.id,
+        });
+        assert.strictEqual(afterDelete.length, 0);
+      }).pipe(PlaywrightEnvironment.withBrowser),
     );
   },
 );

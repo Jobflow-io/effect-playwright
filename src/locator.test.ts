@@ -69,6 +69,55 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
     }).pipe(PlaywrightEnvironment.withBrowser),
   );
 
+  it.scoped("waitForFunction", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+      yield* page.setContent('<div id="status">Pending</div>');
+
+      const status = page.locator("#status");
+      const result = yield* status.waitForFunction((element, expected) => {
+        if (!element.hasAttribute("data-update-scheduled")) {
+          element.setAttribute("data-update-scheduled", "true");
+          queueMicrotask(() => {
+            element.textContent = expected;
+          });
+          return false;
+        }
+        return element.textContent === expected;
+      }, "Ready");
+
+      assert(result === undefined);
+      assert((yield* status.textContent()) === "Ready");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
+  it.scoped("evaluate options expose function arguments", () =>
+    Effect.gen(function* () {
+      const browser = yield* PlaywrightBrowser;
+      const page = yield* browser.newPage();
+      yield* page.setContent('<div id="message">hello</div>');
+
+      const message = page.locator("#message");
+      const evaluated = yield* message.evaluate(
+        async (element, transform) =>
+          transform(element.textContent ?? "missing"),
+        (value: string) => `evaluated:${value}`,
+        { exposeFunctions: true },
+      );
+      assert(evaluated === "evaluated:hello");
+
+      const handle = yield* message.evaluateHandle(
+        async (element, transform) =>
+          transform(element.textContent ?? "missing"),
+        (value: string) => `handled:${value}`,
+        { exposeFunctions: true },
+      );
+      const handled = yield* Effect.promise(() => handle.jsonValue());
+      assert(handled === "handled:hello");
+    }).pipe(PlaywrightEnvironment.withBrowser),
+  );
+
   it.scoped("kitchensink", () =>
     Effect.gen(function* () {
       const browser = yield* PlaywrightBrowser;

@@ -318,6 +318,42 @@ export interface PlaywrightLocatorService {
     options?: Parameters<Locator["waitFor"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
+   * Returns when the matched element satisfies the provided predicate.
+   *
+   * @example
+   * ```ts
+   * import { chromium } from "@playwright/test";
+   * import { Effect } from "effect";
+   * import { PlaywrightBrowser } from "effect-playwright";
+   * import { PlaywrightEnvironment } from "effect-playwright/experimental";
+   *
+   * const program = Effect.gen(function* () {
+   *   const browser = yield* PlaywrightBrowser;
+   *   const page = yield* browser.newPage();
+   *   yield* page.setContent('<div id="status">Ready</div>');
+   *   yield* page.locator("#status").waitForFunction(
+   *     (element, expected) => element.textContent === expected,
+   *     "Ready",
+   *   );
+   * }).pipe(
+   *   PlaywrightEnvironment.provideBrowser,
+   *   Effect.provide(PlaywrightEnvironment.layer(chromium)),
+   * );
+   * ```
+   *
+   * @see {@link Locator.waitForFunction}
+   * @since 0.5.1
+   */
+  readonly waitForFunction: <
+    R,
+    Arg = void,
+    E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+  >(
+    pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
+    arg?: Arg,
+    options?: Parameters<Locator["waitForFunction"]>[2],
+  ) => Effect.Effect<void, PlaywrightError>;
+  /**
    * Evaluates a function on the matched element.
    *
    * @example
@@ -345,7 +381,7 @@ export interface PlaywrightLocatorService {
   >(
     pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
     arg?: Arg,
-    options?: { timeout?: number },
+    options?: Parameters<Locator["evaluate"]>[2],
   ) => Effect.Effect<R, PlaywrightError>;
   /**
    * Highlights the corresponding element(s) on the screen.
@@ -426,6 +462,7 @@ export interface PlaywrightLocatorService {
   >(
     pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
     arg?: Arg,
+    options?: Parameters<Locator["evaluateHandle"]>[2],
   ) => Effect.Effect<JSHandle<R>, PlaywrightError>;
   /**
    * Resolves given locator to the first matching DOM element.
@@ -771,6 +808,24 @@ export class PlaywrightLocator extends Context.Tag(
       isHidden: (options) => use((l) => l.isHidden(options)),
       isVisible: (options) => use((l) => l.isVisible(options)),
       waitFor: (options) => use((l) => l.waitFor(options)),
+      waitForFunction: <
+        R,
+        Arg = void,
+        E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+      >(
+        pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
+        arg?: Arg,
+        options?: Parameters<Locator["waitForFunction"]>[2],
+      ) =>
+        use((l) =>
+          l.waitForFunction<Arg, E>(
+            pageFunction as unknown as Parameters<
+              typeof l.waitForFunction<Arg, E>
+            >[0],
+            arg as Arg,
+            options,
+          ),
+        ),
       evaluate: <
         R,
         Arg = void,
@@ -778,8 +833,17 @@ export class PlaywrightLocator extends Context.Tag(
       >(
         pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
         arg?: Arg,
-        options?: { timeout?: number },
-      ) => use((l) => l.evaluate(pageFunction, arg as Arg, options)),
+        options?: Parameters<Locator["evaluate"]>[2],
+      ) =>
+        use((l) =>
+          l.evaluate<R, Arg, E>(
+            pageFunction as unknown as Parameters<
+              typeof l.evaluate<R, Arg, E>
+            >[0],
+            arg as Arg,
+            options,
+          ),
+        ),
       evaluateAll: <
         R,
         Arg = void,
@@ -787,7 +851,15 @@ export class PlaywrightLocator extends Context.Tag(
       >(
         pageFunction: (elements: E[], arg: Unboxed<Arg>) => R | Promise<R>,
         arg?: Arg,
-      ) => use((l) => l.evaluateAll(pageFunction, arg as Arg)),
+      ) =>
+        use((l) =>
+          l.evaluateAll<R, Arg, E>(
+            pageFunction as unknown as Parameters<
+              typeof l.evaluateAll<R, Arg, E>
+            >[0],
+            arg as Arg,
+          ),
+        ),
       evaluateHandle: <
         R,
         Arg = void,
@@ -795,7 +867,17 @@ export class PlaywrightLocator extends Context.Tag(
       >(
         pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
         arg?: Arg,
-      ) => use((l) => l.evaluateHandle(pageFunction, arg as Arg)),
+        options?: Parameters<Locator["evaluateHandle"]>[2],
+      ) =>
+        use((l) =>
+          l.evaluateHandle<R, Arg, E>(
+            pageFunction as unknown as Parameters<
+              typeof l.evaluateHandle<R, Arg, E>
+            >[0],
+            arg as Arg,
+            options,
+          ),
+        ),
       elementHandle: (options) =>
         use((l) => l.elementHandle(options)).pipe(
           Effect.map(Option.fromNullable),

@@ -21,6 +21,7 @@ export {
 } from "./browser-context";
 export * from "./clock";
 export * from "./common";
+export * from "./credentials";
 export type { PlaywrightErrorReason } from "./errors";
 export { PlaywrightError } from "./errors";
 export * from "./frame";
@@ -30,3 +31,4 @@ export * from "./mouse";
 export * from "./page";
 export * from "./playwright";
 export * from "./touchscreen";
+export * from "./web-storage";

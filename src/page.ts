@@ -48,6 +48,10 @@ import {
   type PlaywrightTouchscreenService,
 } from "./touchscreen";
 import { useHelper } from "./utils";
+import {
+  PlaywrightWebStorage,
+  type PlaywrightWebStorageService,
+} from "./web-storage";
 
 interface PageEvents {
   close: Page;
@@ -108,6 +112,13 @@ export interface PlaywrightPageService {
    */
   readonly clock: PlaywrightClockService;
   /**
+   * Access local storage for the page's current origin.
+   *
+   * @see {@link Page.localStorage}
+   * @since 0.5.1
+   */
+  readonly localStorage: PlaywrightWebStorageService;
+  /**
    * Access the keyboard.
    *
    * @since 0.3.0
@@ -131,6 +142,13 @@ export interface PlaywrightPageService {
    * @since 0.5.0
    */
   readonly screencast: PlaywrightScreencastService;
+  /**
+   * Access session storage for the page's current origin.
+   *
+   * @see {@link Page.sessionStorage}
+   * @since 0.5.1
+   */
+  readonly sessionStorage: PlaywrightWebStorageService;
   /**
    * Navigates the page to the given URL.
    *
@@ -264,6 +282,7 @@ export interface PlaywrightPageService {
   readonly evaluate: <R, Arg = void>(
     pageFunction: PageFunction<Arg, R>,
     arg?: Arg,
+    options?: Parameters<Page["evaluate"]>[2],
   ) => Effect.Effect<R, PlaywrightError>;
   /**
    * Adds a script which would be evaluated in one of the following scenarios:
@@ -273,9 +292,10 @@ export interface PlaywrightPageService {
    * @see {@link Page.addInitScript}
    * @since 0.3.0
    */
-  readonly addInitScript: (
-    script: Parameters<Page["addInitScript"]>[0],
-    arg?: Parameters<Page["addInitScript"]>[1],
+  readonly addInitScript: <Arg>(
+    script: PageFunction<Arg, unknown> | { path?: string; content?: string },
+    arg?: Arg,
+    options?: Parameters<Page["addInitScript"]>[2],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Adds a `<script>` tag into the page with the desired url or content.
@@ -875,10 +895,12 @@ export class PlaywrightPage extends Context.Tag(
 
     return PlaywrightPage.of({
       clock: PlaywrightClock.make(page.clock),
+      localStorage: PlaywrightWebStorage.make(page.localStorage),
       keyboard: PlaywrightKeyboard.make(page.keyboard),
       mouse: PlaywrightMouse.make(page.mouse),
       touchscreen: PlaywrightTouchscreen.make(page.touchscreen),
       screencast: PlaywrightScreencast.make(page.screencast),
+      sessionStorage: PlaywrightWebStorage.make(page.sessionStorage),
       goto: (url, options) => use((p) => p.goto(url, options)),
       setContent: (html, options) => use((p) => p.setContent(html, options)),
       waitForTimeout: (timeout) => use((p) => p.waitForTimeout(timeout)),
@@ -895,9 +917,32 @@ export class PlaywrightPage extends Context.Tag(
         use((p) => p.waitForLoadState(state, options)),
       title: use((p) => p.title()),
       content: use((p) => p.content()),
-      evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
-        use((p) => p.evaluate<R, Arg>(f, arg as Arg)),
-      addInitScript: (script, arg) => use((p) => p.addInitScript(script, arg)),
+      evaluate: <R, Arg>(
+        f: PageFunction<Arg, R>,
+        arg?: Arg,
+        options?: Parameters<Page["evaluate"]>[2],
+      ) =>
+        use((p) =>
+          p.evaluate<R, Arg>(
+            f as unknown as Parameters<typeof p.evaluate<R, Arg>>[0],
+            arg as Arg,
+            options,
+          ),
+        ),
+      addInitScript: <Arg>(
+        script:
+          | PageFunction<Arg, unknown>
+          | { path?: string; content?: string },
+        arg?: Arg,
+        options?: Parameters<Page["addInitScript"]>[2],
+      ) =>
+        use((p) =>
+          p.addInitScript<Arg>(
+            script as unknown as Parameters<typeof p.addInitScript<Arg>>[0],
+            arg,
+            options,
+          ),
+        ).pipe(Effect.asVoid),
       addScriptTag: (options) => use((p) => p.addScriptTag(options)),
       addStyleTag: (options) => use((p) => p.addStyleTag(options)),
       exposeFunction: <A, E, R, Args extends unknown[]>(
