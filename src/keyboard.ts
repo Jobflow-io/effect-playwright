@@ -1,5 +1,5 @@
 import { Context, type Effect } from "effect";
-import type { Keyboard } from "playwright-core";
+import type { Keyboard as CoreKeyboard } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { useHelper } from "./utils";
 
@@ -7,72 +7,72 @@ import { useHelper } from "./utils";
  * @category model
  * @since 0.1.0
  */
-export interface PlaywrightKeyboardService {
+export interface KeyboardService {
   /**
    * Dispatches a `keydown` event.
    *
-   * @see {@link Keyboard.down}
+   * @see {@link CoreKeyboard.down}
    * @since 0.1.0
    */
   readonly down: (
-    key: Parameters<Keyboard["down"]>[0],
+    key: Parameters<CoreKeyboard["down"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Dispatches only `input` event, does not emit the `keydown`, `keyup` or `keypress` events.
    *
-   * @see {@link Keyboard.insertText}
+   * @see {@link CoreKeyboard.insertText}
    * @since 0.1.0
    */
   readonly insertText: (
-    text: Parameters<Keyboard["insertText"]>[0],
+    text: Parameters<CoreKeyboard["insertText"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Dispatches a `keydown` and `keyup` event.
    *
-   * @see {@link Keyboard.press}
+   * @see {@link CoreKeyboard.press}
    * @since 0.1.0
    */
   readonly press: (
-    key: Parameters<Keyboard["press"]>[0],
-    options?: Parameters<Keyboard["press"]>[1],
+    key: Parameters<CoreKeyboard["press"]>[0],
+    options?: Parameters<CoreKeyboard["press"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Sends a `keydown`, `keypress`/`input`, and `keyup` event for each character in the text.
    *
-   * @see {@link Keyboard.type}
+   * @see {@link CoreKeyboard.type}
    * @since 0.1.0
    */
   readonly type: (
-    text: Parameters<Keyboard["type"]>[0],
-    options?: Parameters<Keyboard["type"]>[1],
+    text: Parameters<CoreKeyboard["type"]>[0],
+    options?: Parameters<CoreKeyboard["type"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Dispatches a `keyup` event.
    *
-   * @see {@link Keyboard.up}
+   * @see {@link CoreKeyboard.up}
    * @since 0.1.0
    */
   readonly up: (
-    key: Parameters<Keyboard["up"]>[0],
+    key: Parameters<CoreKeyboard["up"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
 }
 
 /**
  * @category tag
  */
-export class PlaywrightKeyboard extends Context.Tag(
-  "effect-playwright/PlaywrightKeyboard",
-)<PlaywrightKeyboard, PlaywrightKeyboardService>() {
+export class Keyboard extends Context.Tag(
+  "effect-playwright/keyboard/Keyboard",
+)<Keyboard, KeyboardService>() {
   /**
-   * Creates a `PlaywrightKeyboard` from a Playwright `Keyboard` instance.
+   * Creates a `Keyboard` from a Playwright `Keyboard` instance.
    *
    * @param keyboard - The Playwright `Keyboard` instance to wrap.
    * @since 0.1.0
    */
-  static make(keyboard: Keyboard): PlaywrightKeyboardService {
+  static make(keyboard: CoreKeyboard): KeyboardService {
     const use = useHelper(keyboard);
 
-    return PlaywrightKeyboard.of({
+    return Keyboard.of({
       down: (key) => use((k) => k.down(key)),
       insertText: (text) => use((k) => k.insertText(text)),
       press: (key, options) => use((k) => k.press(key, options)),

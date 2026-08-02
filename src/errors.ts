@@ -20,7 +20,9 @@ export type PlaywrightErrorReason = "Timeout" | "Unknown";
  * @category error
  * @since 0.1.0
  */
-export class PlaywrightError extends Data.TaggedError("PlaywrightError")<{
+export class PlaywrightError extends Data.TaggedError(
+  "effect-playwright/errors/PlaywrightError",
+)<{
   reason: PlaywrightErrorReason;
   cause: unknown;
 }> {}

@@ -1,18 +1,18 @@
 import { Array, Effect, pipe, Stream } from "effect";
-import type { PlaywrightBrowserService } from "../browser";
+import type { BrowserService } from "../browser";
 
 /**
  * Returns all pages in the browser from all contexts.
  * @category util
  */
-export const allPages = (browser: PlaywrightBrowserService) =>
+export const allPages = (browser: BrowserService) =>
   Array.flatten(browser.contexts().map((context) => context.pages()));
 
 /**
  * Returns all frames in the browser from all pages in all contexts.
  * @category util
  */
-export const allFrames = (browser: PlaywrightBrowserService) =>
+export const allFrames = (browser: BrowserService) =>
   Effect.all(allPages(browser).map((page) => page.frames)).pipe(
     Effect.map(Array.flatten),
   );
@@ -22,9 +22,7 @@ export const allFrames = (browser: PlaywrightBrowserService) =>
  * In all current contexts (but not future contexts).
  * @category util
  */
-export const allFrameNavigatedEventStream = (
-  browser: PlaywrightBrowserService,
-) =>
+export const allFrameNavigatedEventStream = (browser: BrowserService) =>
   Effect.gen(function* () {
     const contexts = browser.contexts();
     const pages = Array.flatten(contexts.map((c) => c.pages()));

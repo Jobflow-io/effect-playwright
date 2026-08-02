@@ -5,27 +5,27 @@ import { Console, Effect } from "effect";
 import { type JSDocableNode, Project } from "ts-morph";
 
 const MAPPINGS = [
-  { pw: "Browser", ep: "PlaywrightBrowserService", type: "interface" as const },
+  { pw: "Browser", ep: "BrowserService", type: "interface" as const },
   {
     pw: "BrowserContext",
-    ep: "PlaywrightBrowserContextService",
+    ep: "BrowserContextService",
     type: "interface" as const,
   },
-  { pw: "Page", ep: "PlaywrightPageService", type: "interface" as const },
-  { pw: "Frame", ep: "PlaywrightFrameService", type: "interface" as const },
+  { pw: "Page", ep: "PageService", type: "interface" as const },
+  { pw: "Frame", ep: "FrameService", type: "interface" as const },
   {
     pw: "FrameLocator",
-    ep: "PlaywrightFrameLocatorService",
+    ep: "FrameLocatorService",
     type: "interface" as const,
   },
-  { pw: "Locator", ep: "PlaywrightLocatorService", type: "interface" as const },
-  { pw: "Request", ep: "PlaywrightRequest", type: "class" as const },
-  { pw: "Response", ep: "PlaywrightResponse", type: "class" as const },
-  { pw: "Worker", ep: "PlaywrightWorker", type: "class" as const },
-  { pw: "Dialog", ep: "PlaywrightDialog", type: "class" as const },
-  { pw: "FileChooser", ep: "PlaywrightFileChooser", type: "class" as const },
-  { pw: "Download", ep: "PlaywrightDownload", type: "class" as const },
-  { pw: "Clock", ep: "PlaywrightClockService", type: "interface" as const },
+  { pw: "Locator", ep: "LocatorService", type: "interface" as const },
+  { pw: "Request", ep: "Request", type: "class" as const },
+  { pw: "Response", ep: "Response", type: "class" as const },
+  { pw: "Worker", ep: "Worker", type: "class" as const },
+  { pw: "Dialog", ep: "Dialog", type: "class" as const },
+  { pw: "FileChooser", ep: "FileChooser", type: "class" as const },
+  { pw: "Download", ep: "Download", type: "class" as const },
+  { pw: "Clock", ep: "ClockService", type: "interface" as const },
 ];
 
 const EXCLUDED_METHODS = new Set([

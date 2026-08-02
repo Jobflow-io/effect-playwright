@@ -1,46 +1,42 @@
 import { Context, Effect, Layer } from "effect";
 import type { Scope } from "effect/Scope";
-import { Playwright, PlaywrightBrowser } from "effect-playwright";
+import { Browser, Playwright } from "effect-playwright";
 import type { BrowserType, LaunchOptions } from "playwright-core";
 import type { PlaywrightError } from "../errors";
 
 /**
  * Most of the time you want to use the same kind of browser and configuration every time you use Playwright.
- * `PlaywrightEnvironment` is a service that allows you to configure how browsers are launched once. You can then
- * use `PlaywrightEnvironment.browser` to start browsers scoped to the current lifetime. They will be closed when the scope is closed.
+ * `Environment` is a service that allows you to configure how browsers are launched once. You can then
+ * use `Environment.browser` to start browsers scoped to the current lifetime. They will be closed when the scope is closed.
  *
- * This service will not start a browser on its own. You can use {@link withBrowser} to provide the `PlaywrightBrowser` service to the wrapped effect.
+ * This service will not start a browser on its own. You can use {@link withBrowser} to provide the `Browser` service to the wrapped effect.
  *
  * @since 0.1.0
  * @category tag
  */
-export class PlaywrightEnvironment extends Context.Tag(
-  "effect-playwright/experimental/PlaywrightEnvironment",
+export class Environment extends Context.Tag(
+  "effect-playwright/experimental/environment/Environment",
 )<
-  PlaywrightEnvironment,
+  Environment,
   {
-    browser: Effect.Effect<
-      typeof PlaywrightBrowser.Service,
-      PlaywrightError,
-      Scope
-    >;
+    browser: Effect.Effect<typeof Browser.Service, PlaywrightError, Scope>;
   }
 >() {}
 
 /**
- * Creates a Layer that initializes the `PlaywrightEnvironment`.
+ * Creates a Layer that initializes the `Environment`.
  *
  * @example
  *
  * ```ts
  * import { chromium } from "effect-playwright";
- * import { PlaywrightEnvironment } from "effect-playwright/experimental";
+ * import { Environment } from "effect-playwright/experimental";
  *
- * const playwrightEnv = PlaywrightEnvironment.layer(chromium);
+ * const playwrightEnv = Environment.layer(chromium);
  *
  * // use the layer
  * const program = Effect.gen(function* () {
- *   const playwright = yield* PlaywrightEnvironment;
+ *   const playwright = yield* Environment;
  *   const browser = yield* playwright.browser;
  *   const page = yield* browser.newPage();
  *   yield* page.goto("https://example.com");
@@ -56,23 +52,23 @@ export class PlaywrightEnvironment extends Context.Tag(
 export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) =>
   Playwright.pipe(
     Effect.map((playwright) =>
-      PlaywrightEnvironment.of({
+      Environment.of({
         browser: playwright.launchScoped(browser, launchOptions),
       }),
     ),
-    Layer.effect(PlaywrightEnvironment),
+    Layer.effect(Environment),
     Layer.provide(Playwright.layer),
   );
 
 const withBrowserUnscoped = Effect.provideServiceEffect(
-  PlaywrightBrowser,
-  PlaywrightEnvironment.pipe(Effect.flatMap((e) => e.browser)),
+  Browser,
+  Environment.pipe(Effect.flatMap((e) => e.browser)),
 );
 
 /**
- * Provides a scoped `PlaywrightBrowser` service, allowing you to access the browser from the context (e.g. by yielding `PlaywrightBrowser`).
+ * Provides a scoped `Browser` service, allowing you to access the browser from the context (e.g. by yielding `Browser`).
  *
- * You will need to provide the `PlaywrightEnvironment` layer first.
+ * You will need to provide the `Environment` layer first.
  *
  * This will start a browser and close it when the scope is closed.
  *
@@ -80,15 +76,15 @@ const withBrowserUnscoped = Effect.provideServiceEffect(
  *
  * ```ts
  * import { chromium } from "effect-playwright";
- * import { PlaywrightEnvironment } from "effect-playwright/experimental";
+ * import { Environment } from "effect-playwright/experimental";
  *
- * const env = PlaywrightEnvironment.layer(chromium);
+ * const env = Environment.layer(chromium);
  *
  * const program = Effect.gen(function* () {
- *     const browser = yield* PlaywrightBrowser;
+ *     const browser = yield* Browser;
  *     const page = yield* browser.newPage();
  *     yield* page.goto("https://example.com");
- * }).pipe(PlaywrightEnvironment.withBrowser, Effect.provide(env));
+ * }).pipe(Environment.withBrowser, Effect.provide(env));
  * ```
  *
  * @since 0.1.0

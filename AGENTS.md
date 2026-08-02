@@ -20,7 +20,7 @@ Use `pnpm` for all package management tasks.
 ### General Architecture
 
 - **Effect-First:** All asynchronous operations must be wrapped in `Effect`.
-- **Services:** Functionality is exposed via Services and Context Tags (e.g., `PlaywrightPage`, `PlaywrightPageService`).
+- **Services:** Functionality is exposed via Services and Context Tags (e.g., `Page`, `PageService`).
 - **Resource Management:** Rely on Effect's `Scope` for automatic resource cleanup (browsers, contexts).
 
 ### Imports
@@ -50,18 +50,18 @@ Use `pnpm` for all package management tasks.
   ```typescript
   import { assert, layer } from "@effect/vitest";
   import { Effect } from "effect";
-  import { PlaywrightBrowser, chromium } from "effect-playwright";
-  import { PlaywrightEnvironment } from "effect-playwright/experimental";
+  import { Browser, chromium } from "effect-playwright";
+  import { Environment } from "effect-playwright/experimental";
 
-  // Use the PlaywrightEnvironment layer
-  layer(PlaywrightEnvironment.layer(chromium))("Suite Name", (it) => {
+  // Use the Environment layer
+  layer(Environment.layer(chromium))("Suite Name", (it) => {
     it.scoped("should do something", () =>
       Effect.gen(function* () {
-        const browser = yield* PlaywrightBrowser;
+        const browser = yield* Browser;
         const page = yield* browser.newPage();
         // ... test logic
         assert.strictEqual(1, 1);
-      }).pipe(PlaywrightEnvironment.withBrowser),
+      }).pipe(Environment.withBrowser),
     );
   });
   ```

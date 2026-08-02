@@ -1,5 +1,5 @@
 import { Context, type Effect } from "effect";
-import type { Screencast } from "playwright-core";
+import type { Screencast as CoreScreencast } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { useHelper } from "./utils";
 
@@ -7,21 +7,21 @@ import { useHelper } from "./utils";
  * @category model
  * @since 0.5.0
  */
-export interface PlaywrightScreencastService {
+export interface ScreencastService {
   /**
    * Starts recording the screencast.
    *
-   * @see {@link Screencast.start}
+   * @see {@link CoreScreencast.start}
    * @since 0.5.0
    */
   readonly start: (
-    options?: Parameters<Screencast["start"]>[0],
+    options?: Parameters<CoreScreencast["start"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Stops recording the screencast.
    *
-   * @see {@link Screencast.stop}
+   * @see {@link CoreScreencast.stop}
    * @since 0.5.0
    */
   readonly stop: Effect.Effect<void, PlaywrightError>;
@@ -29,17 +29,17 @@ export interface PlaywrightScreencastService {
   /**
    * Shows action annotations.
    *
-   * @see {@link Screencast.showActions}
+   * @see {@link CoreScreencast.showActions}
    * @since 0.5.0
    */
   readonly showActions: (
-    options?: Parameters<Screencast["showActions"]>[0],
+    options?: Parameters<CoreScreencast["showActions"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Hides action annotations.
    *
-   * @see {@link Screencast.hideActions}
+   * @see {@link CoreScreencast.hideActions}
    * @since 0.5.0
    */
   readonly hideActions: Effect.Effect<void, PlaywrightError>;
@@ -47,29 +47,29 @@ export interface PlaywrightScreencastService {
   /**
    * Shows a chapter title.
    *
-   * @see {@link Screencast.showChapter}
+   * @see {@link CoreScreencast.showChapter}
    * @since 0.5.0
    */
   readonly showChapter: (
     title: string,
-    options?: Parameters<Screencast["showChapter"]>[1],
+    options?: Parameters<CoreScreencast["showChapter"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Shows a custom HTML overlay.
    *
-   * @see {@link Screencast.showOverlay}
+   * @see {@link CoreScreencast.showOverlay}
    * @since 0.5.0
    */
   readonly showOverlay: (
     html: string,
-    options?: Parameters<Screencast["showOverlay"]>[1],
+    options?: Parameters<CoreScreencast["showOverlay"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Shows all overlays.
    *
-   * @see {@link Screencast.showOverlays}
+   * @see {@link CoreScreencast.showOverlays}
    * @since 0.5.0
    */
   readonly showOverlays: Effect.Effect<void, PlaywrightError>;
@@ -77,7 +77,7 @@ export interface PlaywrightScreencastService {
   /**
    * Hides all overlays.
    *
-   * @see {@link Screencast.hideOverlays}
+   * @see {@link CoreScreencast.hideOverlays}
    * @since 0.5.0
    */
   readonly hideOverlays: Effect.Effect<void, PlaywrightError>;
@@ -86,15 +86,15 @@ export interface PlaywrightScreencastService {
 /**
  * @category tag
  */
-export class PlaywrightScreencast extends Context.Tag(
-  "effect-playwright/PlaywrightScreencast",
-)<PlaywrightScreencast, PlaywrightScreencastService>() {
+export class Screencast extends Context.Tag(
+  "effect-playwright/screencast/Screencast",
+)<Screencast, ScreencastService>() {
   /**
    * @category constructor
    */
-  static make(screencast: Screencast): PlaywrightScreencastService {
+  static make(screencast: CoreScreencast): ScreencastService {
     const use = useHelper(screencast);
-    return PlaywrightScreencast.of({
+    return Screencast.of({
       start: (options) => use((s) => s.start(options).then(() => {})),
       stop: use((s) => s.stop()),
       showActions: (options) =>

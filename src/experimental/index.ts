@@ -6,4 +6,4 @@
  */
 
 export * as BrowserUtils from "./browser-utils";
-export * as PlaywrightEnvironment from "./environment";
+export * as Environment from "./environment";

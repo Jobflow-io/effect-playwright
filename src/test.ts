@@ -30,9 +30,9 @@ import {
   Logger,
   Scope,
 } from "effect";
-import { PlaywrightBrowser } from "./browser";
-import { PlaywrightBrowserContext } from "./browser-context";
-import { PlaywrightPage } from "./page";
+import { Browser } from "./browser";
+import { BrowserContext } from "./browser-context";
+import { Page } from "./page";
 
 export * from "@playwright/test";
 
@@ -42,12 +42,12 @@ export * from "@playwright/test";
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Page } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
@@ -57,11 +57,7 @@ export * from "@playwright/test";
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
-export type PlaywrightTestEnvironment =
-  | PlaywrightBrowser
-  | PlaywrightBrowserContext
-  | PlaywrightPage
-  | Scope.Scope;
+export type TestEnvironment = Browser | BrowserContext | Page | Scope.Scope;
 
 /**
  * An Effect-returning Playwright Test callback.
@@ -69,12 +65,12 @@ export type PlaywrightTestEnvironment =
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Page } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
@@ -87,7 +83,7 @@ export type PlaywrightTestEnvironment =
 export type EffectTestFunction<Args extends object, A, E, R = never> = (
   args: Args,
   testInfo: TestInfo,
-) => Effect.Effect<A, E, PlaywrightTestEnvironment | R>;
+) => Effect.Effect<A, E, TestEnvironment | R>;
 
 /**
  * Registers Effect-based Playwright tests.
@@ -95,12 +91,12 @@ export type EffectTestFunction<Args extends object, A, E, R = never> = (
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Page } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
@@ -125,12 +121,12 @@ export interface EffectTest<Args extends object, R = never> {
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Page } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
@@ -185,12 +181,12 @@ type LayerMethod<T extends object, W extends object> = <R, E>(
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Page } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
@@ -200,19 +196,14 @@ type LayerMethod<T extends object, W extends object> = <R, E>(
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
-export type PlaywrightTestMethods<
-  T extends object,
-  W extends object,
-> = TestType<T, W> & {
+export type TestMethods<T extends object, W extends object> = TestType<T, W> & {
   readonly effect: EffectTester<T & W>;
   readonly layer: LayerMethod<T, W>;
 };
 
 interface EffectRunner {
   readonly abortController: AbortController;
-  readonly context: Context.Context<
-    Exclude<PlaywrightTestEnvironment, Scope.Scope>
-  >;
+  readonly context: Context.Context<Exclude<TestEnvironment, Scope.Scope>>;
   readonly running: Set<Promise<unknown>>;
   closed: boolean;
 }
@@ -246,8 +237,8 @@ const runPromise = <A, E>(
   );
 
 type EffectTransform<R> = <A, E>(
-  effect: Effect.Effect<A, E, PlaywrightTestEnvironment | R>,
-) => Effect.Effect<A, E, PlaywrightTestEnvironment>;
+  effect: Effect.Effect<A, E, TestEnvironment | R>,
+) => Effect.Effect<A, E, TestEnvironment>;
 
 const withoutLayer: EffectTransform<never> = (effect) => effect;
 
@@ -445,12 +436,12 @@ const makeLayer = <T extends object, W extends object, R, E>(
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Page } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
@@ -482,15 +473,15 @@ export const makeMethods: <
   W extends Pick<PlaywrightWorkerArgs, "browser">,
 >(
   testType: TestType<T, W>,
-) => PlaywrightTestMethods<T, W> = <
+) => TestMethods<T, W> = <
   T extends Pick<PlaywrightTestArgs, "context" | "page">,
   W extends Pick<PlaywrightWorkerArgs, "browser">,
 >(
   testType: TestType<T, W>,
-): PlaywrightTestMethods<T, W> => {
+): TestMethods<T, W> => {
   const cached = augmentedTesters.get(testType);
   if (cached !== undefined) {
-    return testType as PlaywrightTestMethods<T, W>;
+    return testType as TestMethods<T, W>;
   }
   if (Object.hasOwn(testType, "effect") || Object.hasOwn(testType, "layer")) {
     const method = Object.hasOwn(testType, "effect") ? "effect" : "layer";
@@ -510,12 +501,9 @@ export const makeMethods: <
           abortController: new AbortController(),
           closed: false,
           context: Context.mergeAll(
-            Context.make(PlaywrightBrowser, PlaywrightBrowser.make(browser)),
-            Context.make(
-              PlaywrightBrowserContext,
-              PlaywrightBrowserContext.make(context),
-            ),
-            Context.make(PlaywrightPage, PlaywrightPage.make(page)),
+            Context.make(Browser, Browser.make(browser)),
+            Context.make(BrowserContext, BrowserContext.make(context)),
+            Context.make(Page, Page.make(page)),
           ),
           running: new Set(),
         };
@@ -546,7 +534,7 @@ export const makeMethods: <
     effect: { value: tester },
     layer: { value: layerMethod },
   });
-  return testType as PlaywrightTestMethods<T, W>;
+  return testType as TestMethods<T, W>;
 };
 
 /**
@@ -555,12 +543,12 @@ export const makeMethods: <
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Page } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
@@ -607,12 +595,12 @@ export const layer: LayerMethod<PlaywrightTestArgs, PlaywrightWorkerArgs> =
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Page } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
