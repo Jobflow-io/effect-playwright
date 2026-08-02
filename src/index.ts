@@ -15,10 +15,7 @@
 
 export { chromium, firefox, webkit } from "playwright-core";
 export * from "./browser";
-export {
-  PlaywrightBrowserContext,
-  type PlaywrightBrowserContextService,
-} from "./browser-context";
+export { BrowserContext, type BrowserContextService } from "./browser-context";
 export * from "./clock";
 export * from "./common";
 export * from "./credentials";

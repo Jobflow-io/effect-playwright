@@ -2,7 +2,7 @@ import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
 import { Playwright } from "effect-playwright";
 import { chromium } from "playwright-core";
-import type { PlaywrightBrowserContext } from "./browser-context";
+import type { BrowserContext } from "./browser-context";
 
 layer(Playwright.layer)("Playwright", (it) => {
   it.scoped("should launch a browser", () =>
@@ -56,7 +56,7 @@ layer(Playwright.layer)("Playwright", (it) => {
   it.scoped("should launch a persistent context and close with scope", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
-      let capturedContext: typeof PlaywrightBrowserContext.Service | undefined;
+      let capturedContext: typeof BrowserContext.Service | undefined;
 
       yield* Effect.gen(function* () {
         const context = yield* playwright.launchPersistentContextScoped(
@@ -73,7 +73,7 @@ layer(Playwright.layer)("Playwright", (it) => {
       assert(capturedContext !== undefined, "Expected captured context");
       const error = yield* capturedContext.newPage.pipe(Effect.flip);
       assert(
-        error._tag === "PlaywrightError",
+        error._tag === "effect-playwright/errors/PlaywrightError",
         "Expected failure after scoped close",
       );
     }),
@@ -88,7 +88,7 @@ layer(Playwright.layer)("Playwright", (it) => {
         })
         .pipe(Effect.flip);
       assert(
-        result._tag === "PlaywrightError",
+        result._tag === "effect-playwright/errors/PlaywrightError",
         "Expected failure with invalid path",
       );
     }),
@@ -104,7 +104,7 @@ layer(Playwright.layer)("Playwright", (it) => {
         })
         .pipe(Effect.flip);
       assert(
-        result._tag === "PlaywrightError",
+        result._tag === "effect-playwright/errors/PlaywrightError",
         "Expected failure with timeout 0",
       );
       assert(result.reason === "Timeout", "Expected reason to be timeout");

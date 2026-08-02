@@ -69,7 +69,7 @@ pnpm exec playwright install
 ## Common Gotchas
 
 - **Browser Binary Mismatch:** If tests fail with "Executable doesn't exist", you likely updated `playwright-core` but not `playwright`, or forgot to run `pnpm exec playwright install`.
-- **New Namespaces:** Large additions like `Page.screencast` should be their own Service and Tag, following the pattern of `PlaywrightClock` or `PlaywrightKeyboard`.
+- **New Namespaces:** Large additions like `Page.screencast` should be their own Service and Tag, following the pattern of `Clock` or `Keyboard`.
 
 ## Example: Analyzing 1.60.0
 

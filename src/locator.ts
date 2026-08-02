@@ -1,11 +1,12 @@
 import { Array, Context, Effect, Match, Option, Predicate } from "effect";
-import type { ElementHandle, JSHandle, Locator } from "playwright-core";
+import type {
+  Locator as CoreLocator,
+  ElementHandle,
+  JSHandle,
+} from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import {
-  PlaywrightFrameLocator,
-  type PlaywrightFrameLocatorService,
-} from "./frame-locator";
-import { PlaywrightPage } from "./page";
+import { FrameLocator, type FrameLocatorService } from "./frame-locator";
+import { Page } from "./page";
 import type { Unboxed } from "./playwright-types";
 import { useHelper } from "./utils";
 
@@ -13,90 +14,90 @@ import { useHelper } from "./utils";
  * Interface for a Playwright locator.
  * @category model
  */
-export interface PlaywrightLocatorService {
+export interface LocatorService {
   /**
    * The underlying Playwright Locator instance.
    * @internal
    */
-  readonly _raw: Locator;
+  readonly _raw: CoreLocator;
   /**
    * Clicks the element.
    *
-   * @see {@link Locator.click}
+   * @see {@link CoreLocator.click}
    * @since 0.1.0
    */
   readonly click: (
-    options?: Parameters<Locator["click"]>[0],
+    options?: Parameters<CoreLocator["click"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Checks the element.
    *
-   * @see {@link Locator.check}
+   * @see {@link CoreLocator.check}
    * @since 0.1.0
    */
   readonly check: (
-    options?: Parameters<Locator["check"]>[0],
+    options?: Parameters<CoreLocator["check"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Fills the input field.
    *
-   * @see {@link Locator.fill}
+   * @see {@link CoreLocator.fill}
    * @since 0.1.0
    */
   readonly fill: (
     value: string,
-    options?: Parameters<Locator["fill"]>[1],
+    options?: Parameters<CoreLocator["fill"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Gets an attribute value.
    *
-   * @see {@link Locator.getAttribute}
+   * @see {@link CoreLocator.getAttribute}
    * @since 0.1.0
    */
   readonly getAttribute: (
     name: string,
-    options?: Parameters<Locator["getAttribute"]>[1],
+    options?: Parameters<CoreLocator["getAttribute"]>[1],
   ) => Effect.Effect<string | null, PlaywrightError>;
   /**
    * Gets the inner text.
    *
-   * @see {@link Locator.innerText}
+   * @see {@link CoreLocator.innerText}
    * @since 0.1.0
    */
   readonly innerText: (
-    options?: Parameters<Locator["innerText"]>[0],
+    options?: Parameters<CoreLocator["innerText"]>[0],
   ) => Effect.Effect<string, PlaywrightError>;
   /**
    * Gets the inner HTML.
    *
-   * @see {@link Locator.innerHTML}
+   * @see {@link CoreLocator.innerHTML}
    * @since 0.1.0
    */
   readonly innerHTML: (
-    options?: Parameters<Locator["innerHTML"]>[0],
+    options?: Parameters<CoreLocator["innerHTML"]>[0],
   ) => Effect.Effect<string, PlaywrightError>;
   /**
    * Gets the input value.
    *
-   * @see {@link Locator.inputValue}
+   * @see {@link CoreLocator.inputValue}
    * @since 0.1.0
    */
   readonly inputValue: (
-    options?: Parameters<Locator["inputValue"]>[0],
+    options?: Parameters<CoreLocator["inputValue"]>[0],
   ) => Effect.Effect<string, PlaywrightError>;
   /**
    * Gets the text content.
    *
-   * @see {@link Locator.textContent}
+   * @see {@link CoreLocator.textContent}
    * @since 0.1.0
    */
   readonly textContent: (
-    options?: Parameters<Locator["textContent"]>[0],
+    options?: Parameters<CoreLocator["textContent"]>[0],
   ) => Effect.Effect<string | null, PlaywrightError>;
   /**
    * Gets all inner texts.
    *
-   * @see {@link Locator.allInnerTexts}
+   * @see {@link CoreLocator.allInnerTexts}
    * @since 0.1.0
    */
   readonly allInnerTexts: () => Effect.Effect<
@@ -106,7 +107,7 @@ export interface PlaywrightLocatorService {
   /**
    * Gets all text contents.
    *
-   * @see {@link Locator.allTextContents}
+   * @see {@link CoreLocator.allTextContents}
    * @since 0.1.0
    */
   readonly allTextContents: () => Effect.Effect<
@@ -116,20 +117,20 @@ export interface PlaywrightLocatorService {
   /**
    * Returns the accessibility tree snapshot.
    *
-   * @see {@link Locator.ariaSnapshot}
+   * @see {@link CoreLocator.ariaSnapshot}
    * @since 0.1.0
    */
   readonly ariaSnapshot: (
-    options?: Parameters<Locator["ariaSnapshot"]>[0],
+    options?: Parameters<CoreLocator["ariaSnapshot"]>[0],
   ) => Effect.Effect<string, PlaywrightError>;
   /**
    * Returns the bounding box of the element.
    *
-   * @see {@link Locator.boundingBox}
+   * @see {@link CoreLocator.boundingBox}
    * @since 0.1.0
    */
   readonly boundingBox: (
-    options?: Parameters<Locator["boundingBox"]>[0],
+    options?: Parameters<CoreLocator["boundingBox"]>[0],
   ) => Effect.Effect<
     Option.Option<{ x: number; y: number; width: number; height: number }>,
     PlaywrightError
@@ -137,185 +138,185 @@ export interface PlaywrightLocatorService {
   /**
    * Describes the locator.
    *
-   * @see {@link Locator.describe}
+   * @see {@link CoreLocator.describe}
    * @since 0.1.0
    */
-  readonly describe: (description: string) => PlaywrightLocatorService;
+  readonly describe: (description: string) => LocatorService;
   /**
    * Returns the description of the locator.
    *
-   * @see {@link Locator.description}
+   * @see {@link CoreLocator.description}
    * @since 0.1.0
    */
   readonly description: () => Option.Option<string>;
   /**
    * Counts the number of matched elements.
    *
-   * @see {@link Locator.count}
+   * @see {@link CoreLocator.count}
    * @since 0.1.0
    */
   readonly count: Effect.Effect<number, PlaywrightError>;
   /**
    * Returns a locator that points to the first matched element.
-   * @see {@link Locator.first}
+   * @see {@link CoreLocator.first}
    * @since 0.1.0
    */
-  readonly first: () => PlaywrightLocatorService;
+  readonly first: () => LocatorService;
   /**
    * Returns a locator that points to the last matched element.
    *
-   * @see {@link Locator.last}
+   * @see {@link CoreLocator.last}
    * @since 0.1.0
    */
-  readonly last: () => PlaywrightLocatorService;
+  readonly last: () => LocatorService;
   /**
    * Returns a locator that points to the nth matched element.
    *
-   * @see {@link Locator.nth}
+   * @see {@link CoreLocator.nth}
    * @since 0.1.0
    */
-  readonly nth: (index: number) => PlaywrightLocatorService;
+  readonly nth: (index: number) => LocatorService;
   /**
    * Returns a locator that points to a matched element.
    *
-   * @see {@link Locator.locator}
+   * @see {@link CoreLocator.locator}
    * @since 0.1.0
    */
   readonly locator: (
-    selectorOrLocator: string | Locator | PlaywrightLocatorService,
-    options?: Parameters<Locator["locator"]>[1],
-  ) => PlaywrightLocatorService;
+    selectorOrLocator: string | CoreLocator | LocatorService,
+    options?: Parameters<CoreLocator["locator"]>[1],
+  ) => LocatorService;
   /**
    * Allows locating elements by their ARIA role, ARIA attributes and accessible name.
    *
-   * @see {@link Locator.getByRole}
+   * @see {@link CoreLocator.getByRole}
    * @since 0.1.0
    */
   readonly getByRole: (
-    role: Parameters<Locator["getByRole"]>[0],
-    options?: Parameters<Locator["getByRole"]>[1],
-  ) => PlaywrightLocatorService;
+    role: Parameters<CoreLocator["getByRole"]>[0],
+    options?: Parameters<CoreLocator["getByRole"]>[1],
+  ) => LocatorService;
   /**
    * Allows locating elements that contain given text.
    *
-   * @see {@link Locator.getByText}
+   * @see {@link CoreLocator.getByText}
    * @since 0.1.0
    */
   readonly getByText: (
-    text: Parameters<Locator["getByText"]>[0],
-    options?: Parameters<Locator["getByText"]>[1],
-  ) => PlaywrightLocatorService;
+    text: Parameters<CoreLocator["getByText"]>[0],
+    options?: Parameters<CoreLocator["getByText"]>[1],
+  ) => LocatorService;
   /**
    * Allows locating elements by their label text.
    *
-   * @see {@link Locator.getByLabel}
+   * @see {@link CoreLocator.getByLabel}
    * @since 0.1.0
    */
   readonly getByLabel: (
-    text: Parameters<Locator["getByLabel"]>[0],
-    options?: Parameters<Locator["getByLabel"]>[1],
-  ) => PlaywrightLocatorService;
+    text: Parameters<CoreLocator["getByLabel"]>[0],
+    options?: Parameters<CoreLocator["getByLabel"]>[1],
+  ) => LocatorService;
   /**
    * Allows locating elements by their placeholder text.
    *
-   * @see {@link Locator.getByPlaceholder}
+   * @see {@link CoreLocator.getByPlaceholder}
    * @since 0.1.0
    */
   readonly getByPlaceholder: (
-    text: Parameters<Locator["getByPlaceholder"]>[0],
-    options?: Parameters<Locator["getByPlaceholder"]>[1],
-  ) => PlaywrightLocatorService;
+    text: Parameters<CoreLocator["getByPlaceholder"]>[0],
+    options?: Parameters<CoreLocator["getByPlaceholder"]>[1],
+  ) => LocatorService;
   /**
    * Allows locating elements by their alt text.
    *
-   * @see {@link Locator.getByAltText}
+   * @see {@link CoreLocator.getByAltText}
    * @since 0.1.0
    */
   readonly getByAltText: (
-    text: Parameters<Locator["getByAltText"]>[0],
-    options?: Parameters<Locator["getByAltText"]>[1],
-  ) => PlaywrightLocatorService;
+    text: Parameters<CoreLocator["getByAltText"]>[0],
+    options?: Parameters<CoreLocator["getByAltText"]>[1],
+  ) => LocatorService;
   /**
    * Allows locating elements by their title attribute.
    *
-   * @see {@link Locator.getByTitle}
+   * @see {@link CoreLocator.getByTitle}
    * @since 0.1.0
    */
   readonly getByTitle: (
-    text: Parameters<Locator["getByTitle"]>[0],
-    options?: Parameters<Locator["getByTitle"]>[1],
-  ) => PlaywrightLocatorService;
+    text: Parameters<CoreLocator["getByTitle"]>[0],
+    options?: Parameters<CoreLocator["getByTitle"]>[1],
+  ) => LocatorService;
   /**
    * Allows locating elements by their test id.
    *
-   * @see {@link Locator.getByTestId}
+   * @see {@link CoreLocator.getByTestId}
    * @since 0.1.0
    */
   readonly getByTestId: (
-    testId: Parameters<Locator["getByTestId"]>[0],
-  ) => PlaywrightLocatorService;
+    testId: Parameters<CoreLocator["getByTestId"]>[0],
+  ) => LocatorService;
   /**
    * Returns whether the element is checked.
    *
-   * @see {@link Locator.isChecked}
+   * @see {@link CoreLocator.isChecked}
    * @since 0.4.1
    */
   readonly isChecked: (
-    options?: Parameters<Locator["isChecked"]>[0],
+    options?: Parameters<CoreLocator["isChecked"]>[0],
   ) => Effect.Effect<boolean, PlaywrightError>;
   /**
    * Returns whether the element is disabled.
    *
-   * @see {@link Locator.isDisabled}
+   * @see {@link CoreLocator.isDisabled}
    * @since 0.4.1
    */
   readonly isDisabled: (
-    options?: Parameters<Locator["isDisabled"]>[0],
+    options?: Parameters<CoreLocator["isDisabled"]>[0],
   ) => Effect.Effect<boolean, PlaywrightError>;
   /**
    * Returns whether the element is editable.
    *
-   * @see {@link Locator.isEditable}
+   * @see {@link CoreLocator.isEditable}
    * @since 0.4.1
    */
   readonly isEditable: (
-    options?: Parameters<Locator["isEditable"]>[0],
+    options?: Parameters<CoreLocator["isEditable"]>[0],
   ) => Effect.Effect<boolean, PlaywrightError>;
   /**
    * Returns whether the element is enabled.
    *
-   * @see {@link Locator.isEnabled}
+   * @see {@link CoreLocator.isEnabled}
    * @since 0.4.1
    */
   readonly isEnabled: (
-    options?: Parameters<Locator["isEnabled"]>[0],
+    options?: Parameters<CoreLocator["isEnabled"]>[0],
   ) => Effect.Effect<boolean, PlaywrightError>;
   /**
    * Returns whether the element is hidden.
    *
-   * @see {@link Locator.isHidden}
+   * @see {@link CoreLocator.isHidden}
    * @since 0.4.1
    */
   readonly isHidden: (
-    options?: Parameters<Locator["isHidden"]>[0],
+    options?: Parameters<CoreLocator["isHidden"]>[0],
   ) => Effect.Effect<boolean, PlaywrightError>;
   /**
    * Returns whether the element is visible.
    *
-   * @see {@link Locator.isVisible}
+   * @see {@link CoreLocator.isVisible}
    * @since 0.4.1
    */
   readonly isVisible: (
-    options?: Parameters<Locator["isVisible"]>[0],
+    options?: Parameters<CoreLocator["isVisible"]>[0],
   ) => Effect.Effect<boolean, PlaywrightError>;
   /**
    * Returns when element specified by locator satisfies the `state` option.
    *
-   * @see {@link Locator.waitFor}
+   * @see {@link CoreLocator.waitFor}
    * @since 0.1.0
    */
   readonly waitFor: (
-    options?: Parameters<Locator["waitFor"]>[0],
+    options?: Parameters<CoreLocator["waitFor"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Returns when the matched element satisfies the provided predicate.
@@ -324,11 +325,11 @@ export interface PlaywrightLocatorService {
    * ```ts
    * import { chromium } from "@playwright/test";
    * import { Effect } from "effect";
-   * import { PlaywrightBrowser } from "effect-playwright";
-   * import { PlaywrightEnvironment } from "effect-playwright/experimental";
+   * import { Browser } from "effect-playwright";
+   * import { Environment } from "effect-playwright/experimental";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* PlaywrightBrowser;
+   *   const browser = yield* Browser;
    *   const page = yield* browser.newPage();
    *   yield* page.setContent('<div id="status">Ready</div>');
    *   yield* page.locator("#status").waitForFunction(
@@ -336,12 +337,12 @@ export interface PlaywrightLocatorService {
    *     "Ready",
    *   );
    * }).pipe(
-   *   PlaywrightEnvironment.provideBrowser,
-   *   Effect.provide(PlaywrightEnvironment.layer(chromium)),
+   *   Environment.provideBrowser,
+   *   Effect.provide(Environment.layer(chromium)),
    * );
    * ```
    *
-   * @see {@link Locator.waitForFunction}
+   * @see {@link CoreLocator.waitForFunction}
    * @since 0.5.1
    */
   readonly waitForFunction: <
@@ -351,27 +352,27 @@ export interface PlaywrightLocatorService {
   >(
     pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
     arg?: Arg,
-    options?: Parameters<Locator["waitForFunction"]>[2],
+    options?: Parameters<CoreLocator["waitForFunction"]>[2],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Evaluates a function on the matched element.
    *
    * @example
    * ```ts
-   * import { PlaywrightBrowser } from "effect-playwright";
-   * import { PlaywrightEnvironment } from "effect-playwright/experimental";
+   * import { Browser } from "effect-playwright";
+   * import { Environment } from "effect-playwright/experimental";
    * import { chromium } from "@playwright/test";
    * import { Effect } from "effect";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* PlaywrightBrowser;
+   *   const browser = yield* Browser;
    *   const page = yield* browser.newPage();
    *   const locator = yield* page.locator("button");
    *   const buttonContent = yield* locator.evaluate((button) => button.textContent());
-   * }).pipe(PlaywrightEnvironment.provideBrowser, Effect.provide(PlaywrightEnvironment.layer(chromium)));
+   * }).pipe(Environment.provideBrowser, Effect.provide(Environment.layer(chromium)));
    * ```
    *
-   * @see {@link Locator.evaluate}
+   * @see {@link CoreLocator.evaluate}
    * @since 0.1.0
    */
   readonly evaluate: <
@@ -381,64 +382,61 @@ export interface PlaywrightLocatorService {
   >(
     pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
     arg?: Arg,
-    options?: Parameters<Locator["evaluate"]>[2],
+    options?: Parameters<CoreLocator["evaluate"]>[2],
   ) => Effect.Effect<R, PlaywrightError>;
   /**
    * Highlights the corresponding element(s) on the screen.
    *
-   * @see {@link Locator.highlight}
+   * @see {@link CoreLocator.highlight}
    * @since 0.4.1
    */
   readonly highlight: (
-    options?: Parameters<Locator["highlight"]>[0],
+    options?: Parameters<CoreLocator["highlight"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Hides the element highlight previously added by highlight.
    *
-   * @see {@link Locator.hideHighlight}
+   * @see {@link CoreLocator.hideHighlight}
    * @since 0.5.0
    */
   readonly hideHighlight: Effect.Effect<void, PlaywrightError>;
   /**
    * Drops the locator.
    *
-   * @see {@link Locator.drop}
+   * @see {@link CoreLocator.drop}
    * @since 0.5.0
    */
   readonly drop: (
-    data: Parameters<Locator["drop"]>[0],
-    options?: Parameters<Locator["drop"]>[1],
+    data: Parameters<CoreLocator["drop"]>[0],
+    options?: Parameters<CoreLocator["drop"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Normalizes the locator.
    *
-   * @see {@link Locator.normalize}
+   * @see {@link CoreLocator.normalize}
    * @since 0.5.0
    */
-  readonly normalize: () => Effect.Effect<
-    PlaywrightLocatorService,
-    PlaywrightError
-  >;
+  readonly normalize: () => Effect.Effect<LocatorService, PlaywrightError>;
   /**
    * Captures a screenshot of the element.
    *
-   * @see {@link Locator.screenshot}
+   * @see {@link CoreLocator.screenshot}
    * @since 0.4.1
    */
   readonly screenshot: (
-    options?: Parameters<Locator["screenshot"]>[0],
+    options?: Parameters<CoreLocator["screenshot"]>[0],
   ) => Effect.Effect<Buffer, PlaywrightError>;
   /**
    * Returns the string representation of the locator.
    *
-   * @see {@link Locator.toString}
+   * @see {@link CoreLocator.toString}
    * @since 0.4.1
    */
   readonly toString: () => string;
   /**
    * Evaluates a function on all matched elements.
    *
-   * @see {@link Locator.evaluateAll}
+   * @see {@link CoreLocator.evaluateAll}
    * @since 0.3.0
    */
   readonly evaluateAll: <
@@ -452,7 +450,7 @@ export interface PlaywrightLocatorService {
   /**
    * Evaluates a function on the matched element and returns the result as a handle.
    *
-   * @see {@link Locator.evaluateHandle}
+   * @see {@link CoreLocator.evaluateHandle}
    * @since 0.3.0
    */
   readonly evaluateHandle: <
@@ -462,16 +460,16 @@ export interface PlaywrightLocatorService {
   >(
     pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
     arg?: Arg,
-    options?: Parameters<Locator["evaluateHandle"]>[2],
+    options?: Parameters<CoreLocator["evaluateHandle"]>[2],
   ) => Effect.Effect<JSHandle<R>, PlaywrightError>;
   /**
    * Resolves given locator to the first matching DOM element.
    *
-   * @see {@link Locator.elementHandle}
+   * @see {@link CoreLocator.elementHandle}
    * @since 0.3.0
    */
   readonly elementHandle: (
-    options?: Parameters<Locator["elementHandle"]>[0],
+    options?: Parameters<CoreLocator["elementHandle"]>[0],
   ) => Effect.Effect<
     Option.Option<ElementHandle<SVGElement | HTMLElement>>,
     PlaywrightError
@@ -479,7 +477,7 @@ export interface PlaywrightLocatorService {
   /**
    * Resolves given locator to all matching DOM elements.
    *
-   * @see {@link Locator.elementHandles}
+   * @see {@link CoreLocator.elementHandles}
    * @since 0.3.0
    */
   readonly elementHandles: () => Effect.Effect<
@@ -489,212 +487,208 @@ export interface PlaywrightLocatorService {
   /**
    * Returns an array of locators pointing to the matched elements.
    *
-   * @see {@link Locator.all}
+   * @see {@link CoreLocator.all}
    * @since 0.4.1
    */
   readonly all: () => Effect.Effect<
-    ReadonlyArray<PlaywrightLocatorService>,
+    ReadonlyArray<LocatorService>,
     PlaywrightError
   >;
   /**
    * Creates a locator that matches both this locator and the argument locator.
    *
-   * @see {@link Locator.and}
+   * @see {@link CoreLocator.and}
    * @since 0.4.1
    */
-  readonly and: (
-    locator: PlaywrightLocatorService | Locator,
-  ) => PlaywrightLocatorService;
+  readonly and: (locator: LocatorService | CoreLocator) => LocatorService;
   /**
    * Returns a FrameLocator object pointing to the same iframe as this locator.
    *
-   * @see {@link Locator.contentFrame}
+   * @see {@link CoreLocator.contentFrame}
    * @since 0.4.1
    */
-  readonly contentFrame: () => PlaywrightFrameLocatorService;
+  readonly contentFrame: () => FrameLocatorService;
   /**
    * Narrows existing locator according to the options.
    *
-   * @see {@link Locator.filter}
+   * @see {@link CoreLocator.filter}
    * @since 0.4.1
    */
   readonly filter: (
-    options?: Parameters<Locator["filter"]>[0],
-  ) => PlaywrightLocatorService;
+    options?: Parameters<CoreLocator["filter"]>[0],
+  ) => LocatorService;
   /**
    * Creates a frame locator that will enter the iframe and allow selecting elements in that iframe.
    *
-   * @see {@link Locator.frameLocator}
+   * @see {@link CoreLocator.frameLocator}
    * @since 0.4.1
    */
-  readonly frameLocator: (selector: string) => PlaywrightFrameLocatorService;
+  readonly frameLocator: (selector: string) => FrameLocatorService;
   /**
    * Creates a locator that matches either this locator or the argument locator.
    *
-   * @see {@link Locator.or}
+   * @see {@link CoreLocator.or}
    * @since 0.4.1
    */
-  readonly or: (
-    locator: PlaywrightLocatorService | Locator,
-  ) => PlaywrightLocatorService;
+  readonly or: (locator: LocatorService | CoreLocator) => LocatorService;
   /**
    * A page this locator belongs to.
    *
-   * @see {@link Locator.page}
+   * @see {@link CoreLocator.page}
    * @since 0.4.1
    */
-  readonly page: () => typeof PlaywrightPage.Service;
+  readonly page: () => typeof Page.Service;
   /**
    * Removes keyboard focus from the current element.
    *
-   * @see {@link Locator.blur}
+   * @see {@link CoreLocator.blur}
    * @since 0.4.2
    */
   readonly blur: (
-    options?: Parameters<Locator["blur"]>[0],
+    options?: Parameters<CoreLocator["blur"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Clear the input field.
    *
-   * @see {@link Locator.clear}
+   * @see {@link CoreLocator.clear}
    * @since 0.4.2
    */
   readonly clear: (
-    options?: Parameters<Locator["clear"]>[0],
+    options?: Parameters<CoreLocator["clear"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Double-clicks the element.
    *
-   * @see {@link Locator.dblclick}
+   * @see {@link CoreLocator.dblclick}
    * @since 0.4.2
    */
   readonly dblclick: (
-    options?: Parameters<Locator["dblclick"]>[0],
+    options?: Parameters<CoreLocator["dblclick"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Dispatches an event.
    *
-   * @see {@link Locator.dispatchEvent}
+   * @see {@link CoreLocator.dispatchEvent}
    * @since 0.4.2
    */
   readonly dispatchEvent: (
-    type: Parameters<Locator["dispatchEvent"]>[0],
-    eventInit?: Parameters<Locator["dispatchEvent"]>[1],
-    options?: Parameters<Locator["dispatchEvent"]>[2],
+    type: Parameters<CoreLocator["dispatchEvent"]>[0],
+    eventInit?: Parameters<CoreLocator["dispatchEvent"]>[1],
+    options?: Parameters<CoreLocator["dispatchEvent"]>[2],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Drags the locator to another target locator.
    *
-   * @see {@link Locator.dragTo}
+   * @see {@link CoreLocator.dragTo}
    * @since 0.4.2
    */
   readonly dragTo: (
-    target: PlaywrightLocatorService | Locator,
-    options?: Parameters<Locator["dragTo"]>[1],
+    target: LocatorService | CoreLocator,
+    options?: Parameters<CoreLocator["dragTo"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Focuses the element.
    *
-   * @see {@link Locator.focus}
+   * @see {@link CoreLocator.focus}
    * @since 0.4.2
    */
   readonly focus: (
-    options?: Parameters<Locator["focus"]>[0],
+    options?: Parameters<CoreLocator["focus"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Hovers over the element.
    *
-   * @see {@link Locator.hover}
+   * @see {@link CoreLocator.hover}
    * @since 0.4.2
    */
   readonly hover: (
-    options?: Parameters<Locator["hover"]>[0],
+    options?: Parameters<CoreLocator["hover"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Focuses the element, and then uses `keyboard.down` and `keyboard.up`.
    *
-   * @see {@link Locator.press}
+   * @see {@link CoreLocator.press}
    * @since 0.4.2
    */
   readonly press: (
-    key: Parameters<Locator["press"]>[0],
-    options?: Parameters<Locator["press"]>[1],
+    key: Parameters<CoreLocator["press"]>[0],
+    options?: Parameters<CoreLocator["press"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Focuses the element, and then sends a `keydown`, `keypress`/`input`, and `keyup` event for each character in the text.
    *
-   * @see {@link Locator.pressSequentially}
+   * @see {@link CoreLocator.pressSequentially}
    * @since 0.4.2
    */
   readonly pressSequentially: (
-    text: Parameters<Locator["pressSequentially"]>[0],
-    options?: Parameters<Locator["pressSequentially"]>[1],
+    text: Parameters<CoreLocator["pressSequentially"]>[0],
+    options?: Parameters<CoreLocator["pressSequentially"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Scrolls the element into view if needed.
    *
-   * @see {@link Locator.scrollIntoViewIfNeeded}
+   * @see {@link CoreLocator.scrollIntoViewIfNeeded}
    * @since 0.4.2
    */
   readonly scrollIntoViewIfNeeded: (
-    options?: Parameters<Locator["scrollIntoViewIfNeeded"]>[0],
+    options?: Parameters<CoreLocator["scrollIntoViewIfNeeded"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Selects an option in a `<select>` element.
    *
-   * @see {@link Locator.selectOption}
+   * @see {@link CoreLocator.selectOption}
    * @since 0.4.2
    */
   readonly selectOption: (
-    values: Parameters<Locator["selectOption"]>[0],
-    options?: Parameters<Locator["selectOption"]>[1],
+    values: Parameters<CoreLocator["selectOption"]>[0],
+    options?: Parameters<CoreLocator["selectOption"]>[1],
   ) => Effect.Effect<ReadonlyArray<string>, PlaywrightError>;
   /**
    * Selects text.
    *
-   * @see {@link Locator.selectText}
+   * @see {@link CoreLocator.selectText}
    * @since 0.4.2
    */
   readonly selectText: (
-    options?: Parameters<Locator["selectText"]>[0],
+    options?: Parameters<CoreLocator["selectText"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Checks the element if not already checked.
    *
-   * @see {@link Locator.setChecked}
+   * @see {@link CoreLocator.setChecked}
    * @since 0.4.2
    */
   readonly setChecked: (
-    checked: Parameters<Locator["setChecked"]>[0],
-    options?: Parameters<Locator["setChecked"]>[1],
+    checked: Parameters<CoreLocator["setChecked"]>[0],
+    options?: Parameters<CoreLocator["setChecked"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Sets the value of the file input.
    *
-   * @see {@link Locator.setInputFiles}
+   * @see {@link CoreLocator.setInputFiles}
    * @since 0.4.2
    */
   readonly setInputFiles: (
-    files: Parameters<Locator["setInputFiles"]>[0],
-    options?: Parameters<Locator["setInputFiles"]>[1],
+    files: Parameters<CoreLocator["setInputFiles"]>[0],
+    options?: Parameters<CoreLocator["setInputFiles"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Taps the element.
    *
-   * @see {@link Locator.tap}
+   * @see {@link CoreLocator.tap}
    * @since 0.4.2
    */
   readonly tap: (
-    options?: Parameters<Locator["tap"]>[0],
+    options?: Parameters<CoreLocator["tap"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Unchecks the element.
    *
-   * @see {@link Locator.uncheck}
+   * @see {@link CoreLocator.uncheck}
    * @since 0.4.2
    */
   readonly uncheck: (
-    options?: Parameters<Locator["uncheck"]>[0],
+    options?: Parameters<CoreLocator["uncheck"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * A generic utility to execute any promise-based method on the underlying Playwright `Locator`.
@@ -707,45 +701,46 @@ export interface PlaywrightLocatorService {
    *
    * @param f - A function that takes the Playwright `Locator` and returns a `Promise`.
    * @returns An effect that wraps the promise and returns its result.
-   * @see {@link Locator}
+   * @see {@link CoreLocator}
    * @since 0.1.0
    */
   readonly use: <T>(
-    f: (locator: Locator) => Promise<T>,
+    f: (locator: CoreLocator) => Promise<T>,
   ) => Effect.Effect<T, PlaywrightError>;
 }
 
 /**
- * A service that provides a `PlaywrightLocator` instance.
+ * A service that provides a `Locator` instance.
  *
  * @since 0.1.0
  * @category tag
  */
-export class PlaywrightLocator extends Context.Tag(
-  "effect-playwright/PlaywrightLocator",
-)<PlaywrightLocator, PlaywrightLocatorService>() {
+export class Locator extends Context.Tag("effect-playwright/locator/Locator")<
+  Locator,
+  LocatorService
+>() {
   /**
-   * Creates a `PlaywrightLocator` from a Playwright `Locator` instance. This is mostly for internal use.
+   * Creates a `Locator` from a Playwright `Locator` instance. This is mostly for internal use.
    * But you could use this if you have used `use` or similar to wrap the locator.
    *
    * @example
    * ```ts
    * const playwrightNativeLocator = yield* page.use((p) => p.locator("button"));
-   * const locator = PlaywrightLocator.make(playwrightNativeLocator);
+   * const locator = Locator.make(playwrightNativeLocator);
    * ```
    *
    * @param locator - The Playwright `Locator` instance to wrap.
    * @since 0.1.0
    * @category constructor
    */
-  static make(locator: Locator): typeof PlaywrightLocator.Service {
+  static make(locator: CoreLocator): typeof Locator.Service {
     const use = useHelper(locator);
-    const unwrap = Match.type<Locator | PlaywrightLocatorService>().pipe(
+    const unwrap = Match.type<CoreLocator | LocatorService>().pipe(
       Match.when(Predicate.hasProperty("_raw"), (l) => l._raw),
       Match.orElse((l) => l),
     );
 
-    return PlaywrightLocator.of({
+    return Locator.of({
       _raw: locator,
       click: (options) => use((l) => l.click(options)),
       check: (options) => use((l) => l.check(options)),
@@ -763,44 +758,41 @@ export class PlaywrightLocator extends Context.Tag(
         use((l) => l.boundingBox(options)).pipe(
           Effect.map(Option.fromNullable),
         ),
-      describe: (description) =>
-        PlaywrightLocator.make(locator.describe(description)),
+      describe: (description) => Locator.make(locator.describe(description)),
       description: () => Option.fromNullable(locator.description()),
       count: use((l) => l.count()),
-      first: () => PlaywrightLocator.make(locator.first()),
-      last: () => PlaywrightLocator.make(locator.last()),
-      nth: (index: number) => PlaywrightLocator.make(locator.nth(index)),
-      all: () =>
-        use((l) => l.all()).pipe(Effect.map(Array.map(PlaywrightLocator.make))),
+      first: () => Locator.make(locator.first()),
+      last: () => Locator.make(locator.last()),
+      nth: (index: number) => Locator.make(locator.nth(index)),
+      all: () => use((l) => l.all()).pipe(Effect.map(Array.map(Locator.make))),
       and: (locatorOrService) =>
-        PlaywrightLocator.make(locator.and(unwrap(locatorOrService))),
-      contentFrame: () => PlaywrightFrameLocator.make(locator.contentFrame()),
-      filter: (options) => PlaywrightLocator.make(locator.filter(options)),
+        Locator.make(locator.and(unwrap(locatorOrService))),
+      contentFrame: () => FrameLocator.make(locator.contentFrame()),
+      filter: (options) => Locator.make(locator.filter(options)),
       frameLocator: (selector) =>
-        PlaywrightFrameLocator.make(locator.frameLocator(selector)),
+        FrameLocator.make(locator.frameLocator(selector)),
       or: (locatorOrService) =>
-        PlaywrightLocator.make(locator.or(unwrap(locatorOrService))),
-      page: () => PlaywrightPage.make(locator.page()),
+        Locator.make(locator.or(unwrap(locatorOrService))),
+      page: () => Page.make(locator.page()),
       locator: (selectorOrLocator, options) =>
-        PlaywrightLocator.make(
+        Locator.make(
           typeof selectorOrLocator === "string"
             ? locator.locator(selectorOrLocator, options)
             : locator.locator(unwrap(selectorOrLocator), options),
         ),
       getByRole: (role, options) =>
-        PlaywrightLocator.make(locator.getByRole(role, options)),
+        Locator.make(locator.getByRole(role, options)),
       getByText: (text, options) =>
-        PlaywrightLocator.make(locator.getByText(text, options)),
+        Locator.make(locator.getByText(text, options)),
       getByLabel: (text, options) =>
-        PlaywrightLocator.make(locator.getByLabel(text, options)),
+        Locator.make(locator.getByLabel(text, options)),
       getByPlaceholder: (text, options) =>
-        PlaywrightLocator.make(locator.getByPlaceholder(text, options)),
+        Locator.make(locator.getByPlaceholder(text, options)),
       getByAltText: (text, options) =>
-        PlaywrightLocator.make(locator.getByAltText(text, options)),
+        Locator.make(locator.getByAltText(text, options)),
       getByTitle: (text, options) =>
-        PlaywrightLocator.make(locator.getByTitle(text, options)),
-      getByTestId: (testId) =>
-        PlaywrightLocator.make(locator.getByTestId(testId)),
+        Locator.make(locator.getByTitle(text, options)),
+      getByTestId: (testId) => Locator.make(locator.getByTestId(testId)),
       isChecked: (options) => use((l) => l.isChecked(options)),
       isDisabled: (options) => use((l) => l.isDisabled(options)),
       isEditable: (options) => use((l) => l.isEditable(options)),
@@ -815,7 +807,7 @@ export class PlaywrightLocator extends Context.Tag(
       >(
         pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
         arg?: Arg,
-        options?: Parameters<Locator["waitForFunction"]>[2],
+        options?: Parameters<CoreLocator["waitForFunction"]>[2],
       ) =>
         use((l) =>
           l.waitForFunction<Arg, E>(
@@ -833,7 +825,7 @@ export class PlaywrightLocator extends Context.Tag(
       >(
         pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
         arg?: Arg,
-        options?: Parameters<Locator["evaluate"]>[2],
+        options?: Parameters<CoreLocator["evaluate"]>[2],
       ) =>
         use((l) =>
           l.evaluate<R, Arg, E>(
@@ -867,7 +859,7 @@ export class PlaywrightLocator extends Context.Tag(
       >(
         pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
         arg?: Arg,
-        options?: Parameters<Locator["evaluateHandle"]>[2],
+        options?: Parameters<CoreLocator["evaluateHandle"]>[2],
       ) =>
         use((l) =>
           l.evaluateHandle<R, Arg, E>(
@@ -892,7 +884,7 @@ export class PlaywrightLocator extends Context.Tag(
       highlight: (options) => use((l) => l.highlight(options)),
       hideHighlight: use((l) => l.hideHighlight()),
       drop: (data, options) => use((l) => l.drop(data, options)),
-      normalize: () => use((l) => l.normalize().then(PlaywrightLocator.make)),
+      normalize: () => use((l) => l.normalize().then(Locator.make)),
       screenshot: (options) => use((l) => l.screenshot(options)),
       blur: (options) => use((l) => l.blur(options)),
       clear: (options) => use((l) => l.clear(options)),

@@ -9,146 +9,133 @@ import {
 } from "effect";
 import type {
   ConsoleMessage,
+  Dialog as CoreDialog,
+  Download as CoreDownload,
+  FileChooser as CoreFileChooser,
+  Frame as CoreFrame,
+  Page as CorePage,
+  Request as CoreRequest,
+  Response as CoreResponse,
+  Worker as CoreWorker,
+  ElementHandle,
+  WebSocket,
+} from "playwright-core";
+import { BrowserContext, type BrowserContextService } from "./browser-context";
+import { Clock, type ClockService } from "./clock";
+import {
   Dialog,
   Download,
-  ElementHandle,
   FileChooser,
-  Frame,
-  Page,
   Request,
   Response,
-  WebSocket,
   Worker,
-} from "playwright-core";
-import {
-  PlaywrightBrowserContext,
-  type PlaywrightBrowserContextService,
-} from "./browser-context";
-import { PlaywrightClock, type PlaywrightClockService } from "./clock";
-import {
-  PlaywrightDialog,
-  PlaywrightDownload,
-  PlaywrightFileChooser,
-  PlaywrightRequest,
-  PlaywrightResponse,
-  PlaywrightWorker,
 } from "./common";
 import type { PlaywrightError } from "./errors";
-import { PlaywrightFrame } from "./frame";
-import { PlaywrightKeyboard, type PlaywrightKeyboardService } from "./keyboard";
-import { PlaywrightLocator } from "./locator";
-import { PlaywrightMouse, type PlaywrightMouseService } from "./mouse";
+import { Frame } from "./frame";
+import { Keyboard, type KeyboardService } from "./keyboard";
+import { Locator } from "./locator";
+import { Mouse, type MouseService } from "./mouse";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
-import {
-  PlaywrightScreencast,
-  type PlaywrightScreencastService,
-} from "./screencast";
-import {
-  PlaywrightTouchscreen,
-  type PlaywrightTouchscreenService,
-} from "./touchscreen";
+import { Screencast, type ScreencastService } from "./screencast";
+import { Touchscreen, type TouchscreenService } from "./touchscreen";
 import { useHelper } from "./utils";
-import {
-  PlaywrightWebStorage,
-  type PlaywrightWebStorageService,
-} from "./web-storage";
+import { WebStorage, type WebStorageService } from "./web-storage";
 
 interface PageEvents {
-  close: Page;
+  close: CorePage;
   console: ConsoleMessage;
-  crash: Page;
-  dialog: Dialog;
-  domcontentloaded: Page;
-  download: Download;
-  filechooser: FileChooser;
-  frameattached: Frame;
-  framedetached: Frame;
-  framenavigated: Frame;
-  load: Page;
+  crash: CorePage;
+  dialog: CoreDialog;
+  domcontentloaded: CorePage;
+  download: CoreDownload;
+  filechooser: CoreFileChooser;
+  frameattached: CoreFrame;
+  framedetached: CoreFrame;
+  framenavigated: CoreFrame;
+  load: CorePage;
   pageerror: Error;
-  popup: Page;
-  request: Request;
-  requestfailed: Request;
-  requestfinished: Request;
-  response: Response;
+  popup: CorePage;
+  request: CoreRequest;
+  requestfailed: CoreRequest;
+  requestfinished: CoreRequest;
+  response: CoreResponse;
   websocket: WebSocket;
-  worker: Worker;
+  worker: CoreWorker;
 }
 
 const eventMappings = {
-  close: (page: Page) => PlaywrightPage.make(page),
+  close: (page: CorePage) => Page.make(page),
   console: identity<ConsoleMessage>,
-  crash: (page: Page) => PlaywrightPage.make(page),
-  dialog: (dialog: Dialog) => PlaywrightDialog.make(dialog),
-  domcontentloaded: (page: Page) => PlaywrightPage.make(page),
-  download: (download: Download) => PlaywrightDownload.make(download),
-  filechooser: (fileChooser: FileChooser) =>
-    PlaywrightFileChooser.make(fileChooser),
-  frameattached: (frame: Frame) => PlaywrightFrame.make(frame),
-  framedetached: (frame: Frame) => PlaywrightFrame.make(frame),
-  framenavigated: (frame: Frame) => PlaywrightFrame.make(frame),
-  load: (page: Page) => PlaywrightPage.make(page),
+  crash: (page: CorePage) => Page.make(page),
+  dialog: (dialog: CoreDialog) => Dialog.make(dialog),
+  domcontentloaded: (page: CorePage) => Page.make(page),
+  download: (download: CoreDownload) => Download.make(download),
+  filechooser: (fileChooser: CoreFileChooser) => FileChooser.make(fileChooser),
+  frameattached: (frame: CoreFrame) => Frame.make(frame),
+  framedetached: (frame: CoreFrame) => Frame.make(frame),
+  framenavigated: (frame: CoreFrame) => Frame.make(frame),
+  load: (page: CorePage) => Page.make(page),
   pageerror: identity<Error>,
-  popup: (page: Page) => PlaywrightPage.make(page),
-  request: (request: Request) => PlaywrightRequest.make(request),
-  requestfailed: (request: Request) => PlaywrightRequest.make(request),
-  requestfinished: (request: Request) => PlaywrightRequest.make(request),
-  response: (response: Response) => PlaywrightResponse.make(response),
+  popup: (page: CorePage) => Page.make(page),
+  request: (request: CoreRequest) => Request.make(request),
+  requestfailed: (request: CoreRequest) => Request.make(request),
+  requestfinished: (request: CoreRequest) => Request.make(request),
+  response: (response: CoreResponse) => Response.make(response),
   websocket: identity<WebSocket>,
-  worker: (worker: Worker) => PlaywrightWorker.make(worker),
+  worker: (worker: CoreWorker) => Worker.make(worker),
 } as const;
 
-type PageWithPatchedEvents = PatchedEvents<Page, PageEvents>;
+type PageWithPatchedEvents = PatchedEvents<CorePage, PageEvents>;
 
 /**
  * @category model
  * @since 0.1.0
  */
-export interface PlaywrightPageService {
+export interface PageService {
   /**
    * Access the clock.
    *
    * @since 0.3.0
    */
-  readonly clock: PlaywrightClockService;
+  readonly clock: ClockService;
   /**
    * Access local storage for the page's current origin.
    *
-   * @see {@link Page.localStorage}
+   * @see {@link CorePage.localStorage}
    * @since 0.5.1
    */
-  readonly localStorage: PlaywrightWebStorageService;
+  readonly localStorage: WebStorageService;
   /**
    * Access the keyboard.
    *
    * @since 0.3.0
    */
-  readonly keyboard: PlaywrightKeyboardService;
+  readonly keyboard: KeyboardService;
   /**
    * Access the mouse.
    *
    * @since 0.3.0
    */
-  readonly mouse: PlaywrightMouseService;
+  readonly mouse: MouseService;
   /**
    * Access the touchscreen.
    *
    * @since 0.3.0
    */
-  readonly touchscreen: PlaywrightTouchscreenService;
+  readonly touchscreen: TouchscreenService;
   /**
    * Access the screencast.
    *
    * @since 0.5.0
    */
-  readonly screencast: PlaywrightScreencastService;
+  readonly screencast: ScreencastService;
   /**
    * Access session storage for the page's current origin.
    *
-   * @see {@link Page.sessionStorage}
+   * @see {@link CorePage.sessionStorage}
    * @since 0.5.1
    */
-  readonly sessionStorage: PlaywrightWebStorageService;
+  readonly sessionStorage: WebStorageService;
   /**
    * Navigates the page to the given URL.
    *
@@ -157,28 +144,28 @@ export interface PlaywrightPageService {
    * yield* page.goto("https://google.com");
    * ```
    *
-   * @see {@link Page.goto}
+   * @see {@link CorePage.goto}
    * @since 0.1.0
    */
   readonly goto: (
     url: string,
-    options?: Parameters<Page["goto"]>[1],
+    options?: Parameters<CorePage["goto"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * This method internally calls [document.write()](https://developer.mozilla.org/en-US/docs/Web/API/Document/write),
    * inheriting all its specific characteristics and behaviors.
    *
-   * @see {@link Page.setContent}
+   * @see {@link CorePage.setContent}
    * @since 0.3.0
    */
   readonly setContent: (
     html: string,
-    options?: Parameters<Page["setContent"]>[1],
+    options?: Parameters<CorePage["setContent"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Waits for the given timeout in milliseconds.
    *
-   * @see {@link Page.waitForTimeout}
+   * @see {@link CorePage.waitForTimeout}
    * @since 0.4.0
    */
   readonly waitForTimeout: (
@@ -186,50 +173,50 @@ export interface PlaywrightPageService {
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * This setting will change the default maximum navigation time for the following methods:
-   * - {@link PlaywrightPageService.goBack}
-   * - {@link PlaywrightPageService.goForward}
-   * - {@link PlaywrightPageService.goto}
-   * - {@link PlaywrightPageService.reload}
-   * - {@link PlaywrightPageService.setContent}
-   * - {@link PlaywrightPageService.waitForURL}
+   * - {@link PageService.goBack}
+   * - {@link PageService.goForward}
+   * - {@link PageService.goto}
+   * - {@link PageService.reload}
+   * - {@link PageService.setContent}
+   * - {@link PageService.waitForURL}
    *
-   * @see {@link Page.setDefaultNavigationTimeout}
+   * @see {@link CorePage.setDefaultNavigationTimeout}
    * @since 0.3.0
    */
   readonly setDefaultNavigationTimeout: (
-    timeout: Parameters<Page["setDefaultNavigationTimeout"]>[0],
+    timeout: Parameters<CorePage["setDefaultNavigationTimeout"]>[0],
   ) => void;
   /**
    * This setting will change the default maximum time for all the methods accepting `timeout` option.
    *
-   * @see {@link Page.setDefaultTimeout}
+   * @see {@link CorePage.setDefaultTimeout}
    * @since 0.3.0
    */
   readonly setDefaultTimeout: (
-    timeout: Parameters<Page["setDefaultTimeout"]>[0],
+    timeout: Parameters<CorePage["setDefaultTimeout"]>[0],
   ) => void;
   /**
    * The extra HTTP headers will be sent with every request the page initiates.
    *
-   * @see {@link Page.setExtraHTTPHeaders}
+   * @see {@link CorePage.setExtraHTTPHeaders}
    * @since 0.3.0
    */
   readonly setExtraHTTPHeaders: (
-    headers: Parameters<Page["setExtraHTTPHeaders"]>[0],
+    headers: Parameters<CorePage["setExtraHTTPHeaders"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Sets the viewport size for the page.
    *
-   * @see {@link Page.setViewportSize}
+   * @see {@link CorePage.setViewportSize}
    * @since 0.3.0
    */
   readonly setViewportSize: (
-    viewportSize: Parameters<Page["setViewportSize"]>[0],
+    viewportSize: Parameters<CorePage["setViewportSize"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Returns the viewport size.
    *
-   * @see {@link Page.viewportSize}
+   * @see {@link CorePage.viewportSize}
    * @since 0.3.0
    */
   readonly viewportSize: () => Option.Option<{ width: number; height: number }>;
@@ -241,12 +228,12 @@ export interface PlaywrightPageService {
    * yield* page.waitForURL("https://google.com");
    * ```
    *
-   * @see {@link Page.waitForURL}
+   * @see {@link CorePage.waitForURL}
    * @since 0.1.0
    */
   readonly waitForURL: (
-    url: Parameters<Page["waitForURL"]>[0],
-    options?: Parameters<Page["waitForURL"]>[1],
+    url: Parameters<CorePage["waitForURL"]>[0],
+    options?: Parameters<CorePage["waitForURL"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Waits for the page to reach the given load state.
@@ -258,12 +245,12 @@ export interface PlaywrightPageService {
    * yield* page.waitForLoadState("domcontentloaded");
    * ```
    *
-   * @see {@link Page.waitForLoadState}
+   * @see {@link CorePage.waitForLoadState}
    * @since 0.2.0
    */
   readonly waitForLoadState: (
-    state?: Parameters<Page["waitForLoadState"]>[0],
-    options?: Parameters<Page["waitForLoadState"]>[1],
+    state?: Parameters<CorePage["waitForLoadState"]>[0],
+    options?: Parameters<CorePage["waitForLoadState"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Evaluates a function in the context of the page.
@@ -276,35 +263,35 @@ export interface PlaywrightPageService {
    * }));
    * ```
    *
-   * @see {@link Page.evaluate}
+   * @see {@link CorePage.evaluate}
    * @since 0.1.0
    */
   readonly evaluate: <R, Arg = void>(
     pageFunction: PageFunction<Arg, R>,
     arg?: Arg,
-    options?: Parameters<Page["evaluate"]>[2],
+    options?: Parameters<CorePage["evaluate"]>[2],
   ) => Effect.Effect<R, PlaywrightError>;
   /**
    * Adds a script which would be evaluated in one of the following scenarios:
    * - Whenever the page is navigated.
    * - Whenever the child frame is attached or navigated. In this case, the script is evaluated in the context of the newly attached frame.
    *
-   * @see {@link Page.addInitScript}
+   * @see {@link CorePage.addInitScript}
    * @since 0.3.0
    */
   readonly addInitScript: <Arg>(
     script: PageFunction<Arg, unknown> | { path?: string; content?: string },
     arg?: Arg,
-    options?: Parameters<Page["addInitScript"]>[2],
+    options?: Parameters<CorePage["addInitScript"]>[2],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Adds a `<script>` tag into the page with the desired url or content.
    *
-   * @see {@link Page.addScriptTag}
+   * @see {@link CorePage.addScriptTag}
    * @since 0.3.0
    */
   readonly addScriptTag: (
-    options: Parameters<Page["addScriptTag"]>[0],
+    options: Parameters<CorePage["addScriptTag"]>[0],
   ) => Effect.Effect<ElementHandle, PlaywrightError>;
   /**
    * Adds a function called `name` on the `window` object of every frame in this page.
@@ -317,10 +304,10 @@ export interface PlaywrightPageService {
    * @example
    * ```ts
    * import { Console, Effect } from "effect";
-   * import { PlaywrightBrowser } from "effect-playwright/browser";
+   * import { Browser } from "effect-playwright/browser";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* PlaywrightBrowser;
+   *   const browser = yield* Browser;
    *   const page = yield* browser.newPage();
    *
    *   // Expose an Effect-based function to the browser
@@ -339,7 +326,7 @@ export interface PlaywrightPageService {
    * @example
    * ```ts
    * import { Context, Effect } from "effect";
-   * import { PlaywrightBrowser } from "effect-playwright/browser";
+   * import { Browser } from "effect-playwright/browser";
    *
    * // A custom Database service used in your Effect application
    * class Database extends Context.Tag("Database")<
@@ -348,7 +335,7 @@ export interface PlaywrightPageService {
    * >() {}
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* PlaywrightBrowser;
+   *   const browser = yield* Browser;
    *   const page = yield* browser.newPage();
    *
    *   // Expose a function that seamlessly accesses Effect Context using Effect.fn
@@ -376,11 +363,11 @@ export interface PlaywrightPageService {
    * ```
    *
    *
-   * @see {@link Page.exposeFunction}
+   * @see {@link CorePage.exposeFunction}
    * @since 0.3.0
    */
   readonly exposeFunction: <A, E, R, Args extends unknown[]>(
-    name: Parameters<Page["exposeFunction"]>[0],
+    name: Parameters<CorePage["exposeFunction"]>[0],
     playwrightFunction: (...args: Args) => Effect.Effect<A, E, R>,
   ) => Effect.Effect<void, PlaywrightError, R>;
 
@@ -392,10 +379,10 @@ export interface PlaywrightPageService {
    * @example
    * ```ts
    * import { Console, Effect } from "effect";
-   * import { PlaywrightBrowser } from "effect-playwright/browser";
+   * import { Browser } from "effect-playwright/browser";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* PlaywrightBrowser;
+   *   const browser = yield* Browser;
    *   const page = yield* browser.newPage();
    *
    *   yield* page.exposeEffect("ping", Console.log("pong"));
@@ -407,21 +394,21 @@ export interface PlaywrightPageService {
    * });
    * ```
    *
-   * @see {@link Page.exposeFunction}
+   * @see {@link CorePage.exposeFunction}
    * @since 0.3.0
    */
   readonly exposeEffect: <A, E, R>(
-    name: Parameters<Page["exposeFunction"]>[0],
+    name: Parameters<CorePage["exposeFunction"]>[0],
     playwrightFunction: Effect.Effect<A, E, R>,
   ) => Effect.Effect<void, PlaywrightError, R>;
   /**
    * Adds a `<link rel="stylesheet">` tag into the page with the desired url or a `<style type="text/css">` tag with the content.
    *
-   * @see {@link Page.addStyleTag}
+   * @see {@link CorePage.addStyleTag}
    * @since 0.3.0
    */
   readonly addStyleTag: (
-    options: Parameters<Page["addStyleTag"]>[0],
+    options: Parameters<CorePage["addStyleTag"]>[0],
   ) => Effect.Effect<ElementHandle, PlaywrightError>;
   /**
    * Returns the page title.
@@ -431,7 +418,7 @@ export interface PlaywrightPageService {
    * const title = yield* page.title;
    * ```
    *
-   * @see {@link Page.title}
+   * @see {@link CorePage.title}
    * @since 0.1.0
    */
   readonly title: Effect.Effect<string, PlaywrightError>;
@@ -443,7 +430,7 @@ export interface PlaywrightPageService {
    * const html = yield* page.content;
    * ```
    *
-   * @see {@link Page.content}
+   * @see {@link CorePage.content}
    * @since 0.3.0
    */
   readonly content: Effect.Effect<string, PlaywrightError>;
@@ -456,93 +443,93 @@ export interface PlaywrightPageService {
    * const title = yield* page.use((p) => p.title());
    * ```
    *
-   * @see {@link Page}
+   * @see {@link CorePage}
    * @since 0.1.0
    */
   readonly use: <T>(
-    f: (page: Page) => Promise<T>,
+    f: (page: CorePage) => Promise<T>,
   ) => Effect.Effect<T, PlaywrightError>;
   /**
    * Returns a locator for the given selector.
    *
    * NOTE: This method will cause a defect if `options.has` or `options.hasNot` are provided and belong to a different frame.
    *
-   * @see {@link Page.locator}
+   * @see {@link CorePage.locator}
    * @since 0.1.0
    */
   readonly locator: (
     selector: string,
-    options?: Parameters<Page["locator"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+    options?: Parameters<CorePage["locator"]>[1],
+  ) => typeof Locator.Service;
   /**
    * Returns a locator that matches the given role.
    *
-   * @see {@link Page.getByRole}
+   * @see {@link CorePage.getByRole}
    * @since 0.1.0
    */
   readonly getByRole: (
-    role: Parameters<Page["getByRole"]>[0],
-    options?: Parameters<Page["getByRole"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+    role: Parameters<CorePage["getByRole"]>[0],
+    options?: Parameters<CorePage["getByRole"]>[1],
+  ) => typeof Locator.Service;
   /**
    * Returns a locator that matches the given text.
    *
-   * @see {@link Page.getByText}
+   * @see {@link CorePage.getByText}
    * @since 0.1.0
    */
   readonly getByText: (
-    text: Parameters<Page["getByText"]>[0],
-    options?: Parameters<Page["getByText"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+    text: Parameters<CorePage["getByText"]>[0],
+    options?: Parameters<CorePage["getByText"]>[1],
+  ) => typeof Locator.Service;
   /**
    * Returns a locator that matches the given label.
    *
-   * @see {@link Page.getByLabel}
+   * @see {@link CorePage.getByLabel}
    * @since 0.1.0
    */
   readonly getByLabel: (
-    label: Parameters<Page["getByLabel"]>[0],
-    options?: Parameters<Page["getByLabel"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+    label: Parameters<CorePage["getByLabel"]>[0],
+    options?: Parameters<CorePage["getByLabel"]>[1],
+  ) => typeof Locator.Service;
   /**
    * Returns a locator that matches the given test id.
    *
-   * @see {@link Page.getByTestId}
+   * @see {@link CorePage.getByTestId}
    * @since 0.1.0
    */
   readonly getByTestId: (
-    testId: Parameters<Page["getByTestId"]>[0],
-  ) => typeof PlaywrightLocator.Service;
+    testId: Parameters<CorePage["getByTestId"]>[0],
+  ) => typeof Locator.Service;
   /**
    * Returns a locator that matches the given alt text.
    *
-   * @see {@link Page.getByAltText}
+   * @see {@link CorePage.getByAltText}
    * @since 0.3.0
    */
   readonly getByAltText: (
-    text: Parameters<Page["getByAltText"]>[0],
-    options?: Parameters<Page["getByAltText"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+    text: Parameters<CorePage["getByAltText"]>[0],
+    options?: Parameters<CorePage["getByAltText"]>[1],
+  ) => typeof Locator.Service;
   /**
    * Returns a locator that matches the given placeholder.
    *
-   * @see {@link Page.getByPlaceholder}
+   * @see {@link CorePage.getByPlaceholder}
    * @since 0.3.0
    */
   readonly getByPlaceholder: (
-    text: Parameters<Page["getByPlaceholder"]>[0],
-    options?: Parameters<Page["getByPlaceholder"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+    text: Parameters<CorePage["getByPlaceholder"]>[0],
+    options?: Parameters<CorePage["getByPlaceholder"]>[1],
+  ) => typeof Locator.Service;
   /**
    * Returns a locator that matches the given title.
    *
-   * @see {@link Page.getByTitle}
+   * @see {@link CorePage.getByTitle}
    * @since 0.3.0
    */
   readonly getByTitle: (
-    text: Parameters<Page["getByTitle"]>[0],
-    options?: Parameters<Page["getByTitle"]>[1],
-  ) => typeof PlaywrightLocator.Service;
+    text: Parameters<CorePage["getByTitle"]>[0],
+    options?: Parameters<CorePage["getByTitle"]>[1],
+  ) => typeof Locator.Service;
 
   /**
    * Captures a screenshot of the page.
@@ -552,24 +539,24 @@ export interface PlaywrightPageService {
    * const buffer = yield* page.screenshot({ path: "screenshot.png" });
    * ```
    *
-   * @see {@link Page.screenshot}
+   * @see {@link CorePage.screenshot}
    * @since 0.3.0
    */
   readonly screenshot: (
-    options?: Parameters<Page["screenshot"]>[0],
+    options?: Parameters<CorePage["screenshot"]>[0],
   ) => Effect.Effect<Buffer, PlaywrightError>;
 
   /**
    * Returns the PDF buffer.
    *
    * `page.pdf()` generates a pdf of the page with `print` css media. To generate a pdf with `screen` media, call
-   * {@link PlaywrightPageService.emulateMedia} before calling `page.pdf()`.
+   * {@link PageService.emulateMedia} before calling `page.pdf()`.
    *
-   * @see {@link Page.pdf}
+   * @see {@link CorePage.pdf}
    * @since 0.3.0
    */
   readonly pdf: (
-    options?: Parameters<Page["pdf"]>[0],
+    options?: Parameters<CorePage["pdf"]>[0],
   ) => Effect.Effect<Buffer, PlaywrightError>;
 
   /**
@@ -579,14 +566,14 @@ export interface PlaywrightPageService {
    * ```ts
    * yield* page.click("button#submit");
    * ```
-   * @deprecated Use {@link PlaywrightPageService.locator} to create a locator and then call `click` on it instead.
-   * @see {@link Page.click}
+   * @deprecated Use {@link PageService.locator} to create a locator and then call `click` on it instead.
+   * @see {@link CorePage.click}
    * @since 0.1.0
    * @category deprecated
    */
   readonly click: (
     selector: string,
-    options?: Parameters<Page["click"]>[1],
+    options?: Parameters<CorePage["click"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
@@ -597,13 +584,13 @@ export interface PlaywrightPageService {
    * yield* page.dragAndDrop("#source", "#target");
    * ```
    *
-   * @see {@link Page.dragAndDrop}
+   * @see {@link CorePage.dragAndDrop}
    * @since 0.3.0
    */
   readonly dragAndDrop: (
-    source: Parameters<Page["dragAndDrop"]>[0],
-    target: Parameters<Page["dragAndDrop"]>[1],
-    options?: Parameters<Page["dragAndDrop"]>[2],
+    source: Parameters<CorePage["dragAndDrop"]>[0],
+    target: Parameters<CorePage["dragAndDrop"]>[1],
+    options?: Parameters<CorePage["dragAndDrop"]>[2],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
@@ -616,17 +603,17 @@ export interface PlaywrightPageService {
    * yield* page.emulateMedia({ media: "print" });
    * ```
    *
-   * @see {@link Page.emulateMedia}
+   * @see {@link CorePage.emulateMedia}
    * @since 0.3.0
    */
   readonly emulateMedia: (
-    options?: Parameters<Page["emulateMedia"]>[0],
+    options?: Parameters<CorePage["emulateMedia"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Reloads the page.
    *
-   * @see {@link Page.reload}
+   * @see {@link CorePage.reload}
    * @since 0.1.0
    */
   readonly reload: Effect.Effect<void, PlaywrightError>;
@@ -638,12 +625,12 @@ export interface PlaywrightPageService {
    * const response = yield* page.goBack();
    * ```
    *
-   * @see {@link Page.goBack}
+   * @see {@link CorePage.goBack}
    * @since 0.3.0
    */
   readonly goBack: (
-    options?: Parameters<Page["goBack"]>[0],
-  ) => Effect.Effect<Option.Option<PlaywrightResponse>, PlaywrightError>;
+    options?: Parameters<CorePage["goBack"]>[0],
+  ) => Effect.Effect<Option.Option<Response>, PlaywrightError>;
   /**
    * Navigate to the next page in history.
    *
@@ -652,45 +639,45 @@ export interface PlaywrightPageService {
    * const response = yield* page.goForward();
    * ```
    *
-   * @see {@link Page.goForward}
+   * @see {@link CorePage.goForward}
    * @since 0.3.0
    */
   readonly goForward: (
-    options?: Parameters<Page["goForward"]>[0],
-  ) => Effect.Effect<Option.Option<PlaywrightResponse>, PlaywrightError>;
+    options?: Parameters<CorePage["goForward"]>[0],
+  ) => Effect.Effect<Option.Option<Response>, PlaywrightError>;
   /**
    * Request the page to perform garbage collection. Note that there is no guarantee that all unreachable objects will
    * be collected.
    *
-   * @see {@link Page.requestGC}
+   * @see {@link CorePage.requestGC}
    * @since 0.3.0
    */
   readonly requestGC: Effect.Effect<void, PlaywrightError>;
   /**
    * Brings page to front (activates tab).
    *
-   * @see {@link Page.bringToFront}
+   * @see {@link CorePage.bringToFront}
    * @since 0.3.0
    */
   readonly bringToFront: Effect.Effect<void, PlaywrightError>;
   /**
    * Pauses the script execution.
    *
-   * @see {@link Page.pause}
+   * @see {@link CorePage.pause}
    * @since 0.3.0
    */
   readonly pause: Effect.Effect<void, PlaywrightError>;
   /**
    * Closes the page.
    *
-   * @see {@link Page.close}
+   * @see {@link CorePage.close}
    * @since 0.1.0
    */
   readonly close: Effect.Effect<void, PlaywrightError>;
   /**
    * Indicates that the page has been closed.
    *
-   * @see {@link Page.isClosed}
+   * @see {@link CorePage.isClosed}
    * @since 0.3.0
    */
   readonly isClosed: () => boolean;
@@ -703,7 +690,7 @@ export interface PlaywrightPageService {
    * const url = page.url();
    * ```
    *
-   * @see {@link Page.url}
+   * @see {@link CorePage.url}
    * @since 0.1.0
    */
   readonly url: () => string;
@@ -711,7 +698,7 @@ export interface PlaywrightPageService {
   /**
    * Clears all highlights.
    *
-   * @see {@link Page.hideHighlight}
+   * @see {@link CorePage.hideHighlight}
    * @since 0.5.0
    */
   readonly hideHighlight: Effect.Effect<void, PlaywrightError>;
@@ -719,7 +706,7 @@ export interface PlaywrightPageService {
   /**
    * Clears stored console messages.
    *
-   * @see {@link Page.clearConsoleMessages}
+   * @see {@link CorePage.clearConsoleMessages}
    * @since 0.5.0
    */
   readonly clearConsoleMessages: Effect.Effect<void, PlaywrightError>;
@@ -727,7 +714,7 @@ export interface PlaywrightPageService {
   /**
    * Clears stored page errors.
    *
-   * @see {@link Page.clearPageErrors}
+   * @see {@link CorePage.clearPageErrors}
    * @since 0.5.0
    */
   readonly clearPageErrors: Effect.Effect<void, PlaywrightError>;
@@ -740,11 +727,11 @@ export interface PlaywrightPageService {
    * const consoleMessages = yield* page.consoleMessages();
    * ```
    *
-   * @see {@link Page.consoleMessages}
+   * @see {@link CorePage.consoleMessages}
    * @since 0.3.0
    */
   readonly consoleMessages: (
-    options?: Parameters<Page["consoleMessages"]>[0],
+    options?: Parameters<CorePage["consoleMessages"]>[0],
   ) => Effect.Effect<ReadonlyArray<ConsoleMessage>, PlaywrightError>;
 
   /**
@@ -755,39 +742,33 @@ export interface PlaywrightPageService {
    * const pageErrors = yield* page.pageErrors();
    * ```
    *
-   * @see {@link Page.pageErrors}
+   * @see {@link CorePage.pageErrors}
    * @since 0.3.0
    */
   readonly pageErrors: (
-    options?: Parameters<Page["pageErrors"]>[0],
+    options?: Parameters<CorePage["pageErrors"]>[0],
   ) => Effect.Effect<ReadonlyArray<Error>, PlaywrightError>;
 
   /**
    * Returns the most recent network requests from the page.
    *
-   * @see {@link Page.requests}
+   * @see {@link CorePage.requests}
    * @since 0.5.0
    */
-  readonly requests: Effect.Effect<
-    ReadonlyArray<PlaywrightRequest>,
-    PlaywrightError
-  >;
+  readonly requests: Effect.Effect<ReadonlyArray<Request>, PlaywrightError>;
 
   /**
    * Enters an interactive mode where hovering over elements highlights them and shows the corresponding locator.
    *
-   * @see {@link Page.pickLocator}
+   * @see {@link CorePage.pickLocator}
    * @since 0.5.0
    */
-  readonly pickLocator: Effect.Effect<
-    typeof PlaywrightLocator.Service,
-    PlaywrightError
-  >;
+  readonly pickLocator: Effect.Effect<typeof Locator.Service, PlaywrightError>;
 
   /**
    * Cancels the locator picking mode.
    *
-   * @see {@link Page.cancelPickLocator}
+   * @see {@link CorePage.cancelPickLocator}
    * @since 0.5.0
    */
   readonly cancelPickLocator: Effect.Effect<void, PlaywrightError>;
@@ -795,40 +776,37 @@ export interface PlaywrightPageService {
   /**
    * Captures the aria snapshot of the page.
    *
-   * @see {@link Page.ariaSnapshot}
+   * @see {@link CorePage.ariaSnapshot}
    * @since 0.5.0
    */
   readonly ariaSnapshot: (
-    options?: Parameters<Page["ariaSnapshot"]>[0],
+    options?: Parameters<CorePage["ariaSnapshot"]>[0],
   ) => Effect.Effect<string, PlaywrightError>;
 
   /**
    * Returns all workers.
    *
-   * @see {@link Page.workers}
+   * @see {@link CorePage.workers}
    * @since 0.3.0
    */
-  readonly workers: () => ReadonlyArray<PlaywrightWorker>;
+  readonly workers: () => ReadonlyArray<Worker>;
 
   /**
    * Get the browser context that the page belongs to.
    *
-   * @see {@link Page.context}
+   * @see {@link CorePage.context}
    * @since 0.3.0
    */
-  readonly context: () => PlaywrightBrowserContextService;
+  readonly context: () => BrowserContextService;
   /**
    * Returns the opener for popup pages and `Option.none` for others.
    *
    * If the opener has been closed already, returns `Option.none`.
    *
-   * @see {@link Page.opener}
+   * @see {@link CorePage.opener}
    * @since 0.3.0
    */
-  readonly opener: Effect.Effect<
-    Option.Option<PlaywrightPageService>,
-    PlaywrightError
-  >;
+  readonly opener: Effect.Effect<Option.Option<PageService>, PlaywrightError>;
   /**
    * Returns a frame matching the specified criteria.
    *
@@ -837,30 +815,30 @@ export interface PlaywrightPageService {
    * const frame = Option.getOrNull(page.frame("frame-name"));
    * ```
    *
-   * @see {@link Page.frame}
+   * @see {@link CorePage.frame}
    * @since 0.3.0
    */
   readonly frame: (
-    frameSelector: Parameters<Page["frame"]>[0],
-  ) => Option.Option<typeof PlaywrightFrame.Service>;
+    frameSelector: Parameters<CorePage["frame"]>[0],
+  ) => Option.Option<typeof Frame.Service>;
 
   /**
    * Returns all frames attached to the page.
    *
-   * @see {@link Page.frames}
+   * @see {@link CorePage.frames}
    * @since 0.2.0
    */
   readonly frames: Effect.Effect<
-    ReadonlyArray<typeof PlaywrightFrame.Service>,
+    ReadonlyArray<typeof Frame.Service>,
     PlaywrightError
   >;
   /**
    * The page's main frame. Page is guaranteed to have a main frame which persists during navigations.
    *
-   * @see {@link Page.mainFrame}
+   * @see {@link CorePage.mainFrame}
    * @since 0.3.0
    */
-  readonly mainFrame: () => typeof PlaywrightFrame.Service;
+  readonly mainFrame: () => typeof Frame.Service;
   /**
    * Creates a stream of the given event from the page.
    *
@@ -870,7 +848,7 @@ export interface PlaywrightPageService {
    * ```
    *
    * @category custom
-   * @see {@link Page.on}
+   * @see {@link CorePage.on}
    * @since 0.1.0
    */
   readonly eventStream: <K extends keyof PageEvents>(
@@ -881,26 +859,27 @@ export interface PlaywrightPageService {
 /**
  * @category tag
  */
-export class PlaywrightPage extends Context.Tag(
-  "effect-playwright/PlaywrightPage",
-)<PlaywrightPage, PlaywrightPageService>() {
+export class Page extends Context.Tag("effect-playwright/page/Page")<
+  Page,
+  PageService
+>() {
   /**
-   * Creates a `PlaywrightPage` from a Playwright `Page` instance.
+   * Creates a `Page` from a Playwright `Page` instance.
    *
    * @param page - The Playwright `Page` instance to wrap.
    * @since 0.1.0
    */
-  static make(page: PageWithPatchedEvents): PlaywrightPageService {
+  static make(page: PageWithPatchedEvents): PageService {
     const use = useHelper(page);
 
-    return PlaywrightPage.of({
-      clock: PlaywrightClock.make(page.clock),
-      localStorage: PlaywrightWebStorage.make(page.localStorage),
-      keyboard: PlaywrightKeyboard.make(page.keyboard),
-      mouse: PlaywrightMouse.make(page.mouse),
-      touchscreen: PlaywrightTouchscreen.make(page.touchscreen),
-      screencast: PlaywrightScreencast.make(page.screencast),
-      sessionStorage: PlaywrightWebStorage.make(page.sessionStorage),
+    return Page.of({
+      clock: Clock.make(page.clock),
+      localStorage: WebStorage.make(page.localStorage),
+      keyboard: Keyboard.make(page.keyboard),
+      mouse: Mouse.make(page.mouse),
+      touchscreen: Touchscreen.make(page.touchscreen),
+      screencast: Screencast.make(page.screencast),
+      sessionStorage: WebStorage.make(page.sessionStorage),
       goto: (url, options) => use((p) => p.goto(url, options)),
       setContent: (html, options) => use((p) => p.setContent(html, options)),
       waitForTimeout: (timeout) => use((p) => p.waitForTimeout(timeout)),
@@ -920,7 +899,7 @@ export class PlaywrightPage extends Context.Tag(
       evaluate: <R, Arg>(
         f: PageFunction<Arg, R>,
         arg?: Arg,
-        options?: Parameters<Page["evaluate"]>[2],
+        options?: Parameters<CorePage["evaluate"]>[2],
       ) =>
         use((p) =>
           p.evaluate<R, Arg>(
@@ -934,7 +913,7 @@ export class PlaywrightPage extends Context.Tag(
           | PageFunction<Arg, unknown>
           | { path?: string; content?: string },
         arg?: Arg,
-        options?: Parameters<Page["addInitScript"]>[2],
+        options?: Parameters<CorePage["addInitScript"]>[2],
       ) =>
         use((p) =>
           p.addInitScript<Arg>(
@@ -967,20 +946,18 @@ export class PlaywrightPage extends Context.Tag(
           ),
         ),
       locator: (selector, options) =>
-        PlaywrightLocator.make(page.locator(selector, options)),
-      getByRole: (role, options) =>
-        PlaywrightLocator.make(page.getByRole(role, options)),
-      getByText: (text, options) =>
-        PlaywrightLocator.make(page.getByText(text, options)),
+        Locator.make(page.locator(selector, options)),
+      getByRole: (role, options) => Locator.make(page.getByRole(role, options)),
+      getByText: (text, options) => Locator.make(page.getByText(text, options)),
       getByLabel: (label, options) =>
-        PlaywrightLocator.make(page.getByLabel(label, options)),
-      getByTestId: (testId) => PlaywrightLocator.make(page.getByTestId(testId)),
+        Locator.make(page.getByLabel(label, options)),
+      getByTestId: (testId) => Locator.make(page.getByTestId(testId)),
       getByAltText: (text, options) =>
-        PlaywrightLocator.make(page.getByAltText(text, options)),
+        Locator.make(page.getByAltText(text, options)),
       getByPlaceholder: (text, options) =>
-        PlaywrightLocator.make(page.getByPlaceholder(text, options)),
+        Locator.make(page.getByPlaceholder(text, options)),
       getByTitle: (text, options) =>
-        PlaywrightLocator.make(page.getByTitle(text, options)),
+        Locator.make(page.getByTitle(text, options)),
       url: () => page.url(),
       hideHighlight: use((p) => p.hideHighlight()),
       clearConsoleMessages: use((p) => p.clearConsoleMessages()),
@@ -988,34 +965,34 @@ export class PlaywrightPage extends Context.Tag(
       consoleMessages: (options) => use((p) => p.consoleMessages(options)),
       pageErrors: (options) => use((p) => p.pageErrors(options)),
       requests: use((p) => p.requests()).pipe(
-        Effect.map(Array.map(PlaywrightRequest.make)),
+        Effect.map(Array.map(Request.make)),
       ),
-      pickLocator: use((p) => p.pickLocator().then(PlaywrightLocator.make)),
+      pickLocator: use((p) => p.pickLocator().then(Locator.make)),
       cancelPickLocator: use((p) => p.cancelPickLocator()),
       ariaSnapshot: (options) => use((p) => p.ariaSnapshot(options)),
-      context: () => PlaywrightBrowserContext.make(page.context()),
+      context: () => BrowserContext.make(page.context()),
       opener: use((p) => p.opener()).pipe(
         Effect.map(Option.fromNullable),
-        Effect.map(Option.map(PlaywrightPage.make)),
+        Effect.map(Option.map(Page.make)),
       ),
-      workers: () => page.workers().map(PlaywrightWorker.make),
+      workers: () => page.workers().map(Worker.make),
 
       frame: (frameSelector) =>
         Option.fromNullable(page.frame(frameSelector)).pipe(
-          Option.map(PlaywrightFrame.make),
+          Option.map(Frame.make),
         ),
-      frames: use((p) => Promise.resolve(p.frames().map(PlaywrightFrame.make))),
-      mainFrame: () => PlaywrightFrame.make(page.mainFrame()),
+      frames: use((p) => Promise.resolve(p.frames().map(Frame.make))),
+      mainFrame: () => Frame.make(page.mainFrame()),
       reload: use((p) => p.reload()),
       goBack: (options) =>
         use((p) => p.goBack(options)).pipe(
           Effect.map(Option.fromNullable),
-          Effect.map(Option.map(PlaywrightResponse.make)),
+          Effect.map(Option.map(Response.make)),
         ),
       goForward: (options) =>
         use((p) => p.goForward(options)).pipe(
           Effect.map(Option.fromNullable),
-          Effect.map(Option.map(PlaywrightResponse.make)),
+          Effect.map(Option.map(Response.make)),
         ),
       requestGC: use((p) => p.requestGC()),
       bringToFront: use((p) => p.bringToFront()),

@@ -1,10 +1,10 @@
 import { assert, layer } from "@effect/vitest";
 import { Chunk, Effect, Fiber, Stream } from "effect";
 import { chromium } from "playwright-core";
-import type { PlaywrightBrowser } from "./browser";
+import type { Browser } from "./browser";
 import { Playwright } from "./index";
 
-layer(Playwright.layer)("PlaywrightBrowser", (it) => {
+layer(Playwright.layer)("Browser", (it) => {
   it.scoped("newPage should create a page", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
@@ -119,7 +119,7 @@ layer(Playwright.layer)("PlaywrightBrowser", (it) => {
   it.effect("newContext and browser finalizers should work", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright;
-      let capturedBrowser: typeof PlaywrightBrowser.Service | undefined;
+      let capturedBrowser: typeof Browser.Service | undefined;
 
       yield* Effect.scoped(
         Effect.gen(function* () {

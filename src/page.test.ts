@@ -1,8 +1,8 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect, Fiber, Option, Ref, Stream } from "effect";
 import { chromium } from "playwright-core";
-import { PlaywrightBrowser } from "./browser";
-import { PlaywrightEnvironment } from "./experimental";
+import { Browser } from "./browser";
+import { Environment } from "./experimental";
 
 type TestWindow = Window & {
   timerFired?: boolean;
@@ -11,10 +11,10 @@ type TestWindow = Window & {
   magicValue?: number;
 };
 
-layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
+layer(Environment.layer(chromium))("Page", (it) => {
   it.scoped("goto should navigate to a URL", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       // Using about:blank to avoid external network dependencies in tests if possible,
@@ -22,34 +22,34 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       yield* page.goto("about:blank");
       const url = yield* page.use((p) => Promise.resolve(p.url()));
       assert(url === "about:blank");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("setContent should set the page content", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.setContent("<h1>Hello World</h1>");
       const content = yield* page.content;
       assert(content.includes("<h1>Hello World</h1>"));
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("title should return the page title", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("data:text/html,<title>Test Page</title>");
       const title = yield* page.title;
       assert(title === "Test Page");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("content should return the page content", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto(
@@ -57,12 +57,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       );
       const content = yield* page.content;
       assert(content.includes("<h1>Hello</h1>"));
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("click should click an element", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -78,37 +78,37 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).clicked,
       );
       assert(clicked === true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("goto should work with options", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("about:blank", { waitUntil: "domcontentloaded" });
       const url = yield* page.use((p) => Promise.resolve(p.url()));
       assert(url === "about:blank");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("waitForTimeout should wait", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const start = Date.now();
       yield* page.waitForTimeout(100);
       const end = Date.now();
       assert(end - start >= 100);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped(
     "evaluate should run code in the page context with destructured arg",
     () =>
       Effect.gen(function* () {
-        const browser = yield* PlaywrightBrowser;
+        const browser = yield* Browser;
         const page = yield* browser.newPage();
 
         const result = yield* page.evaluate(
@@ -116,24 +116,24 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
           [10, 20] as const,
         );
         assert(result === 30);
-      }).pipe(PlaywrightEnvironment.withBrowser),
+      }).pipe(Environment.withBrowser),
   );
 
   it.scoped("evaluate should run code with a single value arg", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const result = yield* page.evaluate((val: number) => val * 2, 21);
       assert(result === 42);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped(
     "evaluate should expose a function-valued argument in the page context",
     () =>
       Effect.gen(function* () {
-        const browser = yield* PlaywrightBrowser;
+        const browser = yield* Browser;
         const page = yield* browser.newPage();
 
         const result = yield* page.evaluate(
@@ -144,12 +144,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         );
 
         assert.strictEqual(result, 42);
-      }).pipe(PlaywrightEnvironment.withBrowser),
+      }).pipe(Environment.withBrowser),
   );
 
   it.scoped("click should work with options", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -169,22 +169,22 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).clickCoords,
       );
       assert(coords !== null);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("use should allow accessing raw playwright page", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const content = yield* page.use((p) => p.content());
       assert(typeof content === "string");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("locator should work with options", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -200,12 +200,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       const attr = yield* locator.getAttribute("data-id");
       assert(attr === "target");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("getBy* methods should work", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -245,12 +245,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       const byTitle = yield* page.getByTitle("Title Text").textContent();
       assert(byTitle === "Hover Me");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("waitForURL should work with History API", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("about:blank");
@@ -261,12 +261,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       yield* page.waitForURL((url) => url.hash === "#test-history");
       const url = page.url();
       assert(url.endsWith("#test-history"));
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("filechooser event should work", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -282,12 +282,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const results = yield* Fiber.join(fileChooser).pipe(Effect.flatten);
 
       assert(results.isMultiple() === false, "isMultiple should be false");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("waitForLoadState should resolve", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       // Using about:blank and history API to simulate some activity, but networkidle is tricky on blank page.
@@ -299,11 +299,11 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       // No assertion needed other than it doesn't timeout/error
       assert.ok(true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
   it.scoped("url property should update after navigation", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const url1 = "data:text/html,<h1>Page 1</h1>";
@@ -313,12 +313,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const url2 = "data:text/html,<h1>Page 2</h1>";
       yield* page.goto(url2);
       assert.strictEqual(page.url(), url2);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("goBack and goForward should navigate through history", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const url1 = "data:text/html,<h1>Page 1</h1>";
@@ -333,22 +333,22 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       yield* page.goForward();
       assert.strictEqual(page.url(), url2, "URL should be updated to url2");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("requestGC should execute without error", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.requestGC;
       assert.ok(true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("clock should allow fast forwarding time", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       // Install clock
@@ -372,12 +372,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).timerFired,
       );
       assert.strictEqual(timerFired, true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("clock should allow fast forwarding time on context", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const context = yield* browser.newContext();
       const page = yield* context.newPage;
 
@@ -404,12 +404,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).timerFired,
       );
       assert.strictEqual(timerFired, true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("addInitScript should execute script before page load", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.addInitScript(
@@ -426,12 +426,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).magicValue,
       );
       assert.strictEqual(magicValue, 42);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("keyboard should allow typing text", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -445,12 +445,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (document.getElementById("input") as HTMLInputElement).value,
       );
       assert.strictEqual(value, "Hello Effect");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("mouse should allow dispatching events", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -470,12 +470,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).clicked,
       );
       assert.strictEqual(clicked, true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("touchscreen should allow dispatching events", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const context = yield* browser.newContext({ hasTouch: true });
       const page = yield* context.newPage;
 
@@ -506,12 +506,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).clickCoords,
       );
       assert.deepStrictEqual(coords, { x: 50, y: 50 });
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("screenshot should capture an image", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("data:text/html,<h1>Screenshot Test</h1>");
@@ -519,12 +519,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       assert(Buffer.isBuffer(buffer));
       assert(buffer.length > 0);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("pdf should capture a PDF", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("data:text/html,<h1>PDF Test</h1>");
@@ -532,12 +532,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       assert(Buffer.isBuffer(buffer));
       assert(buffer.length > 0);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("addScriptTag should add a script tag to the page", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("about:blank");
@@ -548,12 +548,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).magicValue,
       );
       assert.strictEqual(magicValue, 42);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("addStyleTag should add a style tag to the page", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("about:blank");
@@ -571,11 +571,11 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         return el ? window.getComputedStyle(el).color : null;
       });
       assert.strictEqual(color, "rgb(255, 0, 0)");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
   it.scoped("bringToFront should bring the page to the front", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const context = yield* browser.newContext();
       const page1 = yield* context.newPage;
       const page2 = yield* context.newPage;
@@ -585,12 +585,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       // Ensure no errors are thrown
       assert.ok(true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("consoleMessages should return console messages", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("about:blank");
@@ -605,12 +605,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       assert.strictEqual(messages.length, 2);
       assert.strictEqual(messages[0].text(), "Hello from page");
       assert.strictEqual(messages[1].text(), "Warning from page");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("pageerror event should work", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("about:blank");
@@ -628,12 +628,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const errorOpt = yield* Fiber.join(errorFiber);
       const error = Option.getOrThrow(errorOpt);
       assert.strictEqual(error.message, "Test Error");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("pageErrors should return all page errors", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("about:blank");
@@ -653,12 +653,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const errors = yield* page.pageErrors();
       assert.ok(errors.length >= 1);
       assert.strictEqual(errors[0].message, "Test Error");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("context should return the associated browser context", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const context = yield* browser.newContext();
       const page = yield* context.newPage;
 
@@ -668,12 +668,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       // but we can check if it has the right methods and doesn't crash
       const pages = pageContext.pages();
       assert.strictEqual(pages.length, 1);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("dragAndDrop should drag and drop an element", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -700,12 +700,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => (window as TestWindow).magicValue,
       );
       assert.strictEqual(magicValue, 42);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("emulateMedia should emulate media features", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("about:blank");
@@ -725,14 +725,14 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         () => window.matchMedia("(prefers-color-scheme: dark)").matches,
       );
       assert.strictEqual(isDark, false);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped(
     "exposeFunction should expose an function that runs an effect",
     () =>
       Effect.gen(function* () {
-        const browser = yield* PlaywrightBrowser;
+        const browser = yield* Browser;
         const page = yield* browser.newPage();
 
         const ref = yield* Ref.make(0);
@@ -748,12 +748,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
         assert.strictEqual(yield* Ref.get(ref), 1, "Ref value is 1");
         assert.strictEqual(result, 1, "Return value is 1");
-      }).pipe(PlaywrightEnvironment.withBrowser),
+      }).pipe(Environment.withBrowser),
   );
 
   it.scoped("exposeFunction should work with Effect.fn", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const ref = yield* Ref.make(0);
@@ -773,12 +773,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       assert.strictEqual(yield* Ref.get(ref), 15, "Ref value is 15");
       assert.strictEqual(result, 15, "Return value is 15");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("exposeEffect should expose an effect", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const ref = yield* Ref.make(0);
@@ -795,12 +795,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       assert.strictEqual(yield* Ref.get(ref), 1, "Ref value is 1");
       assert.strictEqual(result, 1, "Return value is 1");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
-  it.scoped("frame should return an Option of PlaywrightFrame", () =>
+  it.scoped("frame should return an Option of Frame", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.use((p) =>
@@ -815,12 +815,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       const nonExistentFrame = page.frame("foo");
       assert(Option.isNone(nonExistentFrame), "Frame should be None");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("isClosed should return the closed state of the page", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       assert.strictEqual(page.isClosed(), false);
@@ -828,12 +828,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       yield* page.close;
 
       assert.strictEqual(page.isClosed(), true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("mainFrame should return the main frame", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const mainFrame = page.mainFrame();
@@ -841,12 +841,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       const url = mainFrame.url();
       assert.strictEqual(url, "about:blank");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("opener should return the opener page", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.goto("about:blank");
@@ -868,12 +868,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const opener = Option.getOrThrow(openerOpt);
       const url = opener.url();
       assert.strictEqual(url, "about:blank");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("setViewportSize should update viewport dimensions", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.setViewportSize({ width: 600, height: 400 });
@@ -884,12 +884,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       assert.strictEqual(size.width, 600);
       assert.strictEqual(size.height, 400);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("viewportSize should return the current viewport size", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.setViewportSize({ width: 600, height: 400 });
@@ -899,32 +899,32 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
 
       assert.strictEqual(size.width, 600);
       assert.strictEqual(size.height, 400);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("setExtraHTTPHeaders should not crash", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.setExtraHTTPHeaders({ "x-custom-header": "test-value" });
       assert.ok(true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("setDefaultNavigationTimeout should not crash", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       page.setDefaultNavigationTimeout(1000);
       assert.ok(true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("setDefaultTimeout should influence timeouts", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       page.setDefaultTimeout(1);
@@ -934,13 +934,16 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         .click()
         .pipe(Effect.flip);
 
-      assert.strictEqual(result._tag, "PlaywrightError");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+      assert.strictEqual(
+        result._tag,
+        "effect-playwright/errors/PlaywrightError",
+      );
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("workers should return the list of workers", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const workerFiber = yield* page
@@ -956,11 +959,11 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
       const workers = page.workers();
       assert(workers.length >= 1);
       assert.strictEqual(typeof workers[0].url(), "string");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
   it.scoped("web storage should round-trip items on a page origin", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.use((playwrightPage) =>
@@ -993,6 +996,6 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightPage", (it) => {
         const afterClear = yield* storage.items;
         assert.deepStrictEqual(afterClear, []);
       }
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 });

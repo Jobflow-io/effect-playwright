@@ -1,17 +1,17 @@
 import { Readable } from "node:stream";
 import { Data, Effect, Option, Stream } from "effect";
 import type {
-  Dialog,
-  Download,
+  Dialog as CoreDialog,
+  Download as CoreDownload,
+  FileChooser as CoreFileChooser,
+  Request as CoreRequest,
+  Response as CoreResponse,
+  Worker as CoreWorker,
   ElementHandle,
-  FileChooser,
-  Request,
-  Response,
-  Worker,
 } from "playwright-core";
 import { type PlaywrightError, wrapError } from "./errors";
-import { PlaywrightFrame, type PlaywrightFrameService } from "./frame";
-import { PlaywrightPage, type PlaywrightPageService } from "./page";
+import { Frame, type FrameService } from "./frame";
+import { Page, type PageService } from "./page";
 import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
 
@@ -19,134 +19,141 @@ import { useHelper } from "./utils";
  * @category model
  * @since 0.1.2
  */
-export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
+export class Request extends Data.TaggedClass(
+  "effect-playwright/common/Request",
+)<{
   /**
    * An object with all the request HTTP headers associated with this request. The header names are lower-cased.
-   * @see {@link Request.allHeaders}
+   * @see {@link CoreRequest.allHeaders}
    */
   allHeaders: Effect.Effect<
-    Awaited<ReturnType<Request["allHeaders"]>>,
+    Awaited<ReturnType<CoreRequest["allHeaders"]>>,
     PlaywrightError
   >;
   /**
    * Returns the matching Response object, or null if the response was not received yet.
-   * @see {@link Request.existingResponse}
+   * @see {@link CoreRequest.existingResponse}
    * @since 0.5.1
    */
-  existingResponse: () => Option.Option<PlaywrightResponse>;
+  existingResponse: () => Option.Option<Response>;
   /**
    * The method returns null unless this request was a failed one.
-   * @see {@link Request.failure}
+   * @see {@link CoreRequest.failure}
    */
-  failure: () => Option.Option<NonNullable<ReturnType<Request["failure"]>>>;
+  failure: () => Option.Option<NonNullable<ReturnType<CoreRequest["failure"]>>>;
   /**
    * Returns the Frame that initiated this request.
-   * @see {@link Request.frame}
+   * @see {@link CoreRequest.frame}
    */
-  frame: Effect.Effect<PlaywrightFrameService, PlaywrightError>;
+  frame: Effect.Effect<FrameService, PlaywrightError>;
   /**
    * Returns the value of the header matching the name. The name is case insensitive.
-   * @see {@link Request.headerValue}
+   * @see {@link CoreRequest.headerValue}
    */
   headerValue: (
     name: string,
   ) => Effect.Effect<Option.Option<string>, PlaywrightError>;
   /**
    * An object with the request HTTP headers. The header names are lower-cased.
-   * @see {@link Request.headers}
+   * @see {@link CoreRequest.headers}
    */
-  headers: () => ReturnType<Request["headers"]>;
+  headers: () => ReturnType<CoreRequest["headers"]>;
   /**
    * An array with all the request HTTP headers associated with this request.
-   * @see {@link Request.headersArray}
+   * @see {@link CoreRequest.headersArray}
    */
   headersArray: Effect.Effect<
-    Awaited<ReturnType<Request["headersArray"]>>,
+    Awaited<ReturnType<CoreRequest["headersArray"]>>,
     PlaywrightError
   >;
   /**
    * Whether this request is driving frame's navigation.
-   * @see {@link Request.isNavigationRequest}
+   * @see {@link CoreRequest.isNavigationRequest}
    */
   isNavigationRequest: () => boolean;
   /**
    * Request's method (GET, POST, etc.)
-   * @see {@link Request.method}
+   * @see {@link CoreRequest.method}
    */
   method: () => string;
   /**
    * Request's post body, if any.
-   * @see {@link Request.postData}
+   * @see {@link CoreRequest.postData}
    */
   postData: () => Option.Option<string>;
   /**
    * Request's post body in a binary form, if any.
-   * @see {@link Request.postDataBuffer}
+   * @see {@link CoreRequest.postDataBuffer}
    */
   postDataBuffer: () => Option.Option<
-    NonNullable<ReturnType<Request["postDataBuffer"]>>
+    NonNullable<ReturnType<CoreRequest["postDataBuffer"]>>
   >;
   /**
    * Returns parsed request's body for form-urlencoded and JSON requests.
-   * @see {@link Request.postDataJSON}
+   * @see {@link CoreRequest.postDataJSON}
    */
   postDataJSON: Effect.Effect<
-    Option.Option<NonNullable<Awaited<ReturnType<Request["postDataJSON"]>>>>,
+    Option.Option<
+      NonNullable<Awaited<ReturnType<CoreRequest["postDataJSON"]>>>
+    >,
     PlaywrightError
   >;
   /**
    * Request that was redirected by the server to this one, if any.
-   * @see {@link Request.redirectedFrom}
+   * @see {@link CoreRequest.redirectedFrom}
    */
-  redirectedFrom: () => Option.Option<PlaywrightRequest>;
+  redirectedFrom: () => Option.Option<Request>;
   /**
    * New request issued by the browser if the server responded with redirect.
-   * @see {@link Request.redirectedTo}
+   * @see {@link CoreRequest.redirectedTo}
    */
-  redirectedTo: () => Option.Option<PlaywrightRequest>;
+  redirectedTo: () => Option.Option<Request>;
   /**
    * Contains the request's resource type as it was perceived by the rendering engine.
-   * @see {@link Request.resourceType}
+   * @see {@link CoreRequest.resourceType}
    */
   resourceType: () => string;
   /**
    * Returns the matching Response object, or null if the response was not received due to error.
-   * @see {@link Request.response}
+   * @see {@link CoreRequest.response}
    */
-  response: Effect.Effect<Option.Option<PlaywrightResponse>, PlaywrightError>;
+  response: Effect.Effect<Option.Option<Response>, PlaywrightError>;
   /**
    * Returns the ServiceWorker that initiated this request.
-   * @see {@link Request.serviceWorker}
+   * @see {@link CoreRequest.serviceWorker}
    */
-  serviceWorker: () => Option.Option<PlaywrightWorker>;
+  serviceWorker: () => Option.Option<Worker>;
   /**
    * Returns resource size information for given request.
-   * @see {@link Request.sizes}
+   * @see {@link CoreRequest.sizes}
    */
-  sizes: Effect.Effect<Awaited<ReturnType<Request["sizes"]>>, PlaywrightError>;
+  sizes: Effect.Effect<
+    Awaited<ReturnType<CoreRequest["sizes"]>>,
+    PlaywrightError
+  >;
   /**
    * Returns resource timing information for given request.
-   * @see {@link Request.timing}
+   * @see {@link CoreRequest.timing}
    */
-  timing: () => ReturnType<Request["timing"]>;
+  timing: () => ReturnType<CoreRequest["timing"]>;
   /**
    * URL of the request.
-   * @see {@link Request.url}
+   * @see {@link CoreRequest.url}
    */
   url: () => string;
 }> {
-  static make(request: Request): PlaywrightRequest {
+  static make(request: CoreRequest): Request {
     const use = useHelper(request);
 
-    return new PlaywrightRequest({
+    return new Request({
       allHeaders: use(() => request.allHeaders()),
-      existingResponse: (): Option.Option<PlaywrightResponse> =>
+      existingResponse: (): Option.Option<Response> =>
         Option.fromNullable(request.existingResponse()).pipe(
-          Option.map(PlaywrightResponse.make),
+          Option.map(Response.make),
         ),
       failure: Option.liftNullable(request.failure),
       frame: Effect.try({
-        try: () => PlaywrightFrame.make(request.frame()),
+        try: () => Frame.make(request.frame()),
         catch: wrapError,
       }),
       headerValue: (name) =>
@@ -162,22 +169,22 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
       postDataJSON: use(() => request.postDataJSON()).pipe(
         Effect.map(Option.fromNullable),
       ),
-      redirectedFrom: (): Option.Option<PlaywrightRequest> =>
+      redirectedFrom: (): Option.Option<Request> =>
         Option.fromNullable(request.redirectedFrom()).pipe(
-          Option.map(PlaywrightRequest.make),
+          Option.map(Request.make),
         ),
-      redirectedTo: (): Option.Option<PlaywrightRequest> =>
+      redirectedTo: (): Option.Option<Request> =>
         Option.fromNullable(request.redirectedTo()).pipe(
-          Option.map(PlaywrightRequest.make),
+          Option.map(Request.make),
         ),
       resourceType: () => request.resourceType(),
       response: use(() => request.response()).pipe(
         Effect.map(Option.fromNullable),
-        Effect.map(Option.map(PlaywrightResponse.make)),
+        Effect.map(Option.map(Response.make)),
       ),
       serviceWorker: () =>
         Option.fromNullable(request.serviceWorker()).pipe(
-          Option.map(PlaywrightWorker.make),
+          Option.map(Worker.make),
         ),
       sizes: use(() => request.sizes()),
       timing: () => request.timing(),
@@ -190,21 +197,26 @@ export class PlaywrightRequest extends Data.TaggedClass("PlaywrightRequest")<{
  * @category model
  * @since 0.1.2
  */
-export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
+export class Response extends Data.TaggedClass(
+  "effect-playwright/common/Response",
+)<{
   allHeaders: Effect.Effect<
-    Awaited<ReturnType<Response["allHeaders"]>>,
+    Awaited<ReturnType<CoreResponse["allHeaders"]>>,
     PlaywrightError
   >;
-  body: Effect.Effect<Awaited<ReturnType<Response["body"]>>, PlaywrightError>;
+  body: Effect.Effect<
+    Awaited<ReturnType<CoreResponse["body"]>>,
+    PlaywrightError
+  >;
   finished: Effect.Effect<
-    Awaited<ReturnType<Response["finished"]>>,
+    Awaited<ReturnType<CoreResponse["finished"]>>,
     PlaywrightError
   >;
-  frame: Effect.Effect<PlaywrightFrameService, PlaywrightError>;
+  frame: Effect.Effect<FrameService, PlaywrightError>;
   fromServiceWorker: () => boolean;
-  headers: () => ReturnType<Response["headers"]>;
+  headers: () => ReturnType<CoreResponse["headers"]>;
   headersArray: Effect.Effect<
-    Awaited<ReturnType<Response["headersArray"]>>,
+    Awaited<ReturnType<CoreResponse["headersArray"]>>,
     PlaywrightError
   >;
   headerValue: (
@@ -213,45 +225,51 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
   headerValues: (
     name: string,
   ) => Effect.Effect<
-    Awaited<ReturnType<Response["headerValues"]>>,
+    Awaited<ReturnType<CoreResponse["headerValues"]>>,
     PlaywrightError
   >;
   /**
    * Returns the HTTP version of the response.
-   * @see {@link Response.httpVersion}
+   * @see {@link CoreResponse.httpVersion}
    * @since 0.5.1
    */
   httpVersion: Effect.Effect<
-    Awaited<ReturnType<Response["httpVersion"]>>,
+    Awaited<ReturnType<CoreResponse["httpVersion"]>>,
     PlaywrightError
   >;
-  json: Effect.Effect<Awaited<ReturnType<Response["json"]>>, PlaywrightError>;
+  json: Effect.Effect<
+    Awaited<ReturnType<CoreResponse["json"]>>,
+    PlaywrightError
+  >;
   ok: () => boolean;
-  request: () => PlaywrightRequest;
+  request: () => Request;
   securityDetails: Effect.Effect<
     Option.Option<
-      NonNullable<Awaited<ReturnType<Response["securityDetails"]>>>
+      NonNullable<Awaited<ReturnType<CoreResponse["securityDetails"]>>>
     >,
     PlaywrightError
   >;
   serverAddr: Effect.Effect<
-    Option.Option<NonNullable<Awaited<ReturnType<Response["serverAddr"]>>>>,
+    Option.Option<NonNullable<Awaited<ReturnType<CoreResponse["serverAddr"]>>>>,
     PlaywrightError
   >;
   status: () => number;
   statusText: () => string;
-  text: Effect.Effect<Awaited<ReturnType<Response["text"]>>, PlaywrightError>;
+  text: Effect.Effect<
+    Awaited<ReturnType<CoreResponse["text"]>>,
+    PlaywrightError
+  >;
   url: () => string;
 }> {
-  static make(response: Response) {
+  static make(response: CoreResponse) {
     const use = useHelper(response);
 
-    return new PlaywrightResponse({
+    return new Response({
       allHeaders: use(() => response.allHeaders()),
       body: use(() => response.body()),
       finished: use(() => response.finished()),
       frame: Effect.try({
-        try: () => PlaywrightFrame.make(response.frame()),
+        try: () => Frame.make(response.frame()),
         catch: wrapError,
       }),
       fromServiceWorker: () => response.fromServiceWorker(),
@@ -265,7 +283,7 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
       httpVersion: use(() => response.httpVersion()),
       json: use(() => response.json()),
       ok: () => response.ok(),
-      request: () => PlaywrightRequest.make(response.request()),
+      request: () => Request.make(response.request()),
       securityDetails: use(() => response.securityDetails()).pipe(
         Effect.map(Option.fromNullable),
       ),
@@ -284,17 +302,19 @@ export class PlaywrightResponse extends Data.TaggedClass("PlaywrightResponse")<{
  * @category model
  * @since 0.1.2
  */
-export class PlaywrightWorker extends Data.TaggedClass("PlaywrightWorker")<{
+export class Worker extends Data.TaggedClass(
+  "effect-playwright/common/Worker",
+)<{
   evaluate: <R, Arg = void>(
     pageFunction: PageFunction<Arg, R>,
     arg?: Arg,
   ) => Effect.Effect<R, PlaywrightError>;
   url: () => string;
 }> {
-  static make(worker: Worker) {
+  static make(worker: CoreWorker) {
     const use = useHelper(worker);
 
-    return new PlaywrightWorker({
+    return new Worker({
       // biome-ignore lint/suspicious/noExplicitAny: no idea how to type this.. but it's implementation only here
       evaluate: (f, arg) => use((w) => w.evaluate(f as any, arg)),
       url: () => worker.url(),
@@ -306,26 +326,26 @@ export class PlaywrightWorker extends Data.TaggedClass("PlaywrightWorker")<{
  * @category model
  * @since 0.1.2
  */
-export class PlaywrightDialog extends Data.TaggedClass("PlaywrightDialog")<{
+export class Dialog extends Data.TaggedClass(
+  "effect-playwright/common/Dialog",
+)<{
   accept: (promptText?: string) => Effect.Effect<void, PlaywrightError>;
   defaultValue: () => string;
   dismiss: Effect.Effect<void, PlaywrightError>;
   message: () => string;
-  page: () => Option.Option<PlaywrightPageService>;
+  page: () => Option.Option<PageService>;
   type: () => string;
 }> {
-  static make(dialog: Dialog) {
+  static make(dialog: CoreDialog) {
     const use = useHelper(dialog);
 
-    return new PlaywrightDialog({
+    return new Dialog({
       accept: (promptText) => use(() => dialog.accept(promptText)),
       defaultValue: () => dialog.defaultValue(),
       dismiss: use(() => dialog.dismiss()),
       message: () => dialog.message(),
       page: () =>
-        Option.fromNullable(dialog.page()).pipe(
-          Option.map(PlaywrightPage.make),
-        ),
+        Option.fromNullable(dialog.page()).pipe(Option.map(Page.make)),
       type: () => dialog.type(),
     });
   }
@@ -335,24 +355,24 @@ export class PlaywrightDialog extends Data.TaggedClass("PlaywrightDialog")<{
  * @category model
  * @since 0.1.2
  */
-export class PlaywrightFileChooser extends Data.TaggedClass(
-  "PlaywrightFileChooser",
+export class FileChooser extends Data.TaggedClass(
+  "effect-playwright/common/FileChooser",
 )<{
   element: () => ElementHandle;
   isMultiple: () => boolean;
-  page: () => PlaywrightPageService;
+  page: () => PageService;
   setFiles: (
-    files: Parameters<FileChooser["setFiles"]>[0],
-    options?: Parameters<FileChooser["setFiles"]>[1],
+    files: Parameters<CoreFileChooser["setFiles"]>[0],
+    options?: Parameters<CoreFileChooser["setFiles"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
 }> {
-  static make(fileChooser: FileChooser) {
+  static make(fileChooser: CoreFileChooser) {
     const use = useHelper(fileChooser);
 
-    return new PlaywrightFileChooser({
+    return new FileChooser({
       element: () => fileChooser.element(),
       isMultiple: () => fileChooser.isMultiple(),
-      page: () => PlaywrightPage.make(fileChooser.page()),
+      page: () => Page.make(fileChooser.page()),
       setFiles: (files, options) =>
         use(() => fileChooser.setFiles(files, options)),
     });
@@ -363,7 +383,9 @@ export class PlaywrightFileChooser extends Data.TaggedClass(
  * @category model
  * @since 0.1.2
  */
-export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
+export class Download extends Data.TaggedClass(
+  "effect-playwright/common/Download",
+)<{
   cancel: Effect.Effect<void, PlaywrightError>;
   /**
    * Creates a stream of the download data.
@@ -373,19 +395,19 @@ export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
   stream: Stream.Stream<Uint8Array, PlaywrightError>;
   delete: Effect.Effect<void, PlaywrightError>;
   failure: Effect.Effect<Option.Option<string | null>, PlaywrightError>;
-  page: () => PlaywrightPageService;
+  page: () => PageService;
   path: Effect.Effect<Option.Option<string | null>, PlaywrightError>;
   saveAs: (path: string) => Effect.Effect<void, PlaywrightError>;
   suggestedFilename: () => string;
   url: () => string;
   use: <R>(
-    f: (download: Download) => Promise<R>,
+    f: (download: CoreDownload) => Promise<R>,
   ) => Effect.Effect<R, PlaywrightError>;
 }> {
-  static make(download: Download) {
+  static make(download: CoreDownload) {
     const use = useHelper(download);
 
-    return new PlaywrightDownload({
+    return new Download({
       cancel: use(() => download.cancel()),
       stream: use(() =>
         download.createReadStream().then((s) => Readable.toWeb(s)),
@@ -402,7 +424,7 @@ export class PlaywrightDownload extends Data.TaggedClass("PlaywrightDownload")<{
       failure: use(() => download.failure()).pipe(
         Effect.map(Option.fromNullable),
       ),
-      page: () => PlaywrightPage.make(download.page()),
+      page: () => Page.make(download.page()),
       path: use(() => download.path()).pipe(Effect.map(Option.fromNullable)),
       saveAs: (path) => use(() => download.saveAs(path)),
       suggestedFilename: () => download.suggestedFilename(),

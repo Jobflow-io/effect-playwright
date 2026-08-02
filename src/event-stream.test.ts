@@ -1,13 +1,13 @@
 import { layer } from "@effect/vitest";
 import { Effect, Stream } from "effect";
 import { chromium } from "playwright-core";
-import { PlaywrightBrowser } from "./browser";
-import { PlaywrightEnvironment } from "./experimental";
+import { Browser } from "./browser";
+import { Environment } from "./experimental";
 
-layer(PlaywrightEnvironment.layer(chromium))("eventStream", (it) => {
+layer(Environment.layer(chromium))("eventStream", (it) => {
   it.scoped("should complete when the page closes", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       // Subscribe to an event stream
@@ -23,12 +23,12 @@ layer(PlaywrightEnvironment.layer(chromium))("eventStream", (it) => {
       yield* fiber.await;
 
       // test will timeout if the stream does not complete
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 
   it.scoped("should complete when the browser closes", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       // Subscribe to an event stream
@@ -44,6 +44,6 @@ layer(PlaywrightEnvironment.layer(chromium))("eventStream", (it) => {
       yield* fiber.await;
 
       // test will timeout if the stream does not complete
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(Environment.withBrowser),
   );
 });

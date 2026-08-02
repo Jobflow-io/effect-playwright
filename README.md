@@ -79,43 +79,43 @@ const program = Effect.gen(function* () {
 });
 ```
 
-## PlaywrightEnvironment (Experimental)
+## Environment (Experimental)
 
-The `PlaywrightEnvironment` simplifies setup by allowing you to configure the browser type and launch options once and reuse them across your application.
+The `Environment` simplifies setup by allowing you to configure the browser type and launch options once and reuse them across your application.
 
 ### Usage
 
 ```ts
-import { PlaywrightBrowser, chromium } from "effect-playwright";
-import { PlaywrightEnvironment } from "effect-playwright/experimental";
+import { Browser, chromium } from "effect-playwright";
+import { Environment } from "effect-playwright/experimental";
 import { Effect } from "effect";
 
-const liveLayer = PlaywrightEnvironment.layer(chromium, {
+const liveLayer = Environment.layer(chromium, {
   headless: false /** any other launch options */,
 });
 
 const program = Effect.gen(function* () {
-  const browser = yield* PlaywrightBrowser;
+  const browser = yield* Browser;
   const page = yield* browser.newPage();
 
   yield* page.goto("https://example.com");
-}).pipe(PlaywrightEnvironment.withBrowser);
+}).pipe(Environment.withBrowser);
 
 await Effect.runPromise(program.pipe(Effect.provide(liveLayer)));
 ```
 
-### `PlaywrightEnvironment.withBrowser`
+### `Environment.withBrowser`
 
-The `withBrowser` utility provides the `PlaywrightBrowser` service to your effect. It internally manages a `Scope`, which means the browser will be launched when the effect starts and closed automatically when the effect finishes (including on failure or interruption).
+The `withBrowser` utility provides the `Browser` service to your effect. It internally manages a `Scope`, which means the browser will be launched when the effect starts and closed automatically when the effect finishes (including on failure or interruption).
 
 ```ts
 const program = Effect.gen(function* () {
-  const browser = yield* PlaywrightBrowser; // Now available in context
+  const browser = yield* Browser; // Now available in context
   const page = yield* browser.newPage();
 
   // ...
   // Browser close is ensured
-}).pipe(PlaywrightEnvironment.withBrowser);
+}).pipe(Environment.withBrowser);
 ```
 
 ## Event Handling
@@ -123,7 +123,7 @@ const program = Effect.gen(function* () {
 You can listen to Playwright events using the `eventStream` method. This returns an Effect `Stream` that emits events as they occur.
 
 > [!NOTE]
-> `eventStream` emits "Effectified" wrappers (e.g., `PlaywrightRequest`, `PlaywrightResponse`, `PlaywrightPage`) for most events. This allows you to continue using the Effect ecosystem seamlessly within your event handlers.
+> `eventStream` emits "Effectified" wrappers (e.g., `Request`, `Response`, `Page`) for most events. This allows you to continue using the Effect ecosystem seamlessly within your event handlers.
 
 The stream is automatically managed and will close when the underlying resource (like the Page or Browser) is closed.
 
@@ -133,7 +133,7 @@ Since event streams run indefinitely until the resource closes, you often need t
 
 ```ts
 const program = Effect.gen(function* () {
-  const browser = yield* PlaywrightBrowser;
+  const browser = yield* Browser;
   const page = yield* browser.newPage();
 
   // Create a stream of request events
@@ -149,7 +149,7 @@ const program = Effect.gen(function* () {
   );
 
   yield* page.goto("https://example.com");
-}).pipe(PlaywrightEnvironment.withBrowser);
+}).pipe(Environment.withBrowser);
 ```
 
 ## Accessing Native Playwright
@@ -201,12 +201,12 @@ pnpm add -D @playwright/test effect-playwright
 
 ```ts
 import { Effect } from "effect";
-import { PlaywrightPage } from "effect-playwright";
+import { Page } from "effect-playwright";
 import { expect, test } from "effect-playwright/test";
 
 test.effect("shows the example.com headline", () =>
   Effect.gen(function* () {
-    const page = yield* PlaywrightPage;
+    const page = yield* Page;
     yield* page.goto("https://example.com");
 
     const headline = page.getByRole("heading", { name: "Example Domain" });

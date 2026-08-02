@@ -1,5 +1,5 @@
 import { Context, type Effect } from "effect";
-import type { Tracing } from "playwright-core";
+import type { Tracing as CoreTracing } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { useHelper } from "./utils";
 
@@ -7,61 +7,61 @@ import { useHelper } from "./utils";
  * @category model
  * @since 0.5.0
  */
-export interface PlaywrightTracingService {
+export interface TracingService {
   /**
    * Starts tracing.
    *
-   * @see {@link Tracing.start}
+   * @see {@link CoreTracing.start}
    * @since 0.5.0
    */
   readonly start: (
-    options?: Parameters<Tracing["start"]>[0],
+    options?: Parameters<CoreTracing["start"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Starts a new tracing chunk.
    *
-   * @see {@link Tracing.startChunk}
+   * @see {@link CoreTracing.startChunk}
    * @since 0.5.0
    */
   readonly startChunk: (
-    options?: Parameters<Tracing["startChunk"]>[0],
+    options?: Parameters<CoreTracing["startChunk"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Stops a tracing chunk.
    *
-   * @see {@link Tracing.stopChunk}
+   * @see {@link CoreTracing.stopChunk}
    * @since 0.5.0
    */
   readonly stopChunk: (
-    options?: Parameters<Tracing["stopChunk"]>[0],
+    options?: Parameters<CoreTracing["stopChunk"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Stops tracing.
    *
-   * @see {@link Tracing.stop}
+   * @see {@link CoreTracing.stop}
    * @since 0.5.0
    */
   readonly stop: (
-    options?: Parameters<Tracing["stop"]>[0],
+    options?: Parameters<CoreTracing["stop"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Starts HAR recording.
    *
-   * @see {@link Tracing.startHar}
+   * @see {@link CoreTracing.startHar}
    * @since 0.5.0
    */
   readonly startHar: (
-    options: Parameters<Tracing["startHar"]>[0],
+    options: Parameters<CoreTracing["startHar"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
    * Stops HAR recording.
    *
-   * @see {@link Tracing.stopHar}
+   * @see {@link CoreTracing.stopHar}
    * @since 0.5.0
    */
   readonly stopHar: Effect.Effect<void, PlaywrightError>;
@@ -70,15 +70,16 @@ export interface PlaywrightTracingService {
 /**
  * @category tag
  */
-export class PlaywrightTracing extends Context.Tag(
-  "effect-playwright/PlaywrightTracing",
-)<PlaywrightTracing, PlaywrightTracingService>() {
+export class Tracing extends Context.Tag("effect-playwright/tracing/Tracing")<
+  Tracing,
+  TracingService
+>() {
   /**
    * @category constructor
    */
-  static make(tracing: Tracing): PlaywrightTracingService {
+  static make(tracing: CoreTracing): TracingService {
     const use = useHelper(tracing);
-    return PlaywrightTracing.of({
+    return Tracing.of({
       start: (options) => use((t) => t.start(options)),
       startChunk: (options) => use((t) => t.startChunk(options)),
       stopChunk: (options) => use((t) => t.stopChunk(options)),

@@ -1,38 +1,38 @@
 import { Context, Effect, Stream } from "effect";
 import type { Scope } from "effect/Scope";
 import type {
-  Browser,
-  BrowserContext,
   BrowserType,
+  Browser as CoreBrowser,
+  BrowserContext as CoreBrowserContext,
   chromium,
 } from "playwright-core";
-import { PlaywrightBrowserContext } from "./browser-context";
+import { BrowserContext } from "./browser-context";
 import type { PlaywrightError } from "./errors";
-import { PlaywrightPage } from "./page";
+import { Page } from "./page";
 import type { PatchedEvents } from "./playwright-types";
 import { useHelper } from "./utils";
 
 export type LaunchOptions = Parameters<typeof chromium.launch>[0];
-export type NewPageOptions = Parameters<Browser["newPage"]>[0];
-export type NewContextOptions = Parameters<Browser["newContext"]>[0];
+export type NewPageOptions = Parameters<CoreBrowser["newPage"]>[0];
+export type NewContextOptions = Parameters<CoreBrowser["newContext"]>[0];
 
 interface BrowserEvents {
-  disconnected: Browser;
-  context: BrowserContext;
+  disconnected: CoreBrowser;
+  context: CoreBrowserContext;
 }
 
 const eventMappings = {
-  disconnected: (browser: Browser) => PlaywrightBrowser.make(browser),
-  context: (context: BrowserContext) => PlaywrightBrowserContext.make(context),
+  disconnected: (browser: CoreBrowser) => Browser.make(browser),
+  context: (context: CoreBrowserContext) => BrowserContext.make(context),
 } as const;
 
-type BrowserWithPatchedEvents = PatchedEvents<Browser, BrowserEvents>;
+type BrowserWithPatchedEvents = PatchedEvents<CoreBrowser, BrowserEvents>;
 
 /**
  * @category model
  * @since 0.1.0
  */
-export interface PlaywrightBrowserService {
+export interface BrowserService {
   /**
    * Opens a new page in the browser.
    *
@@ -42,12 +42,12 @@ export interface PlaywrightBrowserService {
    * ```
    *
    * @param options - Optional options for creating the new page.
-   * @returns An effect that resolves to a `PlaywrightPage` service.
-   * @see {@link Browser.newPage}
+   * @returns An effect that resolves to a `Page` service.
+   * @see {@link CoreBrowser.newPage}
    */
   readonly newPage: (
     options?: NewPageOptions,
-  ) => Effect.Effect<typeof PlaywrightPage.Service, PlaywrightError>;
+  ) => Effect.Effect<typeof Page.Service, PlaywrightError>;
   /**
    * A generic utility to execute any promise-based method on the underlying Playwright `Browser`.
    * Can be used to access any Browser functionality not directly exposed by this service.
@@ -59,63 +59,59 @@ export interface PlaywrightBrowserService {
    *
    * @param f - A function that takes the Playwright `Browser` and returns a `Promise`.
    * @returns An effect that wraps the promise and returns its result.
-   * @see {@link Browser}
+   * @see {@link CoreBrowser}
    */
   readonly use: <T>(
-    f: (browser: Browser) => Promise<T>,
+    f: (browser: CoreBrowser) => Promise<T>,
   ) => Effect.Effect<T, PlaywrightError>;
   /**
    * An Effect that closes the browser and all of its pages.
-   * @see {@link Browser.close}
+   * @see {@link CoreBrowser.close}
    */
   readonly close: Effect.Effect<void, PlaywrightError>;
 
   /**
    * Returns the list of all open browser contexts.
-   * @see {@link Browser.contexts}
+   * @see {@link CoreBrowser.contexts}
    */
-  readonly contexts: () => Array<typeof PlaywrightBrowserContext.Service>;
+  readonly contexts: () => Array<typeof BrowserContext.Service>;
 
   readonly newContext: (
     options?: NewContextOptions,
-  ) => Effect.Effect<
-    typeof PlaywrightBrowserContext.Service,
-    PlaywrightError,
-    Scope
-  >;
+  ) => Effect.Effect<typeof BrowserContext.Service, PlaywrightError, Scope>;
 
   /**
    * Returns the browser type (chromium, firefox or webkit) that the browser belongs to.
-   * @see {@link Browser.browserType}
+   * @see {@link CoreBrowser.browserType}
    */
   readonly browserType: () => BrowserType;
 
   /**
    * Returns the version of the browser.
-   * @see {@link Browser.version}
+   * @see {@link CoreBrowser.version}
    */
   readonly version: () => string;
   /**
    * Returns whether the browser is connected.
-   * @see {@link Browser.isConnected}
+   * @see {@link CoreBrowser.isConnected}
    */
   readonly isConnected: () => boolean;
 
   /**
    * Binds the browser to a title.
    *
-   * @see {@link Browser.bind}
+   * @see {@link CoreBrowser.bind}
    * @since 0.5.0
    */
   readonly bind: (
     title: string,
-    options?: Parameters<Browser["bind"]>[1],
+    options?: Parameters<CoreBrowser["bind"]>[1],
   ) => Effect.Effect<{ endpoint: string }, PlaywrightError>;
 
   /**
    * Unbinds the browser.
    *
-   * @see {@link Browser.unbind}
+   * @see {@link CoreBrowser.unbind}
    * @since 0.5.0
    */
   readonly unbind: Effect.Effect<void, PlaywrightError>;
@@ -129,7 +125,7 @@ export interface PlaywrightBrowserService {
    * ```
    *
    * @category custom
-   * @see {@link Browser.on}
+   * @see {@link CoreBrowser.on}
    * @since 0.1.2
    */
   readonly eventStream: <K extends keyof typeof eventMappings>(
@@ -140,24 +136,25 @@ export interface PlaywrightBrowserService {
 /**
  * @category tag
  */
-export class PlaywrightBrowser extends Context.Tag(
-  "effect-playwright/PlaywrightBrowser",
-)<PlaywrightBrowser, PlaywrightBrowserService>() {
+export class Browser extends Context.Tag("effect-playwright/browser/Browser")<
+  Browser,
+  BrowserService
+>() {
   /**
    * @category constructor
    */
-  static make(browser: BrowserWithPatchedEvents): PlaywrightBrowserService {
+  static make(browser: BrowserWithPatchedEvents): BrowserService {
     const use = useHelper(browser);
 
-    return PlaywrightBrowser.of({
+    return Browser.of({
       newPage: (options) =>
-        use((browser) => browser.newPage(options).then(PlaywrightPage.make)),
+        use((browser) => browser.newPage(options).then(Page.make)),
       close: use((browser) => browser.close()),
-      contexts: () => browser.contexts().map(PlaywrightBrowserContext.make),
+      contexts: () => browser.contexts().map(BrowserContext.make),
       newContext: (options) =>
         Effect.acquireRelease(
           use((browser) =>
-            browser.newContext(options).then(PlaywrightBrowserContext.make),
+            browser.newContext(options).then(BrowserContext.make),
           ),
           (context) => context.close.pipe(Effect.ignoreLogged),
         ),
