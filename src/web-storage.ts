@@ -7,10 +7,10 @@ import { useHelper } from "./utils";
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { Browser } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  *
  * const program = Effect.gen(function* () {
- *   const browser = yield* Browser;
+ *   const browser = yield* Playwright.Browser;
  *   const page = yield* browser.newPage();
  *   yield* page.goto("https://example.com");
  *   yield* page.localStorage.setItem("theme", "dark");

@@ -304,10 +304,10 @@ export interface PageService {
    * @example
    * ```ts
    * import { Console, Effect } from "effect";
-   * import { Browser } from "effect-playwright/browser";
+   * import { Playwright } from "effect-playwright";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* Browser;
+   *   const browser = yield* Playwright.Browser;
    *   const page = yield* browser.newPage();
    *
    *   // Expose an Effect-based function to the browser
@@ -326,7 +326,7 @@ export interface PageService {
    * @example
    * ```ts
    * import { Context, Effect } from "effect";
-   * import { Browser } from "effect-playwright/browser";
+   * import { Playwright } from "effect-playwright";
    *
    * // A custom Database service used in your Effect application
    * class Database extends Context.Tag("Database")<
@@ -335,7 +335,7 @@ export interface PageService {
    * >() {}
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* Browser;
+   *   const browser = yield* Playwright.Browser;
    *   const page = yield* browser.newPage();
    *
    *   // Expose a function that seamlessly accesses Effect Context using Effect.fn
@@ -379,10 +379,10 @@ export interface PageService {
    * @example
    * ```ts
    * import { Console, Effect } from "effect";
-   * import { Browser } from "effect-playwright/browser";
+   * import { Playwright } from "effect-playwright";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* Browser;
+   *   const browser = yield* Playwright.Browser;
    *   const page = yield* browser.newPage();
    *
    *   yield* page.exposeEffect("ping", Console.log("pong"));

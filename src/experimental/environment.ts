@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import type { Scope } from "effect/Scope";
-import { Browser, Playwright } from "effect-playwright";
+import { Playwright } from "effect-playwright";
 import type { BrowserType, LaunchOptions } from "playwright-core";
 import type { PlaywrightError } from "../errors";
 
@@ -19,7 +19,7 @@ export class Environment extends Context.Tag(
 )<
   Environment,
   {
-    browser: Effect.Effect<typeof Browser.Service, PlaywrightError, Scope>;
+    browser: Effect.Effect<Playwright.Browser, PlaywrightError, Scope>;
   }
 >() {}
 
@@ -50,7 +50,7 @@ export class Environment extends Context.Tag(
  * @category layer
  */
 export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) =>
-  Playwright.pipe(
+  Playwright.Playwright.pipe(
     Effect.map((playwright) =>
       Environment.of({
         browser: playwright.launchScoped(browser, launchOptions),
@@ -61,12 +61,12 @@ export const layer = (browser: BrowserType, launchOptions?: LaunchOptions) =>
   );
 
 const withBrowserUnscoped = Effect.provideServiceEffect(
-  Browser,
+  Playwright.Browser,
   Environment.pipe(Effect.flatMap((e) => e.browser)),
 );
 
 /**
- * Provides a scoped `Browser` service, allowing you to access the browser from the context (e.g. by yielding `Browser`).
+ * Provides a scoped `Playwright.Browser` service, allowing you to access the browser from the context.
  *
  * You will need to provide the `Environment` layer first.
  *
@@ -75,13 +75,13 @@ const withBrowserUnscoped = Effect.provideServiceEffect(
  * @example
  *
  * ```ts
- * import { chromium } from "effect-playwright";
+ * import { Playwright, chromium } from "effect-playwright";
  * import { Environment } from "effect-playwright/experimental";
  *
  * const env = Environment.layer(chromium);
  *
  * const program = Effect.gen(function* () {
- *     const browser = yield* Browser;
+ *     const browser = yield* Playwright.Browser;
  *     const page = yield* browser.newPage();
  *     yield* page.goto("https://example.com");
  * }).pipe(Environment.withBrowser, Effect.provide(env));

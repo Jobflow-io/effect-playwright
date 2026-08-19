@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.7.0
+
+### Breaking Changes
+
+- **Namespaced Playwright API**: All wrapper tags, service types, model classes, option types, and errors now live under the root `Playwright` namespace. Browser engine exports remain top-level. For example, use `Playwright.Playwright`, `Playwright.layer`, `Playwright.Browser`, `Playwright.BrowserContext`, `Playwright.Page`, and `Playwright.PlaywrightError`.
+
 ## 0.6.0
 
 ### Features

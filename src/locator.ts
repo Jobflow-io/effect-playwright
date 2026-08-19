@@ -325,11 +325,11 @@ export interface LocatorService {
    * ```ts
    * import { chromium } from "@playwright/test";
    * import { Effect } from "effect";
-   * import { Browser } from "effect-playwright";
+   * import { Playwright } from "effect-playwright";
    * import { Environment } from "effect-playwright/experimental";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* Browser;
+   *   const browser = yield* Playwright.Browser;
    *   const page = yield* browser.newPage();
    *   yield* page.setContent('<div id="status">Ready</div>');
    *   yield* page.locator("#status").waitForFunction(
@@ -359,13 +359,13 @@ export interface LocatorService {
    *
    * @example
    * ```ts
-   * import { Browser } from "effect-playwright";
+   * import { Playwright } from "effect-playwright";
    * import { Environment } from "effect-playwright/experimental";
    * import { chromium } from "@playwright/test";
    * import { Effect } from "effect";
    *
    * const program = Effect.gen(function* () {
-   *   const browser = yield* Browser;
+   *   const browser = yield* Playwright.Browser;
    *   const page = yield* browser.newPage();
    *   const locator = yield* page.locator("button");
    *   const buttonContent = yield* locator.evaluate((button) => button.textContent());

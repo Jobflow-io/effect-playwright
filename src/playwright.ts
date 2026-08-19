@@ -5,7 +5,7 @@ import {
   chromium,
 } from "playwright-core";
 
-import { Browser, type LaunchOptions } from "./browser";
+import { Browser as BrowserTag, type LaunchOptions } from "./browser";
 import { BrowserContext } from "./browser-context";
 import { type PlaywrightError, wrapError } from "./errors";
 
@@ -30,7 +30,7 @@ export interface Service {
    * import { Effect } from "effect";
    *
    * const program = Effect.gen(function* () {
-   *   const playwright = yield* Playwright;
+   *   const playwright = yield* Playwright.Playwright;
    *   const browser = yield* playwright.launch(chromium);
    *   // ... use browser ...
    *   yield* browser.close;
@@ -46,7 +46,7 @@ export interface Service {
   launch: (
     browserType: BrowserType,
     options?: LaunchOptions,
-  ) => Effect.Effect<typeof Browser.Service, PlaywrightError>;
+  ) => Effect.Effect<typeof BrowserTag.Service, PlaywrightError>;
   /**
    * Launches a new browser instance managed by a Scope.
    *
@@ -57,7 +57,7 @@ export interface Service {
    * import { Effect } from "effect";
    *
    * const program = Effect.gen(function* () {
-   *   const playwright = yield* Playwright;
+   *   const playwright = yield* Playwright.Playwright;
    *   const browser = yield* playwright.launchScoped(chromium);
    *   // Browser will be closed automatically when scope closes
    * });
@@ -72,7 +72,7 @@ export interface Service {
   launchScoped: (
     browserType: BrowserType,
     options?: LaunchOptions,
-  ) => Effect.Effect<typeof Browser.Service, PlaywrightError, Scope.Scope>;
+  ) => Effect.Effect<typeof BrowserTag.Service, PlaywrightError, Scope.Scope>;
   /**
    * Launches a persistent browser context.
    *
@@ -89,7 +89,7 @@ export interface Service {
    * import { Effect } from "effect";
    *
    * const program = Effect.gen(function* () {
-   *   const playwright = yield* Playwright;
+   *   const playwright = yield* Playwright.Playwright;
    *   const context = yield* playwright.launchPersistentContext(
    *     chromium,
    *     "./.playwright-profile",
@@ -112,7 +112,7 @@ export interface Service {
    * import { Effect } from "effect";
    *
    * const program = Effect.gen(function* () {
-   *   const playwright = yield* Playwright;
+   *   const playwright = yield* Playwright.Playwright;
    *   const context = yield* playwright.launchPersistentContext(
    *     chromium,
    *     "./.playwright-profile",
@@ -145,7 +145,7 @@ export interface Service {
    * import { Effect } from "effect";
    *
    * const program = Effect.gen(function* () {
-   *   const playwright = yield* Playwright;
+   *   const playwright = yield* Playwright.Playwright;
    *   const context = yield* playwright.launchPersistentContextScoped(
    *     chromium,
    *     "./.playwright-profile",
@@ -187,7 +187,7 @@ export interface Service {
    * import { Playwright } from "effect-playwright";
    *
    * const program = Effect.gen(function* () {
-   *   const playwright = yield* Playwright;
+   *   const playwright = yield* Playwright.Playwright;
    *   const browser = yield* playwright.connectCDP(cdpUrl);
    *   yield* Effect.addFinalizer(() => browser.close.pipe(Effect.ignore));
    * });
@@ -202,7 +202,7 @@ export interface Service {
   connectCDP: (
     cdpUrl: string,
     options?: ConnectOverCDPOptions,
-  ) => Effect.Effect<typeof Browser.Service, PlaywrightError>;
+  ) => Effect.Effect<typeof BrowserTag.Service, PlaywrightError>;
   /**
    * Connects to a browser instance via Chrome DevTools Protocol (CDP) managed by a Scope.
    *
@@ -216,7 +216,7 @@ export interface Service {
    * import { Playwright } from "effect-playwright";
    *
    * const program = Effect.gen(function* () {
-   *   const playwright = yield* Playwright;
+   *   const playwright = yield* Playwright.Playwright;
    *   const browser = yield* playwright.connectCDPScoped(cdpUrl);
    *   // Connection will be closed automatically when scope closes
    * });
@@ -231,34 +231,34 @@ export interface Service {
   connectCDPScoped: (
     cdpUrl: string,
     options?: ConnectOverCDPOptions,
-  ) => Effect.Effect<typeof Browser.Service, PlaywrightError, Scope.Scope>;
+  ) => Effect.Effect<typeof BrowserTag.Service, PlaywrightError, Scope.Scope>;
 }
 
 const launch: (
   browserType: BrowserType,
   options?: LaunchOptions,
-) => Effect.Effect<typeof Browser.Service, PlaywrightError> = Effect.fn(
+) => Effect.Effect<typeof BrowserTag.Service, PlaywrightError> = Effect.fn(
   function* (browserType: BrowserType, options?: LaunchOptions) {
     const rawBrowser = yield* Effect.tryPromise({
       try: () => browserType.launch(options),
       catch: wrapError,
     });
 
-    return Browser.make(rawBrowser);
+    return BrowserTag.make(rawBrowser);
   },
 );
 
 const connectCDP: (
   cdpUrl: string,
   options?: ConnectOverCDPOptions,
-) => Effect.Effect<typeof Browser.Service, PlaywrightError> = Effect.fn(
+) => Effect.Effect<typeof BrowserTag.Service, PlaywrightError> = Effect.fn(
   function* (cdpUrl: string, options?: ConnectOverCDPOptions) {
     const browser = yield* Effect.tryPromise({
       try: () => chromium.connectOverCDP(cdpUrl, options),
       catch: wrapError,
     });
 
-    return Browser.make(browser);
+    return BrowserTag.make(browser);
   },
 );
 

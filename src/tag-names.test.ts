@@ -1,44 +1,51 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Browser } from "./browser";
-import { BrowserContext } from "./browser-context";
-import { Clock } from "./clock";
-import { Credentials } from "./credentials";
+import { Playwright } from "effect-playwright";
 import { Environment } from "./experimental/environment";
-import { Frame } from "./frame";
-import { FrameLocator } from "./frame-locator";
-import { Keyboard } from "./keyboard";
-import { Locator } from "./locator";
-import { Mouse } from "./mouse";
-import { Page } from "./page";
-import { Playwright } from "./playwright";
-import { Screencast } from "./screencast";
-import { Touchscreen } from "./touchscreen";
-import { Tracing } from "./tracing";
-import { WebStorage } from "./web-storage";
 
 const tags = [
-  [Browser, "effect-playwright/browser/Browser"],
-  [BrowserContext, "effect-playwright/browser-context/BrowserContext"],
-  [Clock, "effect-playwright/clock/Clock"],
-  [Credentials, "effect-playwright/credentials/Credentials"],
-  [FrameLocator, "effect-playwright/frame-locator/FrameLocator"],
-  [Frame, "effect-playwright/frame/Frame"],
-  [Keyboard, "effect-playwright/keyboard/Keyboard"],
-  [Locator, "effect-playwright/locator/Locator"],
-  [Mouse, "effect-playwright/mouse/Mouse"],
-  [Page, "effect-playwright/page/Page"],
-  [Playwright, "effect-playwright/playwright/Playwright"],
-  [Screencast, "effect-playwright/screencast/Screencast"],
-  [Touchscreen, "effect-playwright/touchscreen/Touchscreen"],
-  [Tracing, "effect-playwright/tracing/Tracing"],
-  [WebStorage, "effect-playwright/web-storage/WebStorage"],
+  [Playwright.Browser, "effect-playwright/browser/Browser"],
+  [
+    Playwright.BrowserContext,
+    "effect-playwright/browser-context/BrowserContext",
+  ],
+  [Playwright.Clock, "effect-playwright/clock/Clock"],
+  [Playwright.Credentials, "effect-playwright/credentials/Credentials"],
+  [Playwright.FrameLocator, "effect-playwright/frame-locator/FrameLocator"],
+  [Playwright.Frame, "effect-playwright/frame/Frame"],
+  [Playwright.Keyboard, "effect-playwright/keyboard/Keyboard"],
+  [Playwright.Locator, "effect-playwright/locator/Locator"],
+  [Playwright.Mouse, "effect-playwright/mouse/Mouse"],
+  [Playwright.Page, "effect-playwright/page/Page"],
+  [Playwright.Playwright, "effect-playwright/playwright/Playwright"],
+  [Playwright.Screencast, "effect-playwright/screencast/Screencast"],
+  [Playwright.Touchscreen, "effect-playwright/touchscreen/Touchscreen"],
+  [Playwright.Tracing, "effect-playwright/tracing/Tracing"],
+  [Playwright.WebStorage, "effect-playwright/web-storage/WebStorage"],
   [Environment, "effect-playwright/experimental/environment/Environment"],
+] as const;
+
+const models = [
+  Playwright.Dialog,
+  Playwright.Download,
+  Playwright.FileChooser,
+  Playwright.PlaywrightError,
+  Playwright.Request,
+  Playwright.Response,
+  Playwright.Worker,
 ] as const;
 
 describe("runtime tag names", () => {
   for (const [TagClass, expectedKey] of tags) {
     it(expectedKey, () => {
       assert.strictEqual(TagClass.key, expectedKey);
+    });
+  }
+});
+
+describe("runtime model exports", () => {
+  for (const ModelClass of models) {
+    it(ModelClass.name, () => {
+      assert.strictEqual(typeof ModelClass, "function");
     });
   }
 });

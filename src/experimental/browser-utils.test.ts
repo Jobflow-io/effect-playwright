@@ -7,7 +7,7 @@ import * as BrowserUtils from "./browser-utils";
 layer(Playwright.layer)("BrowserUtils", (it) => {
   it.scoped("allPages should return all pages from all contexts", () =>
     Effect.gen(function* () {
-      const playwright = yield* Playwright;
+      const playwright = yield* Playwright.Playwright;
       const browser = yield* playwright.launchScoped(chromium);
 
       const context1 = yield* browser.newContext();
@@ -24,7 +24,7 @@ layer(Playwright.layer)("BrowserUtils", (it) => {
 
   it.scoped("allFrames should return all frames from all pages", () =>
     Effect.gen(function* () {
-      const playwright = yield* Playwright;
+      const playwright = yield* Playwright.Playwright;
       const browser = yield* playwright.launchScoped(chromium);
 
       yield* browser.newPage();
@@ -42,7 +42,7 @@ layer(Playwright.layer)("BrowserUtils", (it) => {
     "allFrameNavigatedEventStream should capture navigations from existing and new pages across multiple contexts",
     () =>
       Effect.gen(function* () {
-        const playwright = yield* Playwright;
+        const playwright = yield* Playwright.Playwright;
         const browser = yield* playwright.launchScoped(chromium);
 
         // Setup contexts and an initial page
@@ -88,7 +88,7 @@ layer(Playwright.layer)("BrowserUtils", (it) => {
 
   it.scoped("page eventStream should capture framenavigated", () =>
     Effect.gen(function* () {
-      const playwright = yield* Playwright;
+      const playwright = yield* Playwright.Playwright;
       const browser = yield* playwright.launchScoped(chromium);
       const page = yield* browser.newPage();
 

@@ -8,11 +8,59 @@ layer(Playwright.layer)("Playwright", (it) => {
   it.scoped("should launch a browser", () =>
     Effect.gen(function* () {
       const program = Effect.gen(function* () {
-        const playwright = yield* Playwright;
-        const browser = yield* playwright.launchScoped(chromium);
+        const playwright: Playwright.Playwright & Playwright.Service =
+          yield* Playwright.Playwright;
+        const launchOptions: Playwright.LaunchOptions = { headless: true };
+        const browser: Playwright.Browser & Playwright.BrowserService =
+          yield* playwright.launchScoped(chromium, launchOptions);
 
-        yield* browser.newPage({ baseURL: "about:blank" });
-      });
+        const contextOptions: Playwright.NewContextOptions = {};
+        const context: Playwright.BrowserContext &
+          Playwright.BrowserContextService =
+          yield* browser.newContext(contextOptions);
+
+        const pageOptions: Playwright.NewPageOptions = {};
+        const page: Playwright.Page & Playwright.PageService =
+          yield* browser.newPage(pageOptions);
+        const clock: Playwright.Clock & Playwright.ClockService = page.clock;
+        const credentials: Playwright.Credentials &
+          Playwright.CredentialsService = context.credentials;
+        const frame: Playwright.Frame & Playwright.FrameService =
+          page.mainFrame();
+        const keyboard: Playwright.Keyboard & Playwright.KeyboardService =
+          page.keyboard;
+        const locator: Playwright.Locator & Playwright.LocatorService =
+          page.locator("body");
+        const frameLocator: Playwright.FrameLocator &
+          Playwright.FrameLocatorService = locator.frameLocator("iframe");
+        const mouse: Playwright.Mouse & Playwright.MouseService = page.mouse;
+        const screencast: Playwright.Screencast & Playwright.ScreencastService =
+          page.screencast;
+        const touchscreen: Playwright.Touchscreen &
+          Playwright.TouchscreenService = page.touchscreen;
+        const tracing: Playwright.Tracing & Playwright.TracingService =
+          context.tracing;
+        const storage: Playwright.WebStorage & Playwright.WebStorageService =
+          page.localStorage;
+
+        yield* page.setContent("testing");
+
+        for (const service of [
+          clock,
+          credentials,
+          frame,
+          frameLocator,
+          keyboard,
+          locator,
+          mouse,
+          screencast,
+          storage,
+          touchscreen,
+          tracing,
+        ]) {
+          assert.isDefined(service);
+        }
+      }).pipe(Effect.scoped, Effect.provide(Playwright.layer));
       const result = yield* Effect.exit(program);
 
       assert(result._tag === "Success", "Expected success");
@@ -22,7 +70,7 @@ layer(Playwright.layer)("Playwright", (it) => {
   it.scoped("should launch and run some commands", () =>
     Effect.gen(function* () {
       const program = Effect.gen(function* () {
-        const playwright = yield* Playwright;
+        const playwright = yield* Playwright.Playwright;
         const browser = yield* playwright.launchScoped(chromium);
 
         const page = yield* browser.newPage({ baseURL: "about:blank" });
@@ -41,7 +89,7 @@ layer(Playwright.layer)("Playwright", (it) => {
 
   it.scoped("should launch a persistent context", () =>
     Effect.gen(function* () {
-      const playwright = yield* Playwright;
+      const playwright = yield* Playwright.Playwright;
       const context = yield* playwright.launchPersistentContext(chromium, "");
       const page = yield* context.newPage;
 
@@ -55,7 +103,7 @@ layer(Playwright.layer)("Playwright", (it) => {
 
   it.scoped("should launch a persistent context and close with scope", () =>
     Effect.gen(function* () {
-      const playwright = yield* Playwright;
+      const playwright = yield* Playwright.Playwright;
       let capturedContext: typeof BrowserContext.Service | undefined;
 
       yield* Effect.gen(function* () {
@@ -81,8 +129,8 @@ layer(Playwright.layer)("Playwright", (it) => {
 
   it.scoped("should fail to launch a browser with invalid path", () =>
     Effect.gen(function* () {
-      const playwright = yield* Playwright;
-      const result = yield* playwright
+      const playwright = yield* Playwright.Playwright;
+      const result: Playwright.PlaywrightError = yield* playwright
         .launchScoped(chromium, {
           executablePath: "/invalid/path",
         })
@@ -96,7 +144,7 @@ layer(Playwright.layer)("Playwright", (it) => {
 
   it.scoped("should fail with timeout 1", () =>
     Effect.gen(function* () {
-      const playwright = yield* Playwright;
+      const playwright = yield* Playwright.Playwright;
       const result = yield* playwright
         .launchScoped(chromium, {
           timeout: 1,
@@ -114,7 +162,7 @@ layer(Playwright.layer)("Playwright", (it) => {
   it.scoped(
     "should connect via CDP (confirm browser.close only closes CDP connection)",
     Effect.fn(function* () {
-      const playwright = yield* Playwright;
+      const playwright = yield* Playwright.Playwright;
 
       // 1. Launch a browser that exposes CDP
       const directBrowser = yield* playwright.launchScoped(chromium, {
@@ -144,7 +192,7 @@ layer(Playwright.layer)("Playwright", (it) => {
   it.scoped(
     "should connect via CDP and close automatically with scope",
     Effect.fn(function* () {
-      const playwright = yield* Playwright;
+      const playwright = yield* Playwright.Playwright;
 
       // 1. Launch a browser that exposes CDP
       const directBrowser = yield* playwright.launchScoped(chromium, {
