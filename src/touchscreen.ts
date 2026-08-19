@@ -1,13 +1,19 @@
+/**
+ * Effect service wrapper for Playwright touchscreen input.
+ *
+ * @since 0.3.0
+ */
+
 import { Context, type Effect } from "effect";
 import type { Touchscreen as CoreTouchscreen } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { useHelper } from "./utils";
 
 /**
- * @category model
+ * @category models
  * @since 0.3.0
  */
-export interface TouchscreenService {
+export interface Touchscreen {
   /**
    * Dispatches a `touchstart` and `touchend` event with a single touch at the position
    * ([`x`](https://playwright.dev/docs/api/class-touchscreen#touchscreen-tap-option-x),[`y`](https://playwright.dev/docs/api/class-touchscreen#touchscreen-tap-option-y)).
@@ -22,23 +28,24 @@ export interface TouchscreenService {
 }
 
 /**
- * @category tag
+ * @category services
  * @since 0.3.0
  */
-export class Touchscreen extends Context.Tag(
+export const Touchscreen = Context.GenericTag<Touchscreen>(
   "effect-playwright/touchscreen/Touchscreen",
-)<Touchscreen, TouchscreenService>() {
-  /**
-   * Creates a `Touchscreen` from a Playwright `Touchscreen` instance.
-   *
-   * @param touchscreen - The Playwright `Touchscreen` instance to wrap.
-   * @since 0.3.0
-   */
-  static make(touchscreen: CoreTouchscreen): TouchscreenService {
-    const use = useHelper(touchscreen);
+);
 
-    return Touchscreen.of({
-      tap: (x, y) => use((t) => t.tap(x, y)),
-    });
-  }
-}
+/**
+ * Creates a `Touchscreen` from a Playwright `Touchscreen` instance.
+ *
+ * @param touchscreen - The Playwright `Touchscreen` instance to wrap.
+ * @since 0.3.0
+ * @category constructors
+ */
+export const makeTouchscreen = (touchscreen: CoreTouchscreen): Touchscreen => {
+  const use = useHelper(touchscreen);
+
+  return Touchscreen.of({
+    tap: (x, y) => use((t) => t.tap(x, y)),
+  });
+};

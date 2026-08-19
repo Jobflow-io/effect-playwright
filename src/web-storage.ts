@@ -1,3 +1,9 @@
+/**
+ * Effect service wrapper for page-local and session storage.
+ *
+ * @since 0.5.1
+ */
+
 import { Context, Effect, Option } from "effect";
 import type { WebStorage as CoreWebStorage } from "playwright-core";
 import type { PlaywrightError } from "./errors";
@@ -18,10 +24,10 @@ import { useHelper } from "./utils";
  * });
  * ```
  *
- * @category model
+ * @category models
  * @since 0.5.1
  */
-export interface WebStorageService {
+export interface WebStorage {
   /**
    * Removes all items from storage.
    *
@@ -86,30 +92,31 @@ export interface WebStorageService {
 }
 
 /**
- * @category tag
+ * @category services
  * @since 0.5.1
  */
-export class WebStorage extends Context.Tag(
+export const WebStorage = Context.GenericTag<WebStorage>(
   "effect-playwright/web-storage/WebStorage",
-)<WebStorage, WebStorageService>() {
-  /**
-   * Creates a `WebStorage` from a Playwright `WebStorage` instance.
-   *
-   * @category constructor
-   * @since 0.5.1
-   */
-  static make(webStorage: CoreWebStorage): WebStorageService {
-    const use = useHelper(webStorage);
+);
 
-    return WebStorage.of({
-      clear: use((storage) => storage.clear()),
-      getItem: (name) =>
-        use((storage) => storage.getItem(name)).pipe(
-          Effect.map(Option.fromNullable),
-        ),
-      items: use((storage) => storage.items()),
-      removeItem: (name) => use((storage) => storage.removeItem(name)),
-      setItem: (name, value) => use((storage) => storage.setItem(name, value)),
-    });
-  }
-}
+/**
+ * Creates a `WebStorage` from a Playwright `WebStorage` instance.
+ *
+ * @category constructors
+ * @param webStorage - The Playwright `WebStorage` instance to wrap.
+ * @since 0.5.1
+ */
+export const makeWebStorage = (webStorage: CoreWebStorage): WebStorage => {
+  const use = useHelper(webStorage);
+
+  return WebStorage.of({
+    clear: use((storage) => storage.clear()),
+    getItem: (name) =>
+      use((storage) => storage.getItem(name)).pipe(
+        Effect.map(Option.fromNullable),
+      ),
+    items: use((storage) => storage.items()),
+    removeItem: (name) => use((storage) => storage.removeItem(name)),
+    setItem: (name, value) => use((storage) => storage.setItem(name, value)),
+  });
+};

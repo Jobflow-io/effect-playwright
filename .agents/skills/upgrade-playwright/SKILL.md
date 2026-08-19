@@ -40,18 +40,17 @@ pnpm exec playwright install
 
 #### A. Breaking Changes & Deprecations
 - Search the codebase for any APIs mentioned in the "Breaking Changes" or "Deprecated" sections.
-- Use `rg` to find usages.
+- Use the repository search tool to find usages.
 
 #### B. New APIs
 - Systematically check the `New APIs` section of the release notes.
-- For each new method on a core class (`Page`, `Browser`, etc.), check if `effect-playwright` should expose it.
-- Use `ls src` to find the corresponding wrapper file.
-- Use `rg` to see if the method is already implemented.
+- For each new method on a core class (`Page`, `Locator`, `BrowserContext`, etc.), check if `effect-playwright` should expose it.
+- Inspect `src/` for the corresponding wrapper file and search whether the method is already implemented.
 - **Note on API Design:** If an existing property-like wrapper (e.g., `readonly consoleMessages: Effect<...>`) now has options in Playwright, convert it to a method (e.g., `readonly consoleMessages: (options?) => Effect<...>`).
 
 ### 5. Implementation
 
-* **Create New Wrappers:** For significant new namespaces (e.g., `Screencast`), create a new file (e.g., `src/screencast.ts`) and expose it through the parent service.
+* **Create New Wrappers:** For significant new namespaces (e.g., `Screencast`), define a same-named service interface and `Context.GenericTag`, add a named constructor such as `makeScreencast`, and re-export them directly from `src/playwright-api.ts`.
 * **Fix Breakages:** Address any type errors or removed APIs.
 * **Update Tests:** Check `src/*.test.ts` for any tests that broke due to API changes (especially property-to-method conversions).
 * **Add New APIs:** Systematically add wrappers for new Playwright methods.
@@ -69,7 +68,7 @@ pnpm exec playwright install
 ## Common Gotchas
 
 - **Browser Binary Mismatch:** If tests fail with "Executable doesn't exist", you likely updated `playwright-core` but not `playwright`, or forgot to run `pnpm exec playwright install`.
-- **New Namespaces:** Large additions like `Page.screencast` should be their own Service and Tag, following the pattern of `Clock` or `Keyboard`.
+- **New Namespaces:** Large additions like `Page.screencast` should be their own same-named service interface and `Context.GenericTag`, following the pattern of `Clock` or `Keyboard`.
 
 ## Example: Analyzing 1.60.0
 
@@ -80,6 +79,6 @@ If upgrading to 1.60.0, the release notes mention:
 - `Locator.ariaRef()` removed.
 
 You would then:
-1. `rg "ariaRef" src` to see if we wrapped it (and remove if so).
+1. Search `src/` for `ariaRef` to see if it is wrapped, and remove it if present.
 2. Use `implement-playwright-method` to add `drop` to `src/locator.ts`.
 3. Check if we need to expose the new events in `BrowserContext`.

@@ -34,6 +34,9 @@ jobs:
       - name: Type check
         run: pnpm type-check
 
+      - name: Documentation examples
+        run: pnpm check-doc-examples
+
       - name: Install chromium
         run: pnpm exec playwright install chromium
       - name: Playwright Test integration

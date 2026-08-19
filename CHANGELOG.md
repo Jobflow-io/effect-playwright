@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking Changes
 
-- **Namespaced Playwright API**: All wrapper tags, service types, model classes, option types, and errors now live under the root `Playwright` namespace. Browser engine exports remain top-level. For example, use `Playwright.Playwright`, `Playwright.layer`, `Playwright.Browser`, `Playwright.BrowserContext`, `Playwright.Page`, and `Playwright.PlaywrightError`.
+- **Namespaced Playwright API**: All wrapper tags, canonical service types, model classes, option types, and errors now live under the root `Playwright` namespace. Tags and service types share names, so `Playwright.Browser`, `Playwright.Page`, and the other service names work in both value and type positions. Implementation-only `*Service` names are no longer exported, and wrapper constructors use names such as `Playwright.makeBrowser` and `Playwright.makePage` instead of static `make` methods. Browser engine exports remain top-level.
 - **PlaywrightSpawner**: Renamed the experimental `Environment` namespace and service to `PlaywrightSpawner`. Use `PlaywrightSpawner.PlaywrightSpawner`, `PlaywrightSpawner.layer`, and `PlaywrightSpawner.withBrowser`.
 
 

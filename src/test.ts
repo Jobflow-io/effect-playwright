@@ -30,10 +30,16 @@ import {
   Logger,
   Scope,
 } from "effect";
-import { Browser } from "./browser";
-import { BrowserContext } from "./browser-context";
-import { Page } from "./page";
+import { Browser, makeBrowser } from "./browser";
+import { BrowserContext, makeBrowserContext } from "./browser-context";
+import { makePage, Page } from "./page";
 
+/**
+ * Re-exports Playwright Test's fixtures, assertions, and test APIs.
+ *
+ * @category re-exports
+ * @since 0.6.0
+ */
 export * from "@playwright/test";
 
 /**
@@ -54,6 +60,7 @@ export * from "@playwright/test";
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
@@ -77,6 +84,7 @@ export type TestEnvironment = Browser | BrowserContext | Page | Scope.Scope;
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
@@ -103,6 +111,7 @@ export type EffectTestFunction<Args extends object, A, E, R = never> = (
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
@@ -133,6 +142,7 @@ export interface EffectTest<Args extends object, R = never> {
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-annotations
  * @since 0.6.0
  */
@@ -144,21 +154,50 @@ export interface EffectTester<Args extends object, R = never>
   readonly fail: EffectTest<Args, R> & { readonly only: EffectTest<Args, R> };
 }
 
-interface LayerOptions {
+/**
+ * Options for acquiring an Effect layer shared by a test registration block.
+ * `memoMap` controls layer memoization, while `timeout` bounds setup and
+ * teardown.
+ *
+ * @category options
+ * @since 0.6.0
+ */
+export interface LayerOptions {
   readonly memoMap?: Layer.MemoMap;
   readonly timeout?: Duration.DurationInput;
 }
-
-interface NestedLayerOptions {
+/**
+ * Options for a nested shared layer. Nested layers reuse their parent's memo
+ * map and may configure their own setup and teardown timeout.
+ *
+ * @category options
+ * @since 0.6.0
+ */
+export interface NestedLayerOptions {
   readonly timeout?: Duration.DurationInput;
 }
 
-interface LayerRegistration<T extends object, W extends object, R> {
+/**
+ * Registers tests that share an acquired Effect layer, optionally inside a
+ * named Playwright `describe` block.
+ *
+ * @category models
+ * @since 0.6.0
+ */
+export interface LayerRegistration<T extends object, W extends object, R> {
   (f: (test: LayerTestMethods<T, W, R>) => void): void;
   (name: string, f: (test: LayerTestMethods<T, W, R>) => void): void;
 }
 
-type LayerTestMethods<T extends object, W extends object, R> = TestType<
+/**
+ * Playwright test methods available inside a shared-layer registration block.
+ * The `effect` and `scoped` methods receive the layer's services, and `layer`
+ * adds another layer that depends on the current one.
+ *
+ * @category models
+ * @since 0.6.0
+ */
+export type LayerTestMethods<T extends object, W extends object, R> = TestType<
   T,
   W
 > & {
@@ -170,7 +209,13 @@ type LayerTestMethods<T extends object, W extends object, R> = TestType<
   ) => LayerRegistration<T, W, R | R2>;
 };
 
-type LayerMethod<T extends object, W extends object> = <R, E>(
+/**
+ * Creates a registration block whose tests share an Effect layer.
+ *
+ * @category models
+ * @since 0.6.0
+ */
+export type LayerMethod<T extends object, W extends object> = <R, E>(
   layer: Layer.Layer<R, E>,
   options?: LayerOptions,
 ) => LayerRegistration<T, W, R>;
@@ -193,6 +238,7 @@ type LayerMethod<T extends object, W extends object> = <R, E>(
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
@@ -465,6 +511,7 @@ const makeLayer = <T extends object, W extends object, R, E>(
  * );
  * ```
  *
+ * @category constructors
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
@@ -501,9 +548,9 @@ export const makeMethods: <
           abortController: new AbortController(),
           closed: false,
           context: Context.mergeAll(
-            Context.make(Browser, Browser.make(browser)),
-            Context.make(BrowserContext, BrowserContext.make(context)),
-            Context.make(Page, Page.make(page)),
+            Context.make(Browser, makeBrowser(browser)),
+            Context.make(BrowserContext, makeBrowserContext(context)),
+            Context.make(Page, makePage(page)),
           ),
           running: new Set(),
         };
@@ -555,6 +602,7 @@ export const makeMethods: <
  * );
  * ```
  *
+ * @category testing
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
@@ -583,6 +631,7 @@ export const test = makeMethods(playwrightTest);
  * });
  * ```
  *
+ * @category layers
  * @see https://playwright.dev/docs/api/class-test#test-before-all
  * @since 0.6.0
  */
@@ -607,9 +656,16 @@ export const layer: LayerMethod<PlaywrightTestArgs, PlaywrightWorkerArgs> =
  * );
  * ```
  *
+ * @category testing
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
 export const effect = test.effect;
 
+/**
+ * The standard Playwright Test API enhanced with Effect test and layer methods.
+ *
+ * @category testing
+ * @since 0.6.0
+ */
 export default test;

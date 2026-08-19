@@ -1,3 +1,9 @@
+/**
+ * Effect service wrapper for Playwright locators and element operations.
+ *
+ * @since 0.1.0
+ */
+
 import { Array, Context, Effect, Match, Option, Predicate } from "effect";
 import type {
   Locator as CoreLocator,
@@ -5,16 +11,24 @@ import type {
   JSHandle,
 } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { FrameLocator, type FrameLocatorService } from "./frame-locator";
-import { Page } from "./page";
+import { type FrameLocator, makeFrameLocator } from "./frame-locator";
+import { makePage, type Page } from "./page";
 import type { Unboxed } from "./playwright-types";
 import { useHelper } from "./utils";
 
 /**
- * Interface for a Playwright locator.
- * @category model
+ * Effect-friendly operations for a Playwright locator.
+ *
+ * **When to use**
+ *
+ * Use locators for resilient element selection, interaction, assertions, and
+ * browser-side evaluation. Locator-producing operations are synchronous;
+ * operations that query or interact with the page return `Effect`.
+ *
+ * @category models
+ * @since 0.1.0
  */
-export interface LocatorService {
+export interface Locator {
   /**
    * The underlying Playwright Locator instance.
    * @internal
@@ -141,7 +155,7 @@ export interface LocatorService {
    * @see {@link CoreLocator.describe}
    * @since 0.1.0
    */
-  readonly describe: (description: string) => LocatorService;
+  readonly describe: (description: string) => Locator;
   /**
    * Returns the description of the locator.
    *
@@ -161,21 +175,21 @@ export interface LocatorService {
    * @see {@link CoreLocator.first}
    * @since 0.1.0
    */
-  readonly first: () => LocatorService;
+  readonly first: () => Locator;
   /**
    * Returns a locator that points to the last matched element.
    *
    * @see {@link CoreLocator.last}
    * @since 0.1.0
    */
-  readonly last: () => LocatorService;
+  readonly last: () => Locator;
   /**
    * Returns a locator that points to the nth matched element.
    *
    * @see {@link CoreLocator.nth}
    * @since 0.1.0
    */
-  readonly nth: (index: number) => LocatorService;
+  readonly nth: (index: number) => Locator;
   /**
    * Returns a locator that points to a matched element.
    *
@@ -183,9 +197,9 @@ export interface LocatorService {
    * @since 0.1.0
    */
   readonly locator: (
-    selectorOrLocator: string | CoreLocator | LocatorService,
+    selectorOrLocator: string | CoreLocator | Locator,
     options?: Parameters<CoreLocator["locator"]>[1],
-  ) => LocatorService;
+  ) => Locator;
   /**
    * Allows locating elements by their ARIA role, ARIA attributes and accessible name.
    *
@@ -195,7 +209,7 @@ export interface LocatorService {
   readonly getByRole: (
     role: Parameters<CoreLocator["getByRole"]>[0],
     options?: Parameters<CoreLocator["getByRole"]>[1],
-  ) => LocatorService;
+  ) => Locator;
   /**
    * Allows locating elements that contain given text.
    *
@@ -205,7 +219,7 @@ export interface LocatorService {
   readonly getByText: (
     text: Parameters<CoreLocator["getByText"]>[0],
     options?: Parameters<CoreLocator["getByText"]>[1],
-  ) => LocatorService;
+  ) => Locator;
   /**
    * Allows locating elements by their label text.
    *
@@ -215,7 +229,7 @@ export interface LocatorService {
   readonly getByLabel: (
     text: Parameters<CoreLocator["getByLabel"]>[0],
     options?: Parameters<CoreLocator["getByLabel"]>[1],
-  ) => LocatorService;
+  ) => Locator;
   /**
    * Allows locating elements by their placeholder text.
    *
@@ -225,7 +239,7 @@ export interface LocatorService {
   readonly getByPlaceholder: (
     text: Parameters<CoreLocator["getByPlaceholder"]>[0],
     options?: Parameters<CoreLocator["getByPlaceholder"]>[1],
-  ) => LocatorService;
+  ) => Locator;
   /**
    * Allows locating elements by their alt text.
    *
@@ -235,7 +249,7 @@ export interface LocatorService {
   readonly getByAltText: (
     text: Parameters<CoreLocator["getByAltText"]>[0],
     options?: Parameters<CoreLocator["getByAltText"]>[1],
-  ) => LocatorService;
+  ) => Locator;
   /**
    * Allows locating elements by their title attribute.
    *
@@ -245,7 +259,7 @@ export interface LocatorService {
   readonly getByTitle: (
     text: Parameters<CoreLocator["getByTitle"]>[0],
     options?: Parameters<CoreLocator["getByTitle"]>[1],
-  ) => LocatorService;
+  ) => Locator;
   /**
    * Allows locating elements by their test id.
    *
@@ -254,7 +268,7 @@ export interface LocatorService {
    */
   readonly getByTestId: (
     testId: Parameters<CoreLocator["getByTestId"]>[0],
-  ) => LocatorService;
+  ) => Locator;
   /**
    * Returns whether the element is checked.
    *
@@ -357,19 +371,17 @@ export interface LocatorService {
   /**
    * Evaluates a function on the matched element.
    *
-   * @example
-   * ```ts
-   * import { Playwright } from "effect-playwright";
-   * import { PlaywrightSpawner } from "effect-playwright/experimental";
-   * import { chromium } from "@playwright/test";
-   * import { Effect } from "effect";
+   * **Example** (Evaluating the matched element)
    *
-   * const program = Effect.gen(function* () {
-   *   const browser = yield* Playwright.Browser;
-   *   const page = yield* browser.newPage();
-   *   const locator = yield* page.locator("button");
-   *   const buttonContent = yield* locator.evaluate((button) => button.textContent());
-   * }).pipe(PlaywrightSpawner.withBrowser, Effect.provide(PlaywrightSpawner.layer(chromium)));
+   * ```ts
+   * import { Effect } from "effect";
+   * import { Playwright } from "effect-playwright";
+   *
+   * const buttonContent = Effect.gen(function* () {
+   *   const page = yield* Playwright.Page;
+   *   const locator = page.locator("button");
+   *   return yield* locator.evaluate((button) => button.textContent);
+   * });
    * ```
    *
    * @see {@link CoreLocator.evaluate}
@@ -416,7 +428,7 @@ export interface LocatorService {
    * @see {@link CoreLocator.normalize}
    * @since 0.5.0
    */
-  readonly normalize: () => Effect.Effect<LocatorService, PlaywrightError>;
+  readonly normalize: () => Effect.Effect<Locator, PlaywrightError>;
   /**
    * Captures a screenshot of the element.
    *
@@ -490,54 +502,49 @@ export interface LocatorService {
    * @see {@link CoreLocator.all}
    * @since 0.4.1
    */
-  readonly all: () => Effect.Effect<
-    ReadonlyArray<LocatorService>,
-    PlaywrightError
-  >;
+  readonly all: () => Effect.Effect<ReadonlyArray<Locator>, PlaywrightError>;
   /**
    * Creates a locator that matches both this locator and the argument locator.
    *
    * @see {@link CoreLocator.and}
    * @since 0.4.1
    */
-  readonly and: (locator: LocatorService | CoreLocator) => LocatorService;
+  readonly and: (locator: Locator | CoreLocator) => Locator;
   /**
    * Returns a FrameLocator object pointing to the same iframe as this locator.
    *
    * @see {@link CoreLocator.contentFrame}
    * @since 0.4.1
    */
-  readonly contentFrame: () => FrameLocatorService;
+  readonly contentFrame: () => FrameLocator;
   /**
    * Narrows existing locator according to the options.
    *
    * @see {@link CoreLocator.filter}
    * @since 0.4.1
    */
-  readonly filter: (
-    options?: Parameters<CoreLocator["filter"]>[0],
-  ) => LocatorService;
+  readonly filter: (options?: Parameters<CoreLocator["filter"]>[0]) => Locator;
   /**
    * Creates a frame locator that will enter the iframe and allow selecting elements in that iframe.
    *
    * @see {@link CoreLocator.frameLocator}
    * @since 0.4.1
    */
-  readonly frameLocator: (selector: string) => FrameLocatorService;
+  readonly frameLocator: (selector: string) => FrameLocator;
   /**
    * Creates a locator that matches either this locator or the argument locator.
    *
    * @see {@link CoreLocator.or}
    * @since 0.4.1
    */
-  readonly or: (locator: LocatorService | CoreLocator) => LocatorService;
+  readonly or: (locator: Locator | CoreLocator) => Locator;
   /**
    * A page this locator belongs to.
    *
    * @see {@link CoreLocator.page}
    * @since 0.4.1
    */
-  readonly page: () => typeof Page.Service;
+  readonly page: () => Page;
   /**
    * Removes keyboard focus from the current element.
    *
@@ -583,7 +590,7 @@ export interface LocatorService {
    * @since 0.4.2
    */
   readonly dragTo: (
-    target: LocatorService | CoreLocator,
+    target: Locator | CoreLocator,
     options?: Parameters<CoreLocator["dragTo"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
@@ -691,16 +698,31 @@ export interface LocatorService {
     options?: Parameters<CoreLocator["uncheck"]>[0],
   ) => Effect.Effect<void, PlaywrightError>;
   /**
-   * A generic utility to execute any promise-based method on the underlying Playwright `Locator`.
-   * Can be used to access any Locator functionality not directly exposed by this service.
+   * Runs an asynchronous operation against the underlying Playwright `Locator`.
+   *
+   * **When to use**
+   *
+   * Use this escape hatch only when {@link Locator} does not expose the native
+   * Playwright operation you need.
+   *
+   * **Gotchas**
+   *
+   * The callback must return a `Promise`. Prefer the wrapper API so Playwright
+   * failures remain represented by the documented wrapper operations.
    *
    * @example
-   * ```typescript
-   * const isVisible = yield* locator.use((l) => l.isVisible());
+   * ```ts
+   * import { Effect } from "effect";
+   * import { Playwright } from "effect-playwright";
+   *
+   * const program = Effect.gen(function* () {
+   *   const locator = yield* Playwright.Locator;
+   *   return yield* locator.use((nativeLocator) => nativeLocator.isVisible());
+   * });
    * ```
    *
-   * @param f - A function that takes the Playwright `Locator` and returns a `Promise`.
-   * @returns An effect that wraps the promise and returns its result.
+   * @param f - A function that receives the native locator and returns a promise.
+   * @returns An effect that maps a rejected promise to `PlaywrightError`.
    * @see {@link CoreLocator}
    * @since 0.1.0
    */
@@ -713,204 +735,213 @@ export interface LocatorService {
  * A service that provides a `Locator` instance.
  *
  * @since 0.1.0
- * @category tag
+ * @category services
  */
-export class Locator extends Context.Tag("effect-playwright/locator/Locator")<
-  Locator,
-  LocatorService
->() {
-  /**
-   * Creates a `Locator` from a Playwright `Locator` instance. This is mostly for internal use.
-   * But you could use this if you have used `use` or similar to wrap the locator.
-   *
-   * @example
-   * ```ts
-   * const playwrightNativeLocator = yield* page.use((p) => p.locator("button"));
-   * const locator = Locator.make(playwrightNativeLocator);
-   * ```
-   *
-   * @param locator - The Playwright `Locator` instance to wrap.
-   * @since 0.1.0
-   * @category constructor
-   */
-  static make(locator: CoreLocator): typeof Locator.Service {
-    const use = useHelper(locator);
-    const unwrap = Match.type<CoreLocator | LocatorService>().pipe(
-      Match.when(Predicate.hasProperty("_raw"), (l) => l._raw),
-      Match.orElse((l) => l),
-    );
+export const Locator = Context.GenericTag<Locator>(
+  "effect-playwright/locator/Locator",
+);
 
-    return Locator.of({
-      _raw: locator,
-      click: (options) => use((l) => l.click(options)),
-      check: (options) => use((l) => l.check(options)),
-      fill: (value, options) => use((l) => l.fill(value, options)),
-      getAttribute: (name, options) =>
-        use((l) => l.getAttribute(name, options)),
-      innerText: (options) => use((l) => l.innerText(options)),
-      innerHTML: (options) => use((l) => l.innerHTML(options)),
-      inputValue: (options) => use((l) => l.inputValue(options)),
-      textContent: (options) => use((l) => l.textContent(options)),
-      allInnerTexts: () => use((l) => l.allInnerTexts()),
-      allTextContents: () => use((l) => l.allTextContents()),
-      ariaSnapshot: (options) => use((l) => l.ariaSnapshot(options)),
-      boundingBox: (options) =>
-        use((l) => l.boundingBox(options)).pipe(
-          Effect.map(Option.fromNullable),
+/**
+ * Creates a {@link Locator} from a native Playwright locator.
+ *
+ * **When to use**
+ *
+ * Use this constructor after an escape-hatch operation returns a native
+ * locator that should re-enter the Effect wrapper API.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect";
+ * import { Playwright } from "effect-playwright";
+ *
+ * const program = Effect.gen(function* () {
+ *   const locator = yield* Playwright.Locator;
+ *   const nativeLocator = yield* locator.use(async (nativeLocator) =>
+ *     nativeLocator.locator("button"),
+ *   );
+ *   return Playwright.makeLocator(nativeLocator);
+ * });
+ * ```
+ *
+ * @param locator - The native Playwright locator to wrap.
+ * @category constructors
+ * @since 0.1.0
+ */
+export const makeLocator = (locator: CoreLocator): Locator => {
+  const use = useHelper(locator);
+  const unwrap = Match.type<CoreLocator | Locator>().pipe(
+    Match.when(Predicate.hasProperty("_raw"), (locator) => locator._raw),
+    Match.orElse((locator) => locator),
+  );
+
+  return Locator.of({
+    _raw: locator,
+    click: (options) => use((locator) => locator.click(options)),
+    check: (options) => use((locator) => locator.check(options)),
+    fill: (value, options) => use((locator) => locator.fill(value, options)),
+    getAttribute: (name, options) =>
+      use((locator) => locator.getAttribute(name, options)),
+    innerText: (options) => use((locator) => locator.innerText(options)),
+    innerHTML: (options) => use((locator) => locator.innerHTML(options)),
+    inputValue: (options) => use((locator) => locator.inputValue(options)),
+    textContent: (options) => use((locator) => locator.textContent(options)),
+    allInnerTexts: () => use((locator) => locator.allInnerTexts()),
+    allTextContents: () => use((locator) => locator.allTextContents()),
+    ariaSnapshot: (options) => use((locator) => locator.ariaSnapshot(options)),
+    boundingBox: (options) =>
+      use((locator) => locator.boundingBox(options)).pipe(
+        Effect.map(Option.fromNullable),
+      ),
+    describe: (description) => makeLocator(locator.describe(description)),
+    description: () => Option.fromNullable(locator.description()),
+    count: use((locator) => locator.count()),
+    first: () => makeLocator(locator.first()),
+    last: () => makeLocator(locator.last()),
+    nth: (index: number) => makeLocator(locator.nth(index)),
+    all: () =>
+      use((locator) => locator.all()).pipe(Effect.map(Array.map(makeLocator))),
+    and: (locatorOrService) =>
+      makeLocator(locator.and(unwrap(locatorOrService))),
+    contentFrame: () => makeFrameLocator(locator.contentFrame()),
+    filter: (options) => makeLocator(locator.filter(options)),
+    frameLocator: (selector) =>
+      makeFrameLocator(locator.frameLocator(selector)),
+    or: (locatorOrService) => makeLocator(locator.or(unwrap(locatorOrService))),
+    page: () => makePage(locator.page()),
+    locator: (selectorOrLocator, options) =>
+      makeLocator(
+        typeof selectorOrLocator === "string"
+          ? locator.locator(selectorOrLocator, options)
+          : locator.locator(unwrap(selectorOrLocator), options),
+      ),
+    getByRole: (role, options) => makeLocator(locator.getByRole(role, options)),
+    getByText: (text, options) => makeLocator(locator.getByText(text, options)),
+    getByLabel: (text, options) =>
+      makeLocator(locator.getByLabel(text, options)),
+    getByPlaceholder: (text, options) =>
+      makeLocator(locator.getByPlaceholder(text, options)),
+    getByAltText: (text, options) =>
+      makeLocator(locator.getByAltText(text, options)),
+    getByTitle: (text, options) =>
+      makeLocator(locator.getByTitle(text, options)),
+    getByTestId: (testId) => makeLocator(locator.getByTestId(testId)),
+    isChecked: (options) => use((locator) => locator.isChecked(options)),
+    isDisabled: (options) => use((locator) => locator.isDisabled(options)),
+    isEditable: (options) => use((locator) => locator.isEditable(options)),
+    isEnabled: (options) => use((locator) => locator.isEnabled(options)),
+    isHidden: (options) => use((locator) => locator.isHidden(options)),
+    isVisible: (options) => use((locator) => locator.isVisible(options)),
+    waitFor: (options) => use((locator) => locator.waitFor(options)),
+    waitForFunction: <
+      R,
+      Arg = void,
+      E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+    >(
+      pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
+      arg?: Arg,
+      options?: Parameters<CoreLocator["waitForFunction"]>[2],
+    ) =>
+      use((locator) =>
+        locator.waitForFunction<Arg, E>(
+          pageFunction as unknown as Parameters<
+            typeof locator.waitForFunction<Arg, E>
+          >[0],
+          arg as Arg,
+          options,
         ),
-      describe: (description) => Locator.make(locator.describe(description)),
-      description: () => Option.fromNullable(locator.description()),
-      count: use((l) => l.count()),
-      first: () => Locator.make(locator.first()),
-      last: () => Locator.make(locator.last()),
-      nth: (index: number) => Locator.make(locator.nth(index)),
-      all: () => use((l) => l.all()).pipe(Effect.map(Array.map(Locator.make))),
-      and: (locatorOrService) =>
-        Locator.make(locator.and(unwrap(locatorOrService))),
-      contentFrame: () => FrameLocator.make(locator.contentFrame()),
-      filter: (options) => Locator.make(locator.filter(options)),
-      frameLocator: (selector) =>
-        FrameLocator.make(locator.frameLocator(selector)),
-      or: (locatorOrService) =>
-        Locator.make(locator.or(unwrap(locatorOrService))),
-      page: () => Page.make(locator.page()),
-      locator: (selectorOrLocator, options) =>
-        Locator.make(
-          typeof selectorOrLocator === "string"
-            ? locator.locator(selectorOrLocator, options)
-            : locator.locator(unwrap(selectorOrLocator), options),
+      ),
+    evaluate: <
+      R,
+      Arg = void,
+      E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+    >(
+      pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
+      arg?: Arg,
+      options?: Parameters<CoreLocator["evaluate"]>[2],
+    ) =>
+      use((locator) =>
+        locator.evaluate<R, Arg, E>(
+          pageFunction as unknown as Parameters<
+            typeof locator.evaluate<R, Arg, E>
+          >[0],
+          arg as Arg,
+          options,
         ),
-      getByRole: (role, options) =>
-        Locator.make(locator.getByRole(role, options)),
-      getByText: (text, options) =>
-        Locator.make(locator.getByText(text, options)),
-      getByLabel: (text, options) =>
-        Locator.make(locator.getByLabel(text, options)),
-      getByPlaceholder: (text, options) =>
-        Locator.make(locator.getByPlaceholder(text, options)),
-      getByAltText: (text, options) =>
-        Locator.make(locator.getByAltText(text, options)),
-      getByTitle: (text, options) =>
-        Locator.make(locator.getByTitle(text, options)),
-      getByTestId: (testId) => Locator.make(locator.getByTestId(testId)),
-      isChecked: (options) => use((l) => l.isChecked(options)),
-      isDisabled: (options) => use((l) => l.isDisabled(options)),
-      isEditable: (options) => use((l) => l.isEditable(options)),
-      isEnabled: (options) => use((l) => l.isEnabled(options)),
-      isHidden: (options) => use((l) => l.isHidden(options)),
-      isVisible: (options) => use((l) => l.isVisible(options)),
-      waitFor: (options) => use((l) => l.waitFor(options)),
-      waitForFunction: <
-        R,
-        Arg = void,
-        E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
-      >(
-        pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
-        arg?: Arg,
-        options?: Parameters<CoreLocator["waitForFunction"]>[2],
-      ) =>
-        use((l) =>
-          l.waitForFunction<Arg, E>(
-            pageFunction as unknown as Parameters<
-              typeof l.waitForFunction<Arg, E>
-            >[0],
-            arg as Arg,
-            options,
-          ),
+      ),
+    evaluateAll: <
+      R,
+      Arg = void,
+      E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+    >(
+      pageFunction: (elements: E[], arg: Unboxed<Arg>) => R | Promise<R>,
+      arg?: Arg,
+    ) =>
+      use((locator) =>
+        locator.evaluateAll<R, Arg, E>(
+          pageFunction as unknown as Parameters<
+            typeof locator.evaluateAll<R, Arg, E>
+          >[0],
+          arg as Arg,
         ),
-      evaluate: <
-        R,
-        Arg = void,
-        E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
-      >(
-        pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
-        arg?: Arg,
-        options?: Parameters<CoreLocator["evaluate"]>[2],
-      ) =>
-        use((l) =>
-          l.evaluate<R, Arg, E>(
-            pageFunction as unknown as Parameters<
-              typeof l.evaluate<R, Arg, E>
-            >[0],
-            arg as Arg,
-            options,
-          ),
+      ),
+    evaluateHandle: <
+      R,
+      Arg = void,
+      E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
+    >(
+      pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
+      arg?: Arg,
+      options?: Parameters<CoreLocator["evaluateHandle"]>[2],
+    ) =>
+      use((locator) =>
+        locator.evaluateHandle<R, Arg, E>(
+          pageFunction as unknown as Parameters<
+            typeof locator.evaluateHandle<R, Arg, E>
+          >[0],
+          arg as Arg,
+          options,
         ),
-      evaluateAll: <
-        R,
-        Arg = void,
-        E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
-      >(
-        pageFunction: (elements: E[], arg: Unboxed<Arg>) => R | Promise<R>,
-        arg?: Arg,
-      ) =>
-        use((l) =>
-          l.evaluateAll<R, Arg, E>(
-            pageFunction as unknown as Parameters<
-              typeof l.evaluateAll<R, Arg, E>
-            >[0],
-            arg as Arg,
-          ),
-        ),
-      evaluateHandle: <
-        R,
-        Arg = void,
-        E extends SVGElement | HTMLElement = SVGElement | HTMLElement,
-      >(
-        pageFunction: (element: E, arg: Unboxed<Arg>) => R | Promise<R>,
-        arg?: Arg,
-        options?: Parameters<CoreLocator["evaluateHandle"]>[2],
-      ) =>
-        use((l) =>
-          l.evaluateHandle<R, Arg, E>(
-            pageFunction as unknown as Parameters<
-              typeof l.evaluateHandle<R, Arg, E>
-            >[0],
-            arg as Arg,
-            options,
-          ),
-        ),
-      elementHandle: (options) =>
-        use((l) => l.elementHandle(options)).pipe(
-          Effect.map(Option.fromNullable),
-        ),
-      elementHandles: () =>
-        use(
-          (l) =>
-            l.elementHandles() as Promise<
-              Array<ElementHandle<SVGElement | HTMLElement>>
-            >,
-        ),
-      highlight: (options) => use((l) => l.highlight(options)),
-      hideHighlight: use((l) => l.hideHighlight()),
-      drop: (data, options) => use((l) => l.drop(data, options)),
-      normalize: () => use((l) => l.normalize().then(Locator.make)),
-      screenshot: (options) => use((l) => l.screenshot(options)),
-      blur: (options) => use((l) => l.blur(options)),
-      clear: (options) => use((l) => l.clear(options)),
-      dblclick: (options) => use((l) => l.dblclick(options)),
-      dispatchEvent: (type, eventInit, options) =>
-        use((l) => l.dispatchEvent(type, eventInit, options)),
-      dragTo: (target, options) =>
-        use((l) => l.dragTo(unwrap(target), options)),
-      focus: (options) => use((l) => l.focus(options)),
-      hover: (options) => use((l) => l.hover(options)),
-      press: (key, options) => use((l) => l.press(key, options)),
-      pressSequentially: (text, options) =>
-        use((l) => l.pressSequentially(text, options)),
-      scrollIntoViewIfNeeded: (options) =>
-        use((l) => l.scrollIntoViewIfNeeded(options)),
-      selectOption: (values, options) =>
-        use((l) => l.selectOption(values, options)),
-      selectText: (options) => use((l) => l.selectText(options)),
-      setChecked: (checked, options) =>
-        use((l) => l.setChecked(checked, options)),
-      setInputFiles: (files, options) =>
-        use((l) => l.setInputFiles(files, options)),
-      tap: (options) => use((l) => l.tap(options)),
-      uncheck: (options) => use((l) => l.uncheck(options)),
-      toString: () => locator.toString(),
-      use,
-    });
-  }
-}
+      ),
+    elementHandle: (options) =>
+      use((locator) => locator.elementHandle(options)).pipe(
+        Effect.map(Option.fromNullable),
+      ),
+    elementHandles: () =>
+      use(
+        (locator) =>
+          locator.elementHandles() as Promise<
+            Array<ElementHandle<SVGElement | HTMLElement>>
+          >,
+      ),
+    highlight: (options) => use((locator) => locator.highlight(options)),
+    hideHighlight: use((locator) => locator.hideHighlight()),
+    drop: (data, options) => use((locator) => locator.drop(data, options)),
+    normalize: () => use((locator) => locator.normalize().then(makeLocator)),
+    screenshot: (options) => use((locator) => locator.screenshot(options)),
+    blur: (options) => use((locator) => locator.blur(options)),
+    clear: (options) => use((locator) => locator.clear(options)),
+    dblclick: (options) => use((locator) => locator.dblclick(options)),
+    dispatchEvent: (type, eventInit, options) =>
+      use((locator) => locator.dispatchEvent(type, eventInit, options)),
+    dragTo: (target, options) =>
+      use((locator) => locator.dragTo(unwrap(target), options)),
+    focus: (options) => use((locator) => locator.focus(options)),
+    hover: (options) => use((locator) => locator.hover(options)),
+    press: (key, options) => use((locator) => locator.press(key, options)),
+    pressSequentially: (text, options) =>
+      use((locator) => locator.pressSequentially(text, options)),
+    scrollIntoViewIfNeeded: (options) =>
+      use((locator) => locator.scrollIntoViewIfNeeded(options)),
+    selectOption: (values, options) =>
+      use((locator) => locator.selectOption(values, options)),
+    selectText: (options) => use((locator) => locator.selectText(options)),
+    setChecked: (checked, options) =>
+      use((locator) => locator.setChecked(checked, options)),
+    setInputFiles: (files, options) =>
+      use((locator) => locator.setInputFiles(files, options)),
+    tap: (options) => use((locator) => locator.tap(options)),
+    uncheck: (options) => use((locator) => locator.uncheck(options)),
+    toString: () => locator.toString(),
+    use,
+  });
+};

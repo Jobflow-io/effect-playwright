@@ -1,16 +1,22 @@
+/**
+ * Effect service wrapper for Playwright frames and frame operations.
+ *
+ * @since 0.1.2
+ */
+
 import { Array, Context, type Effect, Option } from "effect";
 import type { Frame as CoreFrame, ElementHandle } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { Locator } from "./locator";
-import { Page, type PageService } from "./page";
+import { type Locator, makeLocator } from "./locator";
+import { makePage, type Page } from "./page";
 import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
 
 /**
- * @category model
+ * @category models
  * @since 0.1.2
  */
-export interface FrameService {
+export interface Frame {
   /**
    * Navigates the frame to the given URL.
    *
@@ -80,7 +86,7 @@ export interface FrameService {
   readonly locator: (
     selector: string,
     options?: Parameters<CoreFrame["locator"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given role.
    *
@@ -90,7 +96,7 @@ export interface FrameService {
   readonly getByRole: (
     role: Parameters<CoreFrame["getByRole"]>[0],
     options?: Parameters<CoreFrame["getByRole"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given text.
    *
@@ -100,7 +106,7 @@ export interface FrameService {
   readonly getByText: (
     text: Parameters<CoreFrame["getByText"]>[0],
     options?: Parameters<CoreFrame["getByText"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given label.
    *
@@ -110,7 +116,7 @@ export interface FrameService {
   readonly getByLabel: (
     label: Parameters<CoreFrame["getByLabel"]>[0],
     options?: Parameters<CoreFrame["getByLabel"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given test id.
    *
@@ -119,7 +125,7 @@ export interface FrameService {
    */
   readonly getByTestId: (
     testId: Parameters<CoreFrame["getByTestId"]>[0],
-  ) => typeof Locator.Service;
+  ) => Locator;
 
   /**
    * Returns a locator that matches the given placeholder.
@@ -130,7 +136,7 @@ export interface FrameService {
   readonly getByPlaceholder: (
     text: Parameters<CoreFrame["getByPlaceholder"]>[0],
     options?: Parameters<CoreFrame["getByPlaceholder"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
 
   /**
    * Returns a locator that matches the given alt text.
@@ -141,7 +147,7 @@ export interface FrameService {
   readonly getByAltText: (
     text: Parameters<CoreFrame["getByAltText"]>[0],
     options?: Parameters<CoreFrame["getByAltText"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
 
   /**
    * Returns a locator that matches the given title.
@@ -152,7 +158,7 @@ export interface FrameService {
   readonly getByTitle: (
     text: Parameters<CoreFrame["getByTitle"]>[0],
     options?: Parameters<CoreFrame["getByTitle"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
 
   /**
    * Returns the page that the frame belongs to.
@@ -160,7 +166,7 @@ export interface FrameService {
    * @see {@link CoreFrame.page}
    * @since 0.4.1
    */
-  readonly page: () => PageService;
+  readonly page: () => Page;
 
   /**
    * Returns the parent frame, if any.
@@ -168,7 +174,7 @@ export interface FrameService {
    * @see {@link CoreFrame.parentFrame}
    * @since 0.4.1
    */
-  readonly parentFrame: () => Option.Option<FrameService>;
+  readonly parentFrame: () => Option.Option<Frame>;
 
   /**
    * Returns an array of child frames.
@@ -176,7 +182,7 @@ export interface FrameService {
    * @see {@link CoreFrame.childFrames}
    * @since 0.4.1
    */
-  readonly childFrames: () => ReadonlyArray<FrameService>;
+  readonly childFrames: () => ReadonlyArray<Frame>;
 
   /**
    * Returns whether the frame is detached.
@@ -242,10 +248,9 @@ export interface FrameService {
   /**
    * Clicks an element matching the given selector.
    *
-   * @deprecated Use {@link FrameService.locator} to create a locator and then call `click` on it instead.
+   * @deprecated Use {@link Frame.locator} to create a locator and then call `click` on it instead.
    * @see {@link CoreFrame.click}
    * @since 0.1.3
-   * @category deprecated
    */
   readonly click: (
     selector: string,
@@ -254,68 +259,63 @@ export interface FrameService {
 }
 
 /**
- * @category tag
+ * @category services
  * @since 0.1.2
  */
-export class Frame extends Context.Tag("effect-playwright/frame/Frame")<
-  Frame,
-  FrameService
->() {
-  /**
-   * Creates a `Frame` from a Playwright `Frame` instance.
-   *
-   * @param frame - The Playwright `Frame` instance to wrap.
-   * @since 0.1.2
-   */
-  static make(frame: CoreFrame): FrameService {
-    const use = useHelper(frame);
+export const Frame = Context.GenericTag<Frame>("effect-playwright/frame/Frame");
 
-    return Frame.of({
-      goto: (url, options) => use((f) => f.goto(url, options)),
-      waitForURL: (url, options) => use((f) => f.waitForURL(url, options)),
-      waitForLoadState: (state, options) =>
-        use((f) => f.waitForLoadState(state, options)),
-      evaluate: <R, Arg>(
-        f: PageFunction<Arg, R>,
-        arg?: Arg,
-        options?: Parameters<CoreFrame["evaluate"]>[2],
-      ) =>
-        use((frame) =>
-          frame.evaluate<R, Arg>(
-            f as unknown as Parameters<typeof frame.evaluate<R, Arg>>[0],
-            arg as Arg,
-            options,
-          ),
+/**
+ * Creates a `Frame` from a Playwright `Frame` instance.
+ *
+ * @param frame - The Playwright `Frame` instance to wrap.
+ * @since 0.1.2
+ * @category constructors
+ */
+export const makeFrame = (frame: CoreFrame): Frame => {
+  const use = useHelper(frame);
+
+  return Frame.of({
+    goto: (url, options) => use((f) => f.goto(url, options)),
+    waitForURL: (url, options) => use((f) => f.waitForURL(url, options)),
+    waitForLoadState: (state, options) =>
+      use((f) => f.waitForLoadState(state, options)),
+    evaluate: <R, Arg>(
+      f: PageFunction<Arg, R>,
+      arg?: Arg,
+      options?: Parameters<CoreFrame["evaluate"]>[2],
+    ) =>
+      use((frame) =>
+        frame.evaluate<R, Arg>(
+          f as unknown as Parameters<typeof frame.evaluate<R, Arg>>[0],
+          arg as Arg,
+          options,
         ),
-      title: use((f) => f.title()),
-      use,
-      locator: (selector, options) =>
-        Locator.make(frame.locator(selector, options)),
-      getByRole: (role, options) =>
-        Locator.make(frame.getByRole(role, options)),
-      getByText: (text, options) =>
-        Locator.make(frame.getByText(text, options)),
-      getByLabel: (label, options) =>
-        Locator.make(frame.getByLabel(label, options)),
-      getByTestId: (testId) => Locator.make(frame.getByTestId(testId)),
-      getByPlaceholder: (text, options) =>
-        Locator.make(frame.getByPlaceholder(text, options)),
-      getByAltText: (text, options) =>
-        Locator.make(frame.getByAltText(text, options)),
-      getByTitle: (text, options) =>
-        Locator.make(frame.getByTitle(text, options)),
-      page: () => Page.make(frame.page()),
-      parentFrame: () =>
-        Option.fromNullable(frame.parentFrame()).pipe(Option.map(Frame.make)),
-      childFrames: () => Array.map(frame.childFrames(), (f) => Frame.make(f)),
-      isDetached: () => frame.isDetached(),
-      waitForTimeout: (timeout) => use((f) => f.waitForTimeout(timeout)),
-      setContent: (html, options) => use((f) => f.setContent(html, options)),
-      url: () => frame.url(),
-      content: use((f) => f.content()),
-      frameElement: use((f) => f.frameElement()),
-      name: () => frame.name(),
-      click: (selector, options) => use((f) => f.click(selector, options)),
-    });
-  }
-}
+      ),
+    title: use((f) => f.title()),
+    use,
+    locator: (selector, options) =>
+      makeLocator(frame.locator(selector, options)),
+    getByRole: (role, options) => makeLocator(frame.getByRole(role, options)),
+    getByText: (text, options) => makeLocator(frame.getByText(text, options)),
+    getByLabel: (label, options) =>
+      makeLocator(frame.getByLabel(label, options)),
+    getByTestId: (testId) => makeLocator(frame.getByTestId(testId)),
+    getByPlaceholder: (text, options) =>
+      makeLocator(frame.getByPlaceholder(text, options)),
+    getByAltText: (text, options) =>
+      makeLocator(frame.getByAltText(text, options)),
+    getByTitle: (text, options) => makeLocator(frame.getByTitle(text, options)),
+    page: () => makePage(frame.page()),
+    parentFrame: () =>
+      Option.fromNullable(frame.parentFrame()).pipe(Option.map(makeFrame)),
+    childFrames: () => Array.map(frame.childFrames(), (f) => makeFrame(f)),
+    isDetached: () => frame.isDetached(),
+    waitForTimeout: (timeout) => use((f) => f.waitForTimeout(timeout)),
+    setContent: (html, options) => use((f) => f.setContent(html, options)),
+    url: () => frame.url(),
+    content: use((f) => f.content()),
+    frameElement: use((f) => f.frameElement()),
+    name: () => frame.name(),
+    click: (selector, options) => use((f) => f.click(selector, options)),
+  });
+};

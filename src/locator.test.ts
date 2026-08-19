@@ -237,7 +237,7 @@ layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
       const spanHtml = yield* htmlDiv.locator("span").innerHTML();
       assert(spanHtml === "Hello");
 
-      // locator with LocatorService
+      // locator with another Locator
       const spanLocator = page.locator("span");
       const nestedSpanHtml = yield* htmlDiv.locator(spanLocator).innerHTML();
       assert(nestedSpanHtml === "Hello");

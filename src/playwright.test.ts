@@ -8,40 +8,31 @@ layer(Playwright.layer)("Playwright", (it) => {
   it.scoped("should launch a browser", () =>
     Effect.gen(function* () {
       const program = Effect.gen(function* () {
-        const playwright: Playwright.Playwright & Playwright.Service =
-          yield* Playwright.Playwright;
+        const playwright: Playwright.Playwright = yield* Playwright.Playwright;
         const launchOptions: Playwright.LaunchOptions = { headless: true };
-        const browser: Playwright.Browser & Playwright.BrowserService =
-          yield* playwright.launchScoped(chromium, launchOptions);
+        const browser: Playwright.Browser = yield* playwright.launchScoped(
+          chromium,
+          launchOptions,
+        );
 
         const contextOptions: Playwright.NewContextOptions = {};
-        const context: Playwright.BrowserContext &
-          Playwright.BrowserContextService =
+        const context: Playwright.BrowserContext =
           yield* browser.newContext(contextOptions);
 
         const pageOptions: Playwright.NewPageOptions = {};
-        const page: Playwright.Page & Playwright.PageService =
-          yield* browser.newPage(pageOptions);
-        const clock: Playwright.Clock & Playwright.ClockService = page.clock;
-        const credentials: Playwright.Credentials &
-          Playwright.CredentialsService = context.credentials;
-        const frame: Playwright.Frame & Playwright.FrameService =
-          page.mainFrame();
-        const keyboard: Playwright.Keyboard & Playwright.KeyboardService =
-          page.keyboard;
-        const locator: Playwright.Locator & Playwright.LocatorService =
-          page.locator("body");
-        const frameLocator: Playwright.FrameLocator &
-          Playwright.FrameLocatorService = locator.frameLocator("iframe");
-        const mouse: Playwright.Mouse & Playwright.MouseService = page.mouse;
-        const screencast: Playwright.Screencast & Playwright.ScreencastService =
-          page.screencast;
-        const touchscreen: Playwright.Touchscreen &
-          Playwright.TouchscreenService = page.touchscreen;
-        const tracing: Playwright.Tracing & Playwright.TracingService =
-          context.tracing;
-        const storage: Playwright.WebStorage & Playwright.WebStorageService =
-          page.localStorage;
+        const page: Playwright.Page = yield* browser.newPage(pageOptions);
+        const clock: Playwright.Clock = page.clock;
+        const credentials: Playwright.Credentials = context.credentials;
+        const frame: Playwright.Frame = page.mainFrame();
+        const keyboard: Playwright.Keyboard = page.keyboard;
+        const locator: Playwright.Locator = page.locator("body");
+        const frameLocator: Playwright.FrameLocator =
+          locator.frameLocator("iframe");
+        const mouse: Playwright.Mouse = page.mouse;
+        const screencast: Playwright.Screencast = page.screencast;
+        const touchscreen: Playwright.Touchscreen = page.touchscreen;
+        const tracing: Playwright.Tracing = context.tracing;
+        const storage: Playwright.WebStorage = page.localStorage;
 
         yield* page.setContent("testing");
 
@@ -59,6 +50,25 @@ layer(Playwright.layer)("Playwright", (it) => {
           tracing,
         ]) {
           assert.isDefined(service);
+        }
+
+        for (const constructor of [
+          Playwright.makeBrowser,
+          Playwright.makeBrowserContext,
+          Playwright.makeClock,
+          Playwright.makeCredentials,
+          Playwright.makeFrame,
+          Playwright.makeFrameLocator,
+          Playwright.makeKeyboard,
+          Playwright.makeLocator,
+          Playwright.makeMouse,
+          Playwright.makePage,
+          Playwright.makeScreencast,
+          Playwright.makeTouchscreen,
+          Playwright.makeTracing,
+          Playwright.makeWebStorage,
+        ]) {
+          assert.strictEqual(typeof constructor, "function");
         }
       }).pipe(Effect.scoped, Effect.provide(Playwright.layer));
       const result = yield* Effect.exit(program);
@@ -104,7 +114,7 @@ layer(Playwright.layer)("Playwright", (it) => {
   it.scoped("should launch a persistent context and close with scope", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright.Playwright;
-      let capturedContext: typeof BrowserContext.Service | undefined;
+      let capturedContext: BrowserContext | undefined;
 
       yield* Effect.gen(function* () {
         const context = yield* playwright.launchPersistentContextScoped(

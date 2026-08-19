@@ -1,3 +1,10 @@
+/**
+ * Effect service wrapper for Playwright browser contexts, including pages,
+ * storage state, tracing, credentials, and event streams.
+ *
+ * @since 0.1.0
+ */
+
 import { Context, Effect, identity, Option, Stream } from "effect";
 import type {
   ConsoleMessage,
@@ -11,15 +18,15 @@ import type {
   Worker as CoreWorker,
   WebError,
 } from "playwright-core";
-import { Browser, type BrowserService } from "./browser";
-import { Clock, type ClockService } from "./clock";
+import { type Browser, makeBrowser } from "./browser";
+import { type Clock, makeClock } from "./clock";
 import { Dialog, Download, Request, Response, Worker } from "./common";
-import { Credentials, type CredentialsService } from "./credentials";
+import { type Credentials, makeCredentials } from "./credentials";
 import type { PlaywrightError } from "./errors";
-import { Frame } from "./frame";
-import { Page } from "./page";
+import { makeFrame } from "./frame";
+import { makePage, type Page } from "./page";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
-import { Tracing, type TracingService } from "./tracing";
+import { makeTracing, type Tracing } from "./tracing";
 import { useHelper } from "./utils";
 
 interface BrowserContextEvents {
@@ -44,17 +51,17 @@ interface BrowserContextEvents {
 }
 
 const eventMappings = {
-  backgroundpage: (page: CorePage) => Page.make(page),
-  close: (context: CoreBrowserContext) => BrowserContext.make(context),
+  backgroundpage: (page: CorePage) => makePage(page),
+  close: (context: CoreBrowserContext) => makeBrowserContext(context),
   console: identity<ConsoleMessage>,
   dialog: (dialog: CoreDialog) => Dialog.make(dialog),
   download: (download: CoreDownload) => Download.make(download),
-  frameattached: (frame: CoreFrame) => Frame.make(frame),
-  framedetached: (frame: CoreFrame) => Frame.make(frame),
-  framenavigated: (frame: CoreFrame) => Frame.make(frame),
-  page: (page: CorePage) => Page.make(page),
-  pageclose: (page: CorePage) => Page.make(page),
-  pageload: (page: CorePage) => Page.make(page),
+  frameattached: (frame: CoreFrame) => makeFrame(frame),
+  framedetached: (frame: CoreFrame) => makeFrame(frame),
+  framenavigated: (frame: CoreFrame) => makeFrame(frame),
+  page: (page: CorePage) => makePage(page),
+  pageclose: (page: CorePage) => makePage(page),
+  pageload: (page: CorePage) => makePage(page),
   request: (request: CoreRequest) => Request.make(request),
   requestfailed: (request: CoreRequest) => Request.make(request),
   requestfinished: (request: CoreRequest) => Request.make(request),
@@ -69,46 +76,48 @@ type BrowserContextWithPatchedEvents = PatchedEvents<
 >;
 
 /**
- * @category model
+ * Effect-friendly operations for an isolated Playwright browser context.
+ *
+ * **When to use**
+ *
+ * Use a context to isolate cookies, permissions, storage, pages, and tracing
+ * within one browser. Contexts created by `Browser.newContext` are scoped and
+ * close automatically when their scope ends.
+ *
+ * @category models
  * @since 0.1.0
  */
-export interface BrowserContextService {
+export interface BrowserContext {
   /**
    * Access the clock.
    */
-  readonly clock: ClockService;
+  readonly clock: Clock;
   /**
    * Access the virtual WebAuthn credentials manager.
    *
    * @see {@link CoreBrowserContext.credentials}
    * @since 0.5.1
    */
-  readonly credentials: CredentialsService;
+  readonly credentials: Credentials;
   /**
    * Access the tracing.
    *
    * @since 0.5.0
    */
-  readonly tracing: TracingService;
+  readonly tracing: Tracing;
   /**
    * Returns the list of all open pages in the browser context.
    *
    * @see {@link CoreBrowserContext.pages}
    * @since 0.1.0
    */
-  readonly pages: () => Array<typeof Page.Service>;
+  readonly pages: () => Array<Page>;
   /**
    * Opens a new page in the browser context.
-   *
-   * @example
-   * ```ts
-   * const page = yield* context.newPage;
-   * ```
-   *
    * @see {@link CoreBrowserContext.newPage}
    * @since 0.1.0
    */
-  readonly newPage: Effect.Effect<typeof Page.Service, PlaywrightError>;
+  readonly newPage: Effect.Effect<Page, PlaywrightError>;
   /**
    * Closes the browser context.
    *
@@ -143,7 +152,7 @@ export interface BrowserContextService {
    * @see {@link CoreBrowserContext.browser}
    * @since 0.4.0
    */
-  readonly browser: () => Option.Option<BrowserService>;
+  readonly browser: () => Option.Option<Browser>;
 
   /**
    * Clears the cookies from the browser context.
@@ -270,14 +279,15 @@ export interface BrowserContextService {
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
-   * Creates a stream of the given event from the browser context.
+   * Streams browser-context events after adapting their payloads to wrapper
+   * values.
    *
-   * @example
-   * ```ts
-   * const pageStream = context.eventStream("page");
-   * ```
+   * **Details**
    *
-   * @category custom
+   * Event listeners are removed when stream consumption ends. The stream also
+   * ends when the browser context closes.
+   *
+   * @category event streams
    * @see {@link CoreBrowserContext.on}
    * @since 0.1.2
    */
@@ -287,79 +297,85 @@ export interface BrowserContextService {
 }
 
 /**
- * @category tag
+ * Service tag for the active {@link BrowserContext}.
+ *
+ * @category services
+ * @since 0.1.0
  */
-export class BrowserContext extends Context.Tag(
+export const BrowserContext = Context.GenericTag<BrowserContext>(
   "effect-playwright/browser-context/BrowserContext",
-)<BrowserContext, BrowserContextService>() {
-  /**
-   * Creates a `BrowserContext` from a Playwright `BrowserContext` instance.
-   *
-   * @param context - The Playwright `BrowserContext` instance to wrap.
-   * @since 0.1.0
-   */
-  static make(context: BrowserContextWithPatchedEvents): BrowserContextService {
-    const use = useHelper(context);
-    return BrowserContext.of({
-      clock: Clock.make(context.clock),
-      credentials: Credentials.make(context.credentials),
-      tracing: Tracing.make(context.tracing),
-      pages: () => context.pages().map(Page.make),
-      newPage: use((c) => c.newPage().then(Page.make)),
-      close: use((c) => c.close()),
-      isClosed: () => context.isClosed(),
-      addInitScript: <Arg>(
-        script:
-          | PageFunction<Arg, unknown>
-          | { path?: string; content?: string },
-        arg?: Arg,
-        options?: Parameters<CoreBrowserContext["addInitScript"]>[2],
-      ) =>
-        use((c) =>
-          c.addInitScript<Arg>(
-            script as unknown as Parameters<typeof c.addInitScript<Arg>>[0],
-            arg,
-            options,
-          ),
-        ).pipe(Effect.asVoid),
-      browser: () =>
-        Option.fromNullable(context.browser()).pipe(Option.map(Browser.make)),
-      clearCookies: (options) => use((c) => c.clearCookies(options)),
-      clearPermissions: use((c) => c.clearPermissions()),
-      cookies: (urls) => use((c) => c.cookies(urls)),
-      addCookies: (cookies) => use((c) => c.addCookies(cookies)),
-      grantPermissions: (permissions, options) =>
-        use((c) => c.grantPermissions(permissions, options)),
-      setExtraHTTPHeaders: (headers) =>
-        use((c) => c.setExtraHTTPHeaders(headers)),
-      setGeolocation: (geolocation) =>
-        use((c) => c.setGeolocation(geolocation)),
-      setOffline: (offline) => use((c) => c.setOffline(offline)),
-      setDefaultNavigationTimeout: (timeout) =>
-        context.setDefaultNavigationTimeout(timeout),
-      setDefaultTimeout: (timeout) => context.setDefaultTimeout(timeout),
-      storageState: (options) => use((c) => c.storageState(options)),
-      setStorageState: (options) => use((c) => c.setStorageState(options)),
-      eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
-        Stream.asyncPush<BrowserContextEvents[K]>((emit) =>
-          Effect.acquireRelease(
-            Effect.sync(() => {
-              context.on(event, emit.single);
-              context.once("close", emit.end);
-            }),
-            () =>
-              Effect.sync(() => {
-                context.off(event, emit.single);
-                context.off("close", emit.end);
-              }),
-          ),
-        ).pipe(
-          Stream.map((e) => {
-            const mapping = eventMappings[event];
-            // biome-ignore lint/suspicious/noExplicitAny: Don't know how to fix this …
-            return mapping(e as any) as ReturnType<(typeof eventMappings)[K]>;
-          }),
+);
+
+/**
+ * Creates a `BrowserContext` from a Playwright `BrowserContext` instance.
+ *
+ * @param context - The Playwright `BrowserContext` instance to wrap.
+ * @category constructors
+ * @since 0.1.0
+ */
+export const makeBrowserContext = (
+  context: CoreBrowserContext,
+): BrowserContext => {
+  const events = context as BrowserContextWithPatchedEvents;
+  const use = useHelper(context);
+  return BrowserContext.of({
+    clock: makeClock(context.clock),
+    credentials: makeCredentials(context.credentials),
+    tracing: makeTracing(context.tracing),
+    pages: () => context.pages().map(makePage),
+    newPage: use((c) => c.newPage().then(makePage)),
+    close: use((c) => c.close()),
+    isClosed: () => context.isClosed(),
+    addInitScript: <Arg>(
+      script: PageFunction<Arg, unknown> | { path?: string; content?: string },
+      arg?: Arg,
+      options?: Parameters<CoreBrowserContext["addInitScript"]>[2],
+    ) =>
+      use((c) =>
+        c.addInitScript<Arg>(
+          script as unknown as Parameters<typeof c.addInitScript<Arg>>[0],
+          arg,
+          options,
         ),
-    });
-  }
-}
+      ).pipe(Effect.asVoid),
+    browser: () =>
+      Option.fromNullable(context.browser()).pipe(Option.map(makeBrowser)),
+    clearCookies: (options) => use((c) => c.clearCookies(options)),
+    clearPermissions: use((c) => c.clearPermissions()),
+    cookies: (urls) => use((c) => c.cookies(urls)),
+    addCookies: (cookies) => use((c) => c.addCookies(cookies)),
+    grantPermissions: (permissions, options) =>
+      use((c) => c.grantPermissions(permissions, options)),
+    setExtraHTTPHeaders: (headers) =>
+      use((c) => c.setExtraHTTPHeaders(headers)),
+    setGeolocation: (geolocation) => use((c) => c.setGeolocation(geolocation)),
+    setOffline: (offline) => use((c) => c.setOffline(offline)),
+    setDefaultNavigationTimeout: (timeout) =>
+      context.setDefaultNavigationTimeout(timeout),
+    setDefaultTimeout: (timeout) => context.setDefaultTimeout(timeout),
+    storageState: (options) => use((c) => c.storageState(options)),
+    setStorageState: (options) => use((c) => c.setStorageState(options)),
+    eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
+      Stream.asyncPush<BrowserContextEvents[K]>((emit) =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            events.on(event, emit.single);
+            events.once("close", emit.end);
+          }),
+          () =>
+            Effect.sync(() => {
+              events.off(event, emit.single);
+              events.off("close", emit.end);
+            }),
+        ),
+      ).pipe(
+        Stream.map((value) => {
+          const mapping = eventMappings[event];
+          // The selected event and mapping share the same generic event key.
+          return mapping(value as never) as ReturnType<
+            (typeof eventMappings)[K]
+          >;
+        }),
+      ),
+  });
+};

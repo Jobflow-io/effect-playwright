@@ -1,13 +1,19 @@
+/**
+ * Effect service wrapper for Playwright mouse input.
+ *
+ * @since 0.3.0
+ */
+
 import { Context, type Effect } from "effect";
 import type { Mouse as CoreMouse } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { useHelper } from "./utils";
 
 /**
- * @category model
+ * @category models
  * @since 0.3.0
  */
-export interface MouseService {
+export interface Mouse {
   /**
    * Shortcut for mouse.move, mouse.down, mouse.up.
    *
@@ -72,28 +78,26 @@ export interface MouseService {
 }
 
 /**
- * @category tag
+ * @category services
  */
-export class Mouse extends Context.Tag("effect-playwright/mouse/Mouse")<
-  Mouse,
-  MouseService
->() {
-  /**
-   * Creates a `Mouse` from a Playwright `Mouse` instance.
-   *
-   * @param mouse - The Playwright `Mouse` instance to wrap.
-   * @since 0.3.0
-   */
-  static make(mouse: CoreMouse): MouseService {
-    const use = useHelper(mouse);
+export const Mouse = Context.GenericTag<Mouse>("effect-playwright/mouse/Mouse");
 
-    return Mouse.of({
-      click: (x, y, options) => use((m) => m.click(x, y, options)),
-      dblclick: (x, y, options) => use((m) => m.dblclick(x, y, options)),
-      down: (options) => use((m) => m.down(options)),
-      move: (x, y, options) => use((m) => m.move(x, y, options)),
-      up: (options) => use((m) => m.up(options)),
-      wheel: (deltaX, deltaY) => use((m) => m.wheel(deltaX, deltaY)),
-    });
-  }
-}
+/**
+ * Creates a `Mouse` from a Playwright `Mouse` instance.
+ *
+ * @param mouse - The Playwright `Mouse` instance to wrap.
+ * @since 0.3.0
+ * @category constructors
+ */
+export const makeMouse = (mouse: CoreMouse): Mouse => {
+  const use = useHelper(mouse);
+
+  return Mouse.of({
+    click: (x, y, options) => use((m) => m.click(x, y, options)),
+    dblclick: (x, y, options) => use((m) => m.dblclick(x, y, options)),
+    down: (options) => use((m) => m.down(options)),
+    move: (x, y, options) => use((m) => m.move(x, y, options)),
+    up: (options) => use((m) => m.up(options)),
+    wheel: (deltaX, deltaY) => use((m) => m.wheel(deltaX, deltaY)),
+  });
+};

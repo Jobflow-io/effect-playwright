@@ -48,8 +48,7 @@ layer(PlaywrightSpawner.layer(chromium))("PlaywrightSpawner", (it) => {
   it.scoped("should launch a browser", () =>
     Effect.gen(function* () {
       const program = Effect.gen(function* () {
-        const spawner: PlaywrightSpawner.PlaywrightSpawner &
-          PlaywrightSpawner.Service =
+        const spawner: PlaywrightSpawner.PlaywrightSpawner =
           yield* PlaywrightSpawner.PlaywrightSpawner;
         const browser = yield* spawner.browser;
 

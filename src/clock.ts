@@ -1,3 +1,9 @@
+/**
+ * Effect service wrapper for Playwright's browser clock APIs.
+ *
+ * @since 0.1.0
+ */
+
 import { Context, type Effect } from "effect";
 import type { Clock as CoreClock } from "playwright-core";
 import type { PlaywrightError } from "./errors";
@@ -5,9 +11,9 @@ import { useHelper } from "./utils";
 
 /**
  * Interface for a Playwright clock.
- * @category model
+ * @category models
  */
-export interface ClockService {
+export interface Clock {
   /**
    * Advance the clock by jumping forward in time. Only fires due timers at most once. This is equivalent to user
    * closing the laptop lid for a while and reopening it later, after given time.
@@ -95,31 +101,28 @@ export interface ClockService {
  * A service that provides a `Clock` instance.
  *
  * @since 0.1.0
- * @category tag
+ * @category services
  */
-export class Clock extends Context.Tag("effect-playwright/clock/Clock")<
-  Clock,
-  ClockService
->() {
-  /**
-   * Creates a `Clock` from a Playwright `Clock` instance.
-   *
-   * @param clock - The Playwright `Clock` instance to wrap.
-   * @since 0.1.0
-   * @category constructor
-   */
-  static make(clock: CoreClock): typeof Clock.Service {
-    const use = useHelper(clock);
+export const Clock = Context.GenericTag<Clock>("effect-playwright/clock/Clock");
 
-    return Clock.of({
-      fastForward: (ticks) => use((c) => c.fastForward(ticks)),
-      install: (options) => use((c) => c.install(options)),
-      pauseAt: (time) => use((c) => c.pauseAt(time)),
-      resume: use((c) => c.resume()),
-      runFor: (ticks) => use((c) => c.runFor(ticks)),
-      setFixedTime: (time) => use((c) => c.setFixedTime(time)),
-      setSystemTime: (time) => use((c) => c.setSystemTime(time)),
-      use,
-    });
-  }
-}
+/**
+ * Creates a `Clock` from a Playwright `Clock` instance.
+ *
+ * @param clock - The Playwright `Clock` instance to wrap.
+ * @since 0.1.0
+ * @category constructors
+ */
+export const makeClock = (clock: CoreClock): Clock => {
+  const use = useHelper(clock);
+
+  return Clock.of({
+    fastForward: (ticks) => use((c) => c.fastForward(ticks)),
+    install: (options) => use((c) => c.install(options)),
+    pauseAt: (time) => use((c) => c.pauseAt(time)),
+    resume: use((c) => c.resume()),
+    runFor: (ticks) => use((c) => c.runFor(ticks)),
+    setFixedTime: (time) => use((c) => c.setFixedTime(time)),
+    setSystemTime: (time) => use((c) => c.setSystemTime(time)),
+    use,
+  });
+};

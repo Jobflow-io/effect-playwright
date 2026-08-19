@@ -1,18 +1,27 @@
+/**
+ * Experimental utilities for traversing browser pages and frames and merging
+ * frame-navigation event streams.
+ *
+ * @since 0.2.0
+ */
+
 import { Array, Effect, pipe, Stream } from "effect";
-import type { BrowserService } from "../browser";
+import type { Browser } from "../browser";
 
 /**
  * Returns all pages in the browser from all contexts.
- * @category util
+ * @category utilities
+ * @since 0.2.0
  */
-export const allPages = (browser: BrowserService) =>
+export const allPages = (browser: Browser) =>
   Array.flatten(browser.contexts().map((context) => context.pages()));
 
 /**
  * Returns all frames in the browser from all pages in all contexts.
- * @category util
+ * @category utilities
+ * @since 0.2.0
  */
-export const allFrames = (browser: BrowserService) =>
+export const allFrames = (browser: Browser) =>
   Effect.all(allPages(browser).map((page) => page.frames)).pipe(
     Effect.map(Array.flatten),
   );
@@ -20,9 +29,10 @@ export const allFrames = (browser: BrowserService) =>
 /**
  * Returns a stream of all framenavigated events for all current and future pages in the browser.
  * In all current contexts (but not future contexts).
- * @category util
+ * @category event streams
+ * @since 0.2.0
  */
-export const allFrameNavigatedEventStream = (browser: BrowserService) =>
+export const allFrameNavigatedEventStream = (browser: Browser) =>
   Effect.gen(function* () {
     const contexts = browser.contexts();
     const pages = Array.flatten(contexts.map((c) => c.pages()));

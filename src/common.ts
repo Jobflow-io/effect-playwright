@@ -1,3 +1,10 @@
+/**
+ * Effect-aware wrappers for Playwright requests, responses, workers, dialogs,
+ * file choosers, and downloads.
+ *
+ * @since 0.1.2
+ */
+
 import { Readable } from "node:stream";
 import { Data, Effect, Option, Stream } from "effect";
 import type {
@@ -10,13 +17,13 @@ import type {
   ElementHandle,
 } from "playwright-core";
 import { type PlaywrightError, wrapError } from "./errors";
-import { Frame, type FrameService } from "./frame";
-import { Page, type PageService } from "./page";
+import { type Frame, makeFrame } from "./frame";
+import { makePage, type Page } from "./page";
 import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
 
 /**
- * @category model
+ * @category models
  * @since 0.1.2
  */
 export class Request extends Data.TaggedClass(
@@ -45,7 +52,7 @@ export class Request extends Data.TaggedClass(
    * Returns the Frame that initiated this request.
    * @see {@link CoreRequest.frame}
    */
-  frame: Effect.Effect<FrameService, PlaywrightError>;
+  frame: Effect.Effect<Frame, PlaywrightError>;
   /**
    * Returns the value of the header matching the name. The name is case insensitive.
    * @see {@link CoreRequest.headerValue}
@@ -153,7 +160,7 @@ export class Request extends Data.TaggedClass(
         ),
       failure: Option.liftNullable(request.failure),
       frame: Effect.try({
-        try: () => Frame.make(request.frame()),
+        try: () => makeFrame(request.frame()),
         catch: wrapError,
       }),
       headerValue: (name) =>
@@ -194,7 +201,7 @@ export class Request extends Data.TaggedClass(
 }
 
 /**
- * @category model
+ * @category models
  * @since 0.1.2
  */
 export class Response extends Data.TaggedClass(
@@ -212,7 +219,7 @@ export class Response extends Data.TaggedClass(
     Awaited<ReturnType<CoreResponse["finished"]>>,
     PlaywrightError
   >;
-  frame: Effect.Effect<FrameService, PlaywrightError>;
+  frame: Effect.Effect<Frame, PlaywrightError>;
   fromServiceWorker: () => boolean;
   headers: () => ReturnType<CoreResponse["headers"]>;
   headersArray: Effect.Effect<
@@ -269,7 +276,7 @@ export class Response extends Data.TaggedClass(
       body: use(() => response.body()),
       finished: use(() => response.finished()),
       frame: Effect.try({
-        try: () => Frame.make(response.frame()),
+        try: () => makeFrame(response.frame()),
         catch: wrapError,
       }),
       fromServiceWorker: () => response.fromServiceWorker(),
@@ -299,7 +306,7 @@ export class Response extends Data.TaggedClass(
 }
 
 /**
- * @category model
+ * @category models
  * @since 0.1.2
  */
 export class Worker extends Data.TaggedClass(
@@ -315,15 +322,21 @@ export class Worker extends Data.TaggedClass(
     const use = useHelper(worker);
 
     return new Worker({
-      // biome-ignore lint/suspicious/noExplicitAny: no idea how to type this.. but it's implementation only here
-      evaluate: (f, arg) => use((w) => w.evaluate(f as any, arg)),
+      evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
+        use((worker) =>
+          worker.evaluate<R, Arg>(
+            // Playwright's overload cannot preserve the wrapper's generic function type.
+            f as unknown as Parameters<typeof worker.evaluate<R, Arg>>[0],
+            arg as Arg,
+          ),
+        ),
       url: () => worker.url(),
     });
   }
 }
 
 /**
- * @category model
+ * @category models
  * @since 0.1.2
  */
 export class Dialog extends Data.TaggedClass(
@@ -333,7 +346,7 @@ export class Dialog extends Data.TaggedClass(
   defaultValue: () => string;
   dismiss: Effect.Effect<void, PlaywrightError>;
   message: () => string;
-  page: () => Option.Option<PageService>;
+  page: () => Option.Option<Page>;
   type: () => string;
 }> {
   static make(dialog: CoreDialog) {
@@ -344,15 +357,14 @@ export class Dialog extends Data.TaggedClass(
       defaultValue: () => dialog.defaultValue(),
       dismiss: use(() => dialog.dismiss()),
       message: () => dialog.message(),
-      page: () =>
-        Option.fromNullable(dialog.page()).pipe(Option.map(Page.make)),
+      page: () => Option.fromNullable(dialog.page()).pipe(Option.map(makePage)),
       type: () => dialog.type(),
     });
   }
 }
 
 /**
- * @category model
+ * @category models
  * @since 0.1.2
  */
 export class FileChooser extends Data.TaggedClass(
@@ -360,7 +372,7 @@ export class FileChooser extends Data.TaggedClass(
 )<{
   element: () => ElementHandle;
   isMultiple: () => boolean;
-  page: () => PageService;
+  page: () => Page;
   setFiles: (
     files: Parameters<CoreFileChooser["setFiles"]>[0],
     options?: Parameters<CoreFileChooser["setFiles"]>[1],
@@ -372,7 +384,7 @@ export class FileChooser extends Data.TaggedClass(
     return new FileChooser({
       element: () => fileChooser.element(),
       isMultiple: () => fileChooser.isMultiple(),
-      page: () => Page.make(fileChooser.page()),
+      page: () => makePage(fileChooser.page()),
       setFiles: (files, options) =>
         use(() => fileChooser.setFiles(files, options)),
     });
@@ -380,7 +392,7 @@ export class FileChooser extends Data.TaggedClass(
 }
 
 /**
- * @category model
+ * @category models
  * @since 0.1.2
  */
 export class Download extends Data.TaggedClass(
@@ -389,13 +401,13 @@ export class Download extends Data.TaggedClass(
   cancel: Effect.Effect<void, PlaywrightError>;
   /**
    * Creates a stream of the download data.
-   * @category custom
+   * @category event streams
    * @since 0.2.0
    */
   stream: Stream.Stream<Uint8Array, PlaywrightError>;
   delete: Effect.Effect<void, PlaywrightError>;
   failure: Effect.Effect<Option.Option<string | null>, PlaywrightError>;
-  page: () => PageService;
+  page: () => Page;
   path: Effect.Effect<Option.Option<string | null>, PlaywrightError>;
   saveAs: (path: string) => Effect.Effect<void, PlaywrightError>;
   suggestedFilename: () => string;
@@ -424,7 +436,7 @@ export class Download extends Data.TaggedClass(
       failure: use(() => download.failure()).pipe(
         Effect.map(Option.fromNullable),
       ),
-      page: () => Page.make(download.page()),
+      page: () => makePage(download.page()),
       path: use(() => download.path()).pipe(Effect.map(Option.fromNullable)),
       saveAs: (path) => use(() => download.saveAs(path)),
       suggestedFilename: () => download.suggestedFilename(),

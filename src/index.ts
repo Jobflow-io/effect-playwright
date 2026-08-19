@@ -1,17 +1,25 @@
 /**
- * An Effect-based wrapper for Playwright.
+ * Effect services and value wrappers for browser automation with Playwright.
  *
- * ## Features
+ * The root entrypoint exposes Playwright's browser engines directly and groups
+ * the Effect-based services, models, constructors, and errors under the
+ * {@link Playwright} namespace. Scoped acquisition APIs close browsers and
+ * contexts automatically, while fallible operations report {@link Playwright.PlaywrightError}.
  *
- * - **Effect Integration**: Seamlessly integrates Playwright's API with the Effect ecosystem.
- * - **Resource Management**: Automatic cleanup of browsers and contexts using Effect's Scope.
- * - **Type Safety**: Enhanced type safety and functional error handling.
- * - **Event Streams**: Handle Playwright events as typed Effect Streams.
- *
- * **model** is the most important category you probably want to look at.
- *
+ * @since 0.1.0
  * @packageDocumentation
  */
 
+/**
+ * Playwright's Chromium, Firefox, and WebKit browser engines.
+ *
+ * @category re-exports
+ * @since 0.5.0
+ */
 export { chromium, firefox, webkit } from "playwright-core";
+/**
+ * Effect services, models, constructors, and errors for Playwright.
+ *
+ * @since 0.7.0
+ */
 export * as Playwright from "./playwright-api";

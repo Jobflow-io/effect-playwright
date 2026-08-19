@@ -1,13 +1,19 @@
+/**
+ * Effect service wrapper for Playwright keyboard input.
+ *
+ * @since 0.1.0
+ */
+
 import { Context, type Effect } from "effect";
 import type { Keyboard as CoreKeyboard } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { useHelper } from "./utils";
 
 /**
- * @category model
+ * @category models
  * @since 0.1.0
  */
-export interface KeyboardService {
+export interface Keyboard {
   /**
    * Dispatches a `keydown` event.
    *
@@ -58,26 +64,27 @@ export interface KeyboardService {
 }
 
 /**
- * @category tag
+ * @category services
  */
-export class Keyboard extends Context.Tag(
+export const Keyboard = Context.GenericTag<Keyboard>(
   "effect-playwright/keyboard/Keyboard",
-)<Keyboard, KeyboardService>() {
-  /**
-   * Creates a `Keyboard` from a Playwright `Keyboard` instance.
-   *
-   * @param keyboard - The Playwright `Keyboard` instance to wrap.
-   * @since 0.1.0
-   */
-  static make(keyboard: CoreKeyboard): KeyboardService {
-    const use = useHelper(keyboard);
+);
 
-    return Keyboard.of({
-      down: (key) => use((k) => k.down(key)),
-      insertText: (text) => use((k) => k.insertText(text)),
-      press: (key, options) => use((k) => k.press(key, options)),
-      type: (text, options) => use((k) => k.type(text, options)),
-      up: (key) => use((k) => k.up(key)),
-    });
-  }
-}
+/**
+ * Creates a `Keyboard` from a Playwright `Keyboard` instance.
+ *
+ * @param keyboard - The Playwright `Keyboard` instance to wrap.
+ * @category constructors
+ * @since 0.1.0
+ */
+export const makeKeyboard = (keyboard: CoreKeyboard): Keyboard => {
+  const use = useHelper(keyboard);
+
+  return Keyboard.of({
+    down: (key) => use((k) => k.down(key)),
+    insertText: (text) => use((k) => k.insertText(text)),
+    press: (key, options) => use((k) => k.press(key, options)),
+    type: (text, options) => use((k) => k.type(text, options)),
+    up: (key) => use((k) => k.up(key)),
+  });
+};

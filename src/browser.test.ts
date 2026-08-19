@@ -119,7 +119,7 @@ layer(Playwright.layer)("Browser", (it) => {
   it.effect("newContext and browser finalizers should work", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright.Playwright;
-      let capturedBrowser: typeof Browser.Service | undefined;
+      let capturedBrowser: Browser | undefined;
 
       yield* Effect.scoped(
         Effect.gen(function* () {

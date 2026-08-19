@@ -1,3 +1,9 @@
+/**
+ * Typed errors produced when Playwright operations fail.
+ *
+ * @since 0.1.0
+ */
+
 import { Data } from "effect";
 import { errors } from "playwright-core";
 
@@ -5,7 +11,7 @@ import { errors } from "playwright-core";
  * Playwright does not provide detailed error information but there is
  * a distinction between timeout and other errors.
  *
- * @category error
+ * @category errors
  * @since 0.1.0
  */
 export type PlaywrightErrorReason = "Timeout" | "Unknown";
@@ -17,7 +23,7 @@ export type PlaywrightErrorReason = "Timeout" | "Unknown";
  * Timeout errors occur when a timeout is reached. All other errors are
  * grouped under "Unknown".
  *
- * @category error
+ * @category errors
  * @since 0.1.0
  */
 export class PlaywrightError extends Data.TaggedError(
@@ -27,6 +33,7 @@ export class PlaywrightError extends Data.TaggedError(
   cause: unknown;
 }> {}
 
+/** @internal */
 export function wrapError(error: unknown): PlaywrightError {
   if (error instanceof errors.TimeoutError) {
     return new PlaywrightError({

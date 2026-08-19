@@ -1,3 +1,10 @@
+/**
+ * Effect service wrapper for Playwright pages, including navigation, DOM
+ * interaction, evaluation, media capture, and event streams.
+ *
+ * @since 0.1.0
+ */
+
 import {
   Array,
   Context,
@@ -20,8 +27,8 @@ import type {
   ElementHandle,
   WebSocket,
 } from "playwright-core";
-import { BrowserContext, type BrowserContextService } from "./browser-context";
-import { Clock, type ClockService } from "./clock";
+import { type BrowserContext, makeBrowserContext } from "./browser-context";
+import { type Clock, makeClock } from "./clock";
 import {
   Dialog,
   Download,
@@ -31,17 +38,17 @@ import {
   Worker,
 } from "./common";
 import type { PlaywrightError } from "./errors";
-import { Frame } from "./frame";
-import { Keyboard, type KeyboardService } from "./keyboard";
-import { Locator } from "./locator";
-import { Mouse, type MouseService } from "./mouse";
+import { type Frame, makeFrame } from "./frame";
+import { type Keyboard, makeKeyboard } from "./keyboard";
+import { type Locator, makeLocator } from "./locator";
+import { type Mouse, makeMouse } from "./mouse";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
-import { Screencast, type ScreencastService } from "./screencast";
-import { Touchscreen, type TouchscreenService } from "./touchscreen";
+import { makeScreencast, type Screencast } from "./screencast";
+import { makeTouchscreen, type Touchscreen } from "./touchscreen";
 import { useHelper } from "./utils";
-import { WebStorage, type WebStorageService } from "./web-storage";
+import { makeWebStorage, type WebStorage } from "./web-storage";
 
-interface PageEvents {
+interface CorePageEventMap {
   close: CorePage;
   console: ConsoleMessage;
   crash: CorePage;
@@ -62,88 +69,124 @@ interface PageEvents {
   websocket: WebSocket;
   worker: CoreWorker;
 }
+/**
+ * Values emitted by {@link Page.eventStream} for each supported page event.
+ * Native Playwright values are converted to Effect Playwright wrappers where
+ * a wrapper is available.
+ *
+ * @category models
+ * @since 0.7.0
+ */
+export interface PageEventMap {
+  readonly close: Page;
+  readonly console: ConsoleMessage;
+  readonly crash: Page;
+  readonly dialog: Dialog;
+  readonly domcontentloaded: Page;
+  readonly download: Download;
+  readonly filechooser: FileChooser;
+  readonly frameattached: Frame;
+  readonly framedetached: Frame;
+  readonly framenavigated: Frame;
+  readonly load: Page;
+  readonly pageerror: Error;
+  readonly popup: Page;
+  readonly request: Request;
+  readonly requestfailed: Request;
+  readonly requestfinished: Request;
+  readonly response: Response;
+  readonly websocket: WebSocket;
+  readonly worker: Worker;
+}
 
 const eventMappings = {
-  close: (page: CorePage) => Page.make(page),
+  close: (page: CorePage) => makePage(page),
   console: identity<ConsoleMessage>,
-  crash: (page: CorePage) => Page.make(page),
+  crash: (page: CorePage) => makePage(page),
   dialog: (dialog: CoreDialog) => Dialog.make(dialog),
-  domcontentloaded: (page: CorePage) => Page.make(page),
+  domcontentloaded: (page: CorePage) => makePage(page),
   download: (download: CoreDownload) => Download.make(download),
   filechooser: (fileChooser: CoreFileChooser) => FileChooser.make(fileChooser),
-  frameattached: (frame: CoreFrame) => Frame.make(frame),
-  framedetached: (frame: CoreFrame) => Frame.make(frame),
-  framenavigated: (frame: CoreFrame) => Frame.make(frame),
-  load: (page: CorePage) => Page.make(page),
+  frameattached: (frame: CoreFrame) => makeFrame(frame),
+  framedetached: (frame: CoreFrame) => makeFrame(frame),
+  framenavigated: (frame: CoreFrame) => makeFrame(frame),
+  load: (page: CorePage) => makePage(page),
   pageerror: identity<Error>,
-  popup: (page: CorePage) => Page.make(page),
+  popup: (page: CorePage) => makePage(page),
   request: (request: CoreRequest) => Request.make(request),
   requestfailed: (request: CoreRequest) => Request.make(request),
   requestfinished: (request: CoreRequest) => Request.make(request),
   response: (response: CoreResponse) => Response.make(response),
   websocket: identity<WebSocket>,
   worker: (worker: CoreWorker) => Worker.make(worker),
-} as const;
+} as const satisfies {
+  readonly [K in keyof CorePageEventMap]: (
+    value: CorePageEventMap[K],
+  ) => PageEventMap[K];
+};
 
-type PageWithPatchedEvents = PatchedEvents<CorePage, PageEvents>;
+type PageWithPatchedEvents = PatchedEvents<CorePage, CorePageEventMap>;
 
 /**
- * @category model
+ * Effect-friendly operations for a Playwright page.
+ *
+ * **When to use**
+ *
+ * Use this service for navigation, DOM interaction, evaluation, page state,
+ * and page event streams. Operations that can fail return `Effect`; safe
+ * synchronous observations remain plain functions, and nullable Playwright
+ * results are represented with `Option`.
+ *
+ * @category models
  * @since 0.1.0
  */
-export interface PageService {
+export interface Page {
   /**
    * Access the clock.
    *
    * @since 0.3.0
    */
-  readonly clock: ClockService;
+  readonly clock: Clock;
   /**
    * Access local storage for the page's current origin.
    *
    * @see {@link CorePage.localStorage}
    * @since 0.5.1
    */
-  readonly localStorage: WebStorageService;
+  readonly localStorage: WebStorage;
   /**
    * Access the keyboard.
    *
    * @since 0.3.0
    */
-  readonly keyboard: KeyboardService;
+  readonly keyboard: Keyboard;
   /**
    * Access the mouse.
    *
    * @since 0.3.0
    */
-  readonly mouse: MouseService;
+  readonly mouse: Mouse;
   /**
    * Access the touchscreen.
    *
    * @since 0.3.0
    */
-  readonly touchscreen: TouchscreenService;
+  readonly touchscreen: Touchscreen;
   /**
    * Access the screencast.
    *
    * @since 0.5.0
    */
-  readonly screencast: ScreencastService;
+  readonly screencast: Screencast;
   /**
    * Access session storage for the page's current origin.
    *
    * @see {@link CorePage.sessionStorage}
    * @since 0.5.1
    */
-  readonly sessionStorage: WebStorageService;
+  readonly sessionStorage: WebStorage;
   /**
    * Navigates the page to the given URL.
-   *
-   * @example
-   * ```ts
-   * yield* page.goto("https://google.com");
-   * ```
-   *
    * @see {@link CorePage.goto}
    * @since 0.1.0
    */
@@ -173,12 +216,12 @@ export interface PageService {
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * This setting will change the default maximum navigation time for the following methods:
-   * - {@link PageService.goBack}
-   * - {@link PageService.goForward}
-   * - {@link PageService.goto}
-   * - {@link PageService.reload}
-   * - {@link PageService.setContent}
-   * - {@link PageService.waitForURL}
+   * - {@link Page.goBack}
+   * - {@link Page.goForward}
+   * - {@link Page.goto}
+   * - {@link Page.reload}
+   * - {@link Page.setContent}
+   * - {@link Page.waitForURL}
    *
    * @see {@link CorePage.setDefaultNavigationTimeout}
    * @since 0.3.0
@@ -222,12 +265,6 @@ export interface PageService {
   readonly viewportSize: () => Option.Option<{ width: number; height: number }>;
   /**
    * Waits for the page to navigate to the given URL.
-   *
-   * @example
-   * ```ts
-   * yield* page.waitForURL("https://google.com");
-   * ```
-   *
    * @see {@link CorePage.waitForURL}
    * @since 0.1.0
    */
@@ -239,12 +276,6 @@ export interface PageService {
    * Waits for the page to reach the given load state.
    *
    * NOTE: Most of the time, this method is not needed because Playwright auto-waits before every action.
-   *
-   * @example
-   * ```ts
-   * yield* page.waitForLoadState("domcontentloaded");
-   * ```
-   *
    * @see {@link CorePage.waitForLoadState}
    * @since 0.2.0
    */
@@ -254,15 +285,20 @@ export interface PageService {
   ) => Effect.Effect<void, PlaywrightError>;
   /**
    * Evaluates a function in the context of the page.
+   * **Example** (Evaluating browser-side code)
    *
-   * @example
    * ```ts
-   * const dimensions = yield* page.evaluate(() => ({
-   *   width: document.documentElement.clientWidth,
-   *   height: document.documentElement.clientHeight
-   * }));
-   * ```
+   * import { Effect } from "effect";
+   * import { Playwright } from "effect-playwright";
    *
+   * const dimensions = Effect.gen(function* () {
+   *   const page = yield* Playwright.Page;
+   *   return yield* page.evaluate(() => ({
+   *     width: document.documentElement.clientWidth,
+   *     height: document.documentElement.clientHeight,
+   *   }));
+   * });
+   * ```
    * @see {@link CorePage.evaluate}
    * @since 0.1.0
    */
@@ -412,35 +448,38 @@ export interface PageService {
   ) => Effect.Effect<ElementHandle, PlaywrightError>;
   /**
    * Returns the page title.
-   *
-   * @example
-   * ```ts
-   * const title = yield* page.title;
-   * ```
-   *
    * @see {@link CorePage.title}
    * @since 0.1.0
    */
   readonly title: Effect.Effect<string, PlaywrightError>;
   /**
    * Returns the full HTML contents of the page, including the doctype.
-   *
-   * @example
-   * ```ts
-   * const html = yield* page.content;
-   * ```
-   *
    * @see {@link CorePage.content}
    * @since 0.3.0
    */
   readonly content: Effect.Effect<string, PlaywrightError>;
   /**
-   * A generic utility to execute any promise-based method on the underlying Playwright `Page`.
-   * Can be used to access any Page functionality not directly exposed by this service.
+   * Runs an asynchronous operation against the underlying Playwright `Page`.
+   *
+   * **When to use**
+   *
+   * Use this escape hatch only when {@link Page} does not expose the native
+   * Playwright operation you need.
+   *
+   * **Gotchas**
+   *
+   * The callback must return a `Promise`. The native page has the same lifetime
+   * as this wrapper; closing it also closes the wrapped page.
    *
    * @example
    * ```ts
-   * const title = yield* page.use((p) => p.title());
+   * import { Effect } from "effect";
+   * import { Playwright } from "effect-playwright";
+   *
+   * const program = Effect.gen(function* () {
+   *   const page = yield* Playwright.Page;
+   *   return yield* page.use((nativePage) => nativePage.title());
+   * });
    * ```
    *
    * @see {@link CorePage}
@@ -460,7 +499,7 @@ export interface PageService {
   readonly locator: (
     selector: string,
     options?: Parameters<CorePage["locator"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given role.
    *
@@ -470,7 +509,7 @@ export interface PageService {
   readonly getByRole: (
     role: Parameters<CorePage["getByRole"]>[0],
     options?: Parameters<CorePage["getByRole"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given text.
    *
@@ -480,7 +519,7 @@ export interface PageService {
   readonly getByText: (
     text: Parameters<CorePage["getByText"]>[0],
     options?: Parameters<CorePage["getByText"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given label.
    *
@@ -490,7 +529,7 @@ export interface PageService {
   readonly getByLabel: (
     label: Parameters<CorePage["getByLabel"]>[0],
     options?: Parameters<CorePage["getByLabel"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given test id.
    *
@@ -499,7 +538,7 @@ export interface PageService {
    */
   readonly getByTestId: (
     testId: Parameters<CorePage["getByTestId"]>[0],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given alt text.
    *
@@ -509,7 +548,7 @@ export interface PageService {
   readonly getByAltText: (
     text: Parameters<CorePage["getByAltText"]>[0],
     options?: Parameters<CorePage["getByAltText"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given placeholder.
    *
@@ -519,7 +558,7 @@ export interface PageService {
   readonly getByPlaceholder: (
     text: Parameters<CorePage["getByPlaceholder"]>[0],
     options?: Parameters<CorePage["getByPlaceholder"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
   /**
    * Returns a locator that matches the given title.
    *
@@ -529,15 +568,10 @@ export interface PageService {
   readonly getByTitle: (
     text: Parameters<CorePage["getByTitle"]>[0],
     options?: Parameters<CorePage["getByTitle"]>[1],
-  ) => typeof Locator.Service;
+  ) => Locator;
 
   /**
    * Captures a screenshot of the page.
-   *
-   * @example
-   * ```ts
-   * const buffer = yield* page.screenshot({ path: "screenshot.png" });
-   * ```
    *
    * @see {@link CorePage.screenshot}
    * @since 0.3.0
@@ -550,7 +584,7 @@ export interface PageService {
    * Returns the PDF buffer.
    *
    * `page.pdf()` generates a pdf of the page with `print` css media. To generate a pdf with `screen` media, call
-   * {@link PageService.emulateMedia} before calling `page.pdf()`.
+   * {@link Page.emulateMedia} before calling `page.pdf()`.
    *
    * @see {@link CorePage.pdf}
    * @since 0.3.0
@@ -562,14 +596,9 @@ export interface PageService {
   /**
    * Clicks an element matching the given selector.
    *
-   * @example
-   * ```ts
-   * yield* page.click("button#submit");
-   * ```
-   * @deprecated Use {@link PageService.locator} to create a locator and then call `click` on it instead.
+   * @deprecated Use {@link Page.locator} to create a locator and then call `click` on it instead.
    * @see {@link CorePage.click}
    * @since 0.1.0
-   * @category deprecated
    */
   readonly click: (
     selector: string,
@@ -578,11 +607,6 @@ export interface PageService {
 
   /**
    * Drags a source element to a target element and drops it.
-   *
-   * @example
-   * ```ts
-   * yield* page.dragAndDrop("#source", "#target");
-   * ```
    *
    * @see {@link CorePage.dragAndDrop}
    * @since 0.3.0
@@ -596,12 +620,6 @@ export interface PageService {
   /**
    * This method changes the CSS media type through the media argument,
    * and/or the 'prefers-colors-scheme' media feature, using the colorScheme argument.
-   *
-   * @example
-   * ```ts
-   * yield* page.emulateMedia({ colorScheme: "dark" });
-   * yield* page.emulateMedia({ media: "print" });
-   * ```
    *
    * @see {@link CorePage.emulateMedia}
    * @since 0.3.0
@@ -620,11 +638,6 @@ export interface PageService {
   /**
    * Navigate to the previous page in history.
    *
-   * @example
-   * ```ts
-   * const response = yield* page.goBack();
-   * ```
-   *
    * @see {@link CorePage.goBack}
    * @since 0.3.0
    */
@@ -633,11 +646,6 @@ export interface PageService {
   ) => Effect.Effect<Option.Option<Response>, PlaywrightError>;
   /**
    * Navigate to the next page in history.
-   *
-   * @example
-   * ```ts
-   * const response = yield* page.goForward();
-   * ```
    *
    * @see {@link CorePage.goForward}
    * @since 0.3.0
@@ -685,11 +693,6 @@ export interface PageService {
   /**
    * Returns the current URL of the page.
    *
-   * @example
-   * ```ts
-   * const url = page.url();
-   * ```
-   *
    * @see {@link CorePage.url}
    * @since 0.1.0
    */
@@ -722,11 +725,6 @@ export interface PageService {
   /**
    * Returns all messages that have been logged to the console.
    *
-   * @example
-   * ```ts
-   * const consoleMessages = yield* page.consoleMessages();
-   * ```
-   *
    * @see {@link CorePage.consoleMessages}
    * @since 0.3.0
    */
@@ -736,11 +734,6 @@ export interface PageService {
 
   /**
    * Returns all errors that have been thrown in the page.
-   *
-   * @example
-   * ```ts
-   * const pageErrors = yield* page.pageErrors();
-   * ```
    *
    * @see {@link CorePage.pageErrors}
    * @since 0.3.0
@@ -763,7 +756,7 @@ export interface PageService {
    * @see {@link CorePage.pickLocator}
    * @since 0.5.0
    */
-  readonly pickLocator: Effect.Effect<typeof Locator.Service, PlaywrightError>;
+  readonly pickLocator: Effect.Effect<Locator, PlaywrightError>;
 
   /**
    * Cancels the locator picking mode.
@@ -797,7 +790,7 @@ export interface PageService {
    * @see {@link CorePage.context}
    * @since 0.3.0
    */
-  readonly context: () => BrowserContextService;
+  readonly context: () => BrowserContext;
   /**
    * Returns the opener for popup pages and `Option.none` for others.
    *
@@ -806,21 +799,16 @@ export interface PageService {
    * @see {@link CorePage.opener}
    * @since 0.3.0
    */
-  readonly opener: Effect.Effect<Option.Option<PageService>, PlaywrightError>;
+  readonly opener: Effect.Effect<Option.Option<Page>, PlaywrightError>;
   /**
    * Returns a frame matching the specified criteria.
-   *
-   * @example
-   * ```ts
-   * const frame = Option.getOrNull(page.frame("frame-name"));
-   * ```
    *
    * @see {@link CorePage.frame}
    * @since 0.3.0
    */
   readonly frame: (
     frameSelector: Parameters<CorePage["frame"]>[0],
-  ) => Option.Option<typeof Frame.Service>;
+  ) => Option.Option<Frame>;
 
   /**
    * Returns all frames attached to the page.
@@ -828,204 +816,212 @@ export interface PageService {
    * @see {@link CorePage.frames}
    * @since 0.2.0
    */
-  readonly frames: Effect.Effect<
-    ReadonlyArray<typeof Frame.Service>,
-    PlaywrightError
-  >;
+  readonly frames: Effect.Effect<ReadonlyArray<Frame>, PlaywrightError>;
   /**
    * The page's main frame. Page is guaranteed to have a main frame which persists during navigations.
    *
    * @see {@link CorePage.mainFrame}
    * @since 0.3.0
    */
-  readonly mainFrame: () => typeof Frame.Service;
+  readonly mainFrame: () => Frame;
   /**
-   * Creates a stream of the given event from the page.
+   * Streams page events after adapting supported payloads to wrapper values.
    *
-   * @example
+   * **Details**
+   *
+   * Event listeners are removed when stream consumption ends. The stream also
+   * ends when the page closes.
+   *
+   * **Example** (Reading the first console event)
+   *
    * ```ts
-   * const consoleStream = page.eventStream("console");
+   * import { Effect, Stream } from "effect";
+   * import { Playwright } from "effect-playwright";
+   *
+   * const firstConsoleMessage = Effect.gen(function* () {
+   *   const page = yield* Playwright.Page;
+   *   return yield* page.eventStream("console").pipe(Stream.runHead);
+   * });
    * ```
    *
-   * @category custom
+   * @category event streams
    * @see {@link CorePage.on}
    * @since 0.1.0
    */
-  readonly eventStream: <K extends keyof PageEvents>(
+  readonly eventStream: <K extends keyof PageEventMap>(
     event: K,
-  ) => Stream.Stream<ReturnType<(typeof eventMappings)[K]>>;
+  ) => Stream.Stream<PageEventMap[K]>;
 }
 
 /**
- * @category tag
+ * Service tag for the active {@link Page}.
+ *
+ * @category services
+ * @since 0.1.0
  */
-export class Page extends Context.Tag("effect-playwright/page/Page")<
-  Page,
-  PageService
->() {
-  /**
-   * Creates a `Page` from a Playwright `Page` instance.
-   *
-   * @param page - The Playwright `Page` instance to wrap.
-   * @since 0.1.0
-   */
-  static make(page: PageWithPatchedEvents): PageService {
-    const use = useHelper(page);
+export const Page = Context.GenericTag<Page>("effect-playwright/page/Page");
 
-    return Page.of({
-      clock: Clock.make(page.clock),
-      localStorage: WebStorage.make(page.localStorage),
-      keyboard: Keyboard.make(page.keyboard),
-      mouse: Mouse.make(page.mouse),
-      touchscreen: Touchscreen.make(page.touchscreen),
-      screencast: Screencast.make(page.screencast),
-      sessionStorage: WebStorage.make(page.sessionStorage),
-      goto: (url, options) => use((p) => p.goto(url, options)),
-      setContent: (html, options) => use((p) => p.setContent(html, options)),
-      waitForTimeout: (timeout) => use((p) => p.waitForTimeout(timeout)),
-      setDefaultNavigationTimeout: (timeout) =>
-        page.setDefaultNavigationTimeout(timeout),
-      setDefaultTimeout: (timeout) => page.setDefaultTimeout(timeout),
-      setExtraHTTPHeaders: (headers) =>
-        use((p) => p.setExtraHTTPHeaders(headers)),
-      setViewportSize: (viewportSize) =>
-        use((p) => p.setViewportSize(viewportSize)),
-      viewportSize: () => Option.fromNullable(page.viewportSize()),
-      waitForURL: (url, options) => use((p) => p.waitForURL(url, options)),
-      waitForLoadState: (state, options) =>
-        use((p) => p.waitForLoadState(state, options)),
-      title: use((p) => p.title()),
-      content: use((p) => p.content()),
-      evaluate: <R, Arg>(
-        f: PageFunction<Arg, R>,
-        arg?: Arg,
-        options?: Parameters<CorePage["evaluate"]>[2],
-      ) =>
-        use((p) =>
-          p.evaluate<R, Arg>(
-            f as unknown as Parameters<typeof p.evaluate<R, Arg>>[0],
-            arg as Arg,
-            options,
-          ),
+/**
+ * Creates a `Page` from a Playwright `Page` instance.
+ *
+ * @param page - The Playwright `Page` instance to wrap.
+ * @category constructors
+ * @since 0.1.0
+ */
+export const makePage = (page: CorePage): Page => {
+  const events = page as PageWithPatchedEvents;
+  const use = useHelper(page);
+
+  return Page.of({
+    clock: makeClock(page.clock),
+    localStorage: makeWebStorage(page.localStorage),
+    keyboard: makeKeyboard(page.keyboard),
+    mouse: makeMouse(page.mouse),
+    touchscreen: makeTouchscreen(page.touchscreen),
+    screencast: makeScreencast(page.screencast),
+    sessionStorage: makeWebStorage(page.sessionStorage),
+    goto: (url, options) => use((page) => page.goto(url, options)),
+    setContent: (html, options) =>
+      use((page) => page.setContent(html, options)),
+    waitForTimeout: (timeout) => use((page) => page.waitForTimeout(timeout)),
+    setDefaultNavigationTimeout: (timeout) =>
+      page.setDefaultNavigationTimeout(timeout),
+    setDefaultTimeout: (timeout) => page.setDefaultTimeout(timeout),
+    setExtraHTTPHeaders: (headers) =>
+      use((page) => page.setExtraHTTPHeaders(headers)),
+    setViewportSize: (viewportSize) =>
+      use((page) => page.setViewportSize(viewportSize)),
+    viewportSize: () => Option.fromNullable(page.viewportSize()),
+    waitForURL: (url, options) => use((page) => page.waitForURL(url, options)),
+    waitForLoadState: (state, options) =>
+      use((page) => page.waitForLoadState(state, options)),
+    title: use((page) => page.title()),
+    content: use((page) => page.content()),
+    evaluate: <R, Arg>(
+      fn: PageFunction<Arg, R>,
+      arg?: Arg,
+      options?: Parameters<CorePage["evaluate"]>[2],
+    ) =>
+      use((page) =>
+        page.evaluate<R, Arg>(
+          fn as unknown as Parameters<typeof page.evaluate<R, Arg>>[0],
+          arg as Arg,
+          options,
         ),
-      addInitScript: <Arg>(
-        script:
-          | PageFunction<Arg, unknown>
-          | { path?: string; content?: string },
-        arg?: Arg,
-        options?: Parameters<CorePage["addInitScript"]>[2],
-      ) =>
-        use((p) =>
-          p.addInitScript<Arg>(
-            script as unknown as Parameters<typeof p.addInitScript<Arg>>[0],
-            arg,
-            options,
-          ),
-        ).pipe(Effect.asVoid),
-      addScriptTag: (options) => use((p) => p.addScriptTag(options)),
-      addStyleTag: (options) => use((p) => p.addStyleTag(options)),
-      exposeFunction: <A, E, R, Args extends unknown[]>(
-        name: string,
-        effectFn: (...args: Args) => Effect.Effect<A, E, R>,
-      ) =>
-        Effect.runtime<R>().pipe(
-          Effect.map((r) => Runtime.runPromise(r)),
-          Effect.flatMap((runPromise) =>
-            use((p) =>
-              p.exposeFunction(name, (...args: Args) =>
-                runPromise(effectFn(...args)),
-              ),
+      ),
+    addInitScript: <Arg>(
+      script: PageFunction<Arg, unknown> | { path?: string; content?: string },
+      arg?: Arg,
+      options?: Parameters<CorePage["addInitScript"]>[2],
+    ) =>
+      use((page) =>
+        page.addInitScript<Arg>(
+          script as unknown as Parameters<typeof page.addInitScript<Arg>>[0],
+          arg,
+          options,
+        ),
+      ).pipe(Effect.asVoid),
+    addScriptTag: (options) => use((page) => page.addScriptTag(options)),
+    addStyleTag: (options) => use((page) => page.addStyleTag(options)),
+    exposeFunction: <A, E, R, Args extends unknown[]>(
+      name: string,
+      effectFn: (...args: Args) => Effect.Effect<A, E, R>,
+    ) =>
+      Effect.runtime<R>().pipe(
+        Effect.map((runtime) => Runtime.runPromise(runtime)),
+        Effect.flatMap((runPromise) =>
+          use((page) =>
+            page.exposeFunction(name, (...args: Args) =>
+              runPromise(effectFn(...args)),
             ),
           ),
         ),
-      exposeEffect: <A, E, R>(name: string, effectFn: Effect.Effect<A, E, R>) =>
-        Effect.runtime<R>().pipe(
-          Effect.map((r) => Runtime.runPromise(r)),
-          Effect.flatMap((runPromise) =>
-            use((p) => p.exposeFunction(name, () => runPromise(effectFn))),
-          ),
-        ),
-      locator: (selector, options) =>
-        Locator.make(page.locator(selector, options)),
-      getByRole: (role, options) => Locator.make(page.getByRole(role, options)),
-      getByText: (text, options) => Locator.make(page.getByText(text, options)),
-      getByLabel: (label, options) =>
-        Locator.make(page.getByLabel(label, options)),
-      getByTestId: (testId) => Locator.make(page.getByTestId(testId)),
-      getByAltText: (text, options) =>
-        Locator.make(page.getByAltText(text, options)),
-      getByPlaceholder: (text, options) =>
-        Locator.make(page.getByPlaceholder(text, options)),
-      getByTitle: (text, options) =>
-        Locator.make(page.getByTitle(text, options)),
-      url: () => page.url(),
-      hideHighlight: use((p) => p.hideHighlight()),
-      clearConsoleMessages: use((p) => p.clearConsoleMessages()),
-      clearPageErrors: use((p) => p.clearPageErrors()),
-      consoleMessages: (options) => use((p) => p.consoleMessages(options)),
-      pageErrors: (options) => use((p) => p.pageErrors(options)),
-      requests: use((p) => p.requests()).pipe(
-        Effect.map(Array.map(Request.make)),
       ),
-      pickLocator: use((p) => p.pickLocator().then(Locator.make)),
-      cancelPickLocator: use((p) => p.cancelPickLocator()),
-      ariaSnapshot: (options) => use((p) => p.ariaSnapshot(options)),
-      context: () => BrowserContext.make(page.context()),
-      opener: use((p) => p.opener()).pipe(
+    exposeEffect: <A, E, R>(name: string, effectFn: Effect.Effect<A, E, R>) =>
+      Effect.runtime<R>().pipe(
+        Effect.map((runtime) => Runtime.runPromise(runtime)),
+        Effect.flatMap((runPromise) =>
+          use((page) => page.exposeFunction(name, () => runPromise(effectFn))),
+        ),
+      ),
+    locator: (selector, options) =>
+      makeLocator(page.locator(selector, options)),
+    getByRole: (role, options) => makeLocator(page.getByRole(role, options)),
+    getByText: (text, options) => makeLocator(page.getByText(text, options)),
+    getByLabel: (label, options) =>
+      makeLocator(page.getByLabel(label, options)),
+    getByTestId: (testId) => makeLocator(page.getByTestId(testId)),
+    getByAltText: (text, options) =>
+      makeLocator(page.getByAltText(text, options)),
+    getByPlaceholder: (text, options) =>
+      makeLocator(page.getByPlaceholder(text, options)),
+    getByTitle: (text, options) => makeLocator(page.getByTitle(text, options)),
+    url: () => page.url(),
+    hideHighlight: use((page) => page.hideHighlight()),
+    clearConsoleMessages: use((page) => page.clearConsoleMessages()),
+    clearPageErrors: use((page) => page.clearPageErrors()),
+    consoleMessages: (options) => use((page) => page.consoleMessages(options)),
+    pageErrors: (options) => use((page) => page.pageErrors(options)),
+    requests: use((page) => page.requests()).pipe(
+      Effect.map(Array.map(Request.make)),
+    ),
+    pickLocator: use((page) => page.pickLocator().then(makeLocator)),
+    cancelPickLocator: use((page) => page.cancelPickLocator()),
+    ariaSnapshot: (options) => use((page) => page.ariaSnapshot(options)),
+    context: () => makeBrowserContext(page.context()),
+    opener: use((page) => page.opener()).pipe(
+      Effect.map(Option.fromNullable),
+      Effect.map(Option.map(makePage)),
+    ),
+    workers: () => page.workers().map(Worker.make),
+    frame: (frameSelector) =>
+      Option.fromNullable(page.frame(frameSelector)).pipe(
+        Option.map(makeFrame),
+      ),
+    frames: use((page) => Promise.resolve(page.frames().map(makeFrame))),
+    mainFrame: () => makeFrame(page.mainFrame()),
+    reload: use((page) => page.reload()),
+    goBack: (options) =>
+      use((page) => page.goBack(options)).pipe(
         Effect.map(Option.fromNullable),
-        Effect.map(Option.map(Page.make)),
+        Effect.map(Option.map(Response.make)),
       ),
-      workers: () => page.workers().map(Worker.make),
-
-      frame: (frameSelector) =>
-        Option.fromNullable(page.frame(frameSelector)).pipe(
-          Option.map(Frame.make),
-        ),
-      frames: use((p) => Promise.resolve(p.frames().map(Frame.make))),
-      mainFrame: () => Frame.make(page.mainFrame()),
-      reload: use((p) => p.reload()),
-      goBack: (options) =>
-        use((p) => p.goBack(options)).pipe(
-          Effect.map(Option.fromNullable),
-          Effect.map(Option.map(Response.make)),
-        ),
-      goForward: (options) =>
-        use((p) => p.goForward(options)).pipe(
-          Effect.map(Option.fromNullable),
-          Effect.map(Option.map(Response.make)),
-        ),
-      requestGC: use((p) => p.requestGC()),
-      bringToFront: use((p) => p.bringToFront()),
-      pause: use((p) => p.pause()),
-      close: use((p) => p.close()),
-      isClosed: () => page.isClosed(),
-      screenshot: (options) => use((p) => p.screenshot(options)),
-      pdf: (options) => use((p) => p.pdf(options)),
-      dragAndDrop: (source, target, options) =>
-        use((p) => p.dragAndDrop(source, target, options)),
-      click: (selector, options) => use((p) => p.click(selector, options)),
-      emulateMedia: (options) => use((p) => p.emulateMedia(options)),
-      eventStream: <K extends keyof PageEvents>(event: K) =>
-        Stream.asyncPush<PageEvents[K]>((emit) =>
-          Effect.acquireRelease(
-            Effect.sync(() => {
-              page.on(event, emit.single);
-              page.once("close", emit.end);
-            }),
-            () =>
-              Effect.sync(() => {
-                page.off(event, emit.single);
-                page.off("close", emit.end);
-              }),
-          ),
-        ).pipe(
-          Stream.map((e) => {
-            const mapping = eventMappings[event];
-            // biome-ignore lint/suspicious/noExplicitAny: Don't know how to fix this …
-            return mapping(e as any) as ReturnType<(typeof eventMappings)[K]>;
+    goForward: (options) =>
+      use((page) => page.goForward(options)).pipe(
+        Effect.map(Option.fromNullable),
+        Effect.map(Option.map(Response.make)),
+      ),
+    requestGC: use((page) => page.requestGC()),
+    bringToFront: use((page) => page.bringToFront()),
+    pause: use((page) => page.pause()),
+    close: use((page) => page.close()),
+    isClosed: () => page.isClosed(),
+    screenshot: (options) => use((page) => page.screenshot(options)),
+    pdf: (options) => use((page) => page.pdf(options)),
+    dragAndDrop: (source, target, options) =>
+      use((page) => page.dragAndDrop(source, target, options)),
+    click: (selector, options) => use((page) => page.click(selector, options)),
+    emulateMedia: (options) => use((page) => page.emulateMedia(options)),
+    eventStream: <K extends keyof PageEventMap>(event: K) =>
+      Stream.asyncPush<CorePageEventMap[K]>((emit) =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            events.on(event, emit.single);
+            events.once("close", emit.end);
           }),
+          () =>
+            Effect.sync(() => {
+              events.off(event, emit.single);
+              events.off("close", emit.end);
+            }),
         ),
-      use,
-    });
-  }
-}
+      ).pipe(
+        Stream.map((value) => {
+          const mapping = eventMappings[event];
+          // The selected event and mapping share the same generic event key.
+          return mapping(value as never) as PageEventMap[K];
+        }),
+      ),
+    use,
+  });
+};

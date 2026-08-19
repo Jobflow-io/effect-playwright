@@ -1,3 +1,9 @@
+/**
+ * Experimental service for provisioning a scoped Playwright browser.
+ *
+ * @since 0.7.0
+ */
+
 import { Context, Effect, Layer } from "effect";
 import type { Scope } from "effect/Scope";
 import { Playwright } from "effect-playwright";
@@ -5,54 +11,41 @@ import type { BrowserType, LaunchOptions } from "playwright-core";
 import type { PlaywrightError } from "../errors";
 
 /**
- * A service that spawns browsers scoped to the current lifetime.
+ * Deferred acquisition of a browser scoped to the caller's lifetime.
  *
- * @example
- * ```ts
- * declare const spawner: PlaywrightSpawner.PlaywrightSpawner;
- * const browser = spawner.browser;
- * ```
+ * **When to use**
  *
- * @category model
+ * Use through {@link withBrowser} for the common case, or access `browser`
+ * directly when composing a custom scoped layer.
+ *
+ * @category models
  * @since 0.7.0
  */
-export interface Service {
+export interface PlaywrightSpawner {
   readonly browser: Effect.Effect<Playwright.Browser, PlaywrightError, Scope>;
 }
+
 /**
- * The PlaywrightSpawner service.
+ * Service tag for the active {@link PlaywrightSpawner}.
  *
- * @example
- * ```ts
- * declare const spawner: PlaywrightSpawner.PlaywrightSpawner;
- * ```
- *
- * @category model
+ * @category services
  * @since 0.7.0
  */
-export type PlaywrightSpawner = Service;
-
-class PlaywrightSpawnerTag extends Context.Tag(
+export const PlaywrightSpawner = Context.GenericTag<PlaywrightSpawner>(
   "effect-playwright/experimental/playwright-spawner/PlaywrightSpawner",
-)<PlaywrightSpawner, Service>() {}
+);
 
 /**
- * The PlaywrightSpawner service tag.
+ * Creates a layer that configures scoped browser acquisition.
  *
- * @example
- * ```ts
- * const spawner = yield* PlaywrightSpawner.PlaywrightSpawner;
- * ```
+ * **Details**
  *
- * @category tag
- * @since 0.7.0
- */
-export const PlaywrightSpawner = PlaywrightSpawnerTag;
-
-/**
- * Creates a layer that provides the {@link PlaywrightSpawner} service.
+ * Providing this layer does not launch a browser eagerly. A browser is launched
+ * when the `browser` effect is evaluated inside a scope. The layer also provides
+ * the underlying `Playwright.Playwright` service.
  *
- * @example
+ * **Example** (Acquiring the browser directly)
+ *
  * ```ts
  * import { Effect } from "effect";
  * import { chromium } from "effect-playwright";
@@ -62,18 +55,17 @@ export const PlaywrightSpawner = PlaywrightSpawnerTag;
  *   const spawner = yield* PlaywrightSpawner.PlaywrightSpawner;
  *   const browser = yield* spawner.browser;
  *   const page = yield* browser.newPage();
- *   yield* page.goto("https://example.com");
+ *   yield* page.setContent("<h1>Effect</h1>");
  * }).pipe(
  *   Effect.scoped,
  *   Effect.provide(PlaywrightSpawner.layer(chromium)),
  * );
  * ```
  *
- * @param browser - The Playwright BrowserType implementation (e.g. `chromium`, `firefox`, `webkit`).
- * @param launchOptions - Optional configuration for launching the browser (e.g. headless, args).
- *
+ * @param browser - Browser engine to launch.
+ * @param launchOptions - Optional browser launch options.
+ * @category layers
  * @since 0.1.0
- * @category layer
  */
 export const layer = (
   browser: BrowserType,
@@ -81,43 +73,52 @@ export const layer = (
 ): Layer.Layer<PlaywrightSpawner> =>
   Playwright.Playwright.pipe(
     Effect.map((playwright) =>
-      PlaywrightSpawnerTag.of({
+      PlaywrightSpawner.of({
         browser: playwright.launchScoped(browser, launchOptions),
       }),
     ),
-    Layer.effect(PlaywrightSpawnerTag),
+    Layer.effect(PlaywrightSpawner),
     Layer.provide(Playwright.layer),
   );
 
 const withBrowserUnscoped = Effect.provideServiceEffect(
   Playwright.Browser,
-  PlaywrightSpawnerTag.pipe(Effect.flatMap((e) => e.browser)),
+  PlaywrightSpawner.pipe(Effect.flatMap((e) => e.browser)),
 );
 
 /**
- * Provides a scoped `Playwright.Browser` service, allowing you to access the browser from the context.
+ * Provides a scoped `Playwright.Browser` to an Effect.
  *
- * You will need to provide the `PlaywrightSpawner` layer first.
+ * **When to use**
  *
- * This will start a browser and close it when the scope is closed.
+ * Use this as the concise alternative to accessing {@link PlaywrightSpawner}
+ * and its `browser` effect directly.
  *
- * @example
+ * **Details**
+ *
+ * A fresh browser is launched when the returned effect starts and is closed
+ * when that effect succeeds, fails, or is interrupted. The
+ * {@link PlaywrightSpawner} layer must already be provided.
+ *
+ * **Example** (Providing a browser for one program)
  *
  * ```ts
+ * import { Effect } from "effect";
  * import { Playwright, chromium } from "effect-playwright";
  * import { PlaywrightSpawner } from "effect-playwright/experimental";
  *
- * const spawnerLayer = PlaywrightSpawner.layer(chromium);
- *
  * const program = Effect.gen(function* () {
- *     const browser = yield* Playwright.Browser;
- *     const page = yield* browser.newPage();
- *     yield* page.goto("https://example.com");
- * }).pipe(PlaywrightSpawner.withBrowser, Effect.provide(spawnerLayer));
+ *   const browser = yield* Playwright.Browser;
+ *   const page = yield* browser.newPage();
+ *   yield* page.setContent("<h1>Effect</h1>");
+ * }).pipe(
+ *   PlaywrightSpawner.withBrowser,
+ *   Effect.provide(PlaywrightSpawner.layer(chromium)),
+ * );
  * ```
  *
+ * @category utilities
  * @since 0.1.0
- * @category util
  */
 export const withBrowser = <A, E, R>(self: Effect.Effect<A, E, R>) =>
   Effect.scoped(withBrowserUnscoped(self)); // TODO: roast check if using Effect.scope here is an anti-pattern

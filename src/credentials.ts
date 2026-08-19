@@ -1,3 +1,9 @@
+/**
+ * Effect service wrapper for Playwright WebAuthn credential operations.
+ *
+ * @since 0.5.1
+ */
+
 import { Context, type Effect } from "effect";
 import type { Credentials as CoreCredentials } from "playwright-core";
 import type { PlaywrightError } from "./errors";
@@ -20,10 +26,10 @@ import { useHelper } from "./utils";
  * });
  * ```
  *
- * @category model
+ * @category models
  * @since 0.5.1
  */
-export interface CredentialsService {
+export interface Credentials {
   /**
    * Installs the virtual WebAuthn authenticator into the browser context.
    *
@@ -77,26 +83,27 @@ export interface CredentialsService {
 }
 
 /**
- * @category tag
+ * @category services
  * @since 0.5.1
  */
-export class Credentials extends Context.Tag(
+export const Credentials = Context.GenericTag<Credentials>(
   "effect-playwright/credentials/Credentials",
-)<Credentials, CredentialsService>() {
-  /**
-   * Creates a `Credentials` from a Playwright `Credentials` instance.
-   *
-   * @category constructor
-   * @since 0.5.1
-   */
-  static make(credentials: CoreCredentials): CredentialsService {
-    const use = useHelper(credentials);
+);
 
-    return Credentials.of({
-      install: use((c) => c.install()),
-      create: (rpId, options) => use((c) => c.create(rpId, options)),
-      get: (options) => use((c) => c.get(options)),
-      delete: (id) => use((c) => c.delete(id)),
-    });
-  }
-}
+/**
+ * Creates `Credentials` from a Playwright `Credentials` instance.
+ *
+ * @param credentials - The Playwright `Credentials` instance to wrap.
+ * @category constructors
+ * @since 0.5.1
+ */
+export const makeCredentials = (credentials: CoreCredentials): Credentials => {
+  const use = useHelper(credentials);
+
+  return Credentials.of({
+    install: use((c) => c.install()),
+    create: (rpId, options) => use((c) => c.create(rpId, options)),
+    get: (options) => use((c) => c.get(options)),
+    delete: (id) => use((c) => c.delete(id)),
+  });
+};

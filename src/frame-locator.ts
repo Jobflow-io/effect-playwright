@@ -1,15 +1,21 @@
+/**
+ * Effect service wrapper for Playwright frame locators.
+ *
+ * @since 0.1.0
+ */
+
 import { Context, Match, Predicate } from "effect";
 import type {
   FrameLocator as CoreFrameLocator,
   Locator as CoreLocator,
 } from "playwright-core";
-import { Locator, type LocatorService } from "./locator";
+import { type Locator, makeLocator } from "./locator";
 
 /**
  * Interface for a Playwright frame locator.
- * @category model
+ * @category models
  */
-export interface FrameLocatorService {
+export interface FrameLocator {
   /**
    * The underlying Playwright FrameLocator instance.
    * @internal
@@ -22,7 +28,7 @@ export interface FrameLocatorService {
    * @see {@link CoreFrameLocator.first}
    * @since 0.1.0
    */
-  readonly first: () => FrameLocatorService;
+  readonly first: () => FrameLocator;
 
   /**
    * When working with iframes, you can create a frame locator that will enter the iframe and allow selecting elements
@@ -31,7 +37,7 @@ export interface FrameLocatorService {
    * @see {@link CoreFrameLocator.frameLocator}
    * @since 0.1.0
    */
-  readonly frameLocator: (selector: string) => FrameLocatorService;
+  readonly frameLocator: (selector: string) => FrameLocator;
 
   /**
    * Returns locator to the last matching frame.
@@ -39,7 +45,7 @@ export interface FrameLocatorService {
    * @see {@link CoreFrameLocator.last}
    * @since 0.1.0
    */
-  readonly last: () => FrameLocatorService;
+  readonly last: () => FrameLocator;
 
   /**
    * Returns locator to the n-th matching frame.
@@ -47,7 +53,7 @@ export interface FrameLocatorService {
    * @see {@link CoreFrameLocator.nth}
    * @since 0.1.0
    */
-  readonly nth: (index: number) => FrameLocatorService;
+  readonly nth: (index: number) => FrameLocator;
 
   /**
    * Returns a `Locator` object pointing to the same `iframe` as this frame locator.
@@ -55,7 +61,7 @@ export interface FrameLocatorService {
    * @see {@link CoreFrameLocator.owner}
    * @since 0.1.0
    */
-  readonly owner: () => LocatorService;
+  readonly owner: () => Locator;
 
   /**
    * Finds an element matching the specified selector in the locator's subtree.
@@ -64,9 +70,9 @@ export interface FrameLocatorService {
    * @since 0.1.0
    */
   readonly locator: (
-    selectorOrLocator: string | CoreLocator | LocatorService,
+    selectorOrLocator: string | CoreLocator | Locator,
     options?: Parameters<CoreFrameLocator["locator"]>[1],
-  ) => LocatorService;
+  ) => Locator;
 
   /**
    * Allows locating elements by their ARIA role.
@@ -77,7 +83,7 @@ export interface FrameLocatorService {
   readonly getByRole: (
     role: Parameters<CoreFrameLocator["getByRole"]>[0],
     options?: Parameters<CoreFrameLocator["getByRole"]>[1],
-  ) => LocatorService;
+  ) => Locator;
 
   /**
    * Allows locating elements that contain given text.
@@ -88,7 +94,7 @@ export interface FrameLocatorService {
   readonly getByText: (
     text: Parameters<CoreFrameLocator["getByText"]>[0],
     options?: Parameters<CoreFrameLocator["getByText"]>[1],
-  ) => LocatorService;
+  ) => Locator;
 
   /**
    * Allows locating elements by their label text.
@@ -99,7 +105,7 @@ export interface FrameLocatorService {
   readonly getByLabel: (
     text: Parameters<CoreFrameLocator["getByLabel"]>[0],
     options?: Parameters<CoreFrameLocator["getByLabel"]>[1],
-  ) => LocatorService;
+  ) => Locator;
 
   /**
    * Allows locating elements by their placeholder text.
@@ -110,7 +116,7 @@ export interface FrameLocatorService {
   readonly getByPlaceholder: (
     text: Parameters<CoreFrameLocator["getByPlaceholder"]>[0],
     options?: Parameters<CoreFrameLocator["getByPlaceholder"]>[1],
-  ) => LocatorService;
+  ) => Locator;
 
   /**
    * Allows locating elements by their alt text.
@@ -121,7 +127,7 @@ export interface FrameLocatorService {
   readonly getByAltText: (
     text: Parameters<CoreFrameLocator["getByAltText"]>[0],
     options?: Parameters<CoreFrameLocator["getByAltText"]>[1],
-  ) => LocatorService;
+  ) => Locator;
 
   /**
    * Allows locating elements by their title attribute.
@@ -132,7 +138,7 @@ export interface FrameLocatorService {
   readonly getByTitle: (
     text: Parameters<CoreFrameLocator["getByTitle"]>[0],
     options?: Parameters<CoreFrameLocator["getByTitle"]>[1],
-  ) => LocatorService;
+  ) => Locator;
 
   /**
    * Allows locating elements by their test id.
@@ -142,54 +148,56 @@ export interface FrameLocatorService {
    */
   readonly getByTestId: (
     testId: Parameters<CoreFrameLocator["getByTestId"]>[0],
-  ) => LocatorService;
+  ) => Locator;
 }
 
 /**
  * A service that provides a `FrameLocator` instance.
  *
  * @since 0.1.0
- * @category tag
+ * @category services
  */
-export class FrameLocator extends Context.Tag(
+export const FrameLocator = Context.GenericTag<FrameLocator>(
   "effect-playwright/frame-locator/FrameLocator",
-)<FrameLocator, FrameLocatorService>() {
-  /**
-   * Creates a `FrameLocator` from a Playwright `FrameLocator` instance.
-   *
-   * @param frameLocator - The Playwright `FrameLocator` instance to wrap.
-   * @since 0.1.0
-   * @category constructor
-   */
-  static make(frameLocator: CoreFrameLocator): typeof FrameLocator.Service {
-    const unwrap = Match.type<string | CoreLocator | LocatorService>().pipe(
-      Match.when(Predicate.hasProperty("_raw"), (l) => l._raw),
-      Match.orElse((l) => l),
-    );
+);
 
-    return FrameLocator.of({
-      _raw: frameLocator,
-      first: () => FrameLocator.make(frameLocator.first()),
-      frameLocator: (selector: string) =>
-        FrameLocator.make(frameLocator.frameLocator(selector)),
-      last: () => FrameLocator.make(frameLocator.last()),
-      nth: (index: number) => FrameLocator.make(frameLocator.nth(index)),
-      owner: () => Locator.make(frameLocator.owner()),
-      locator: (selectorOrLocator, options) =>
-        Locator.make(frameLocator.locator(unwrap(selectorOrLocator), options)),
-      getByRole: (role, options) =>
-        Locator.make(frameLocator.getByRole(role, options)),
-      getByText: (text, options) =>
-        Locator.make(frameLocator.getByText(text, options)),
-      getByLabel: (text, options) =>
-        Locator.make(frameLocator.getByLabel(text, options)),
-      getByPlaceholder: (text, options) =>
-        Locator.make(frameLocator.getByPlaceholder(text, options)),
-      getByAltText: (text, options) =>
-        Locator.make(frameLocator.getByAltText(text, options)),
-      getByTitle: (text, options) =>
-        Locator.make(frameLocator.getByTitle(text, options)),
-      getByTestId: (testId) => Locator.make(frameLocator.getByTestId(testId)),
-    });
-  }
-}
+/**
+ * Creates a `FrameLocator` from a Playwright `FrameLocator` instance.
+ *
+ * @param frameLocator - The Playwright `FrameLocator` instance to wrap.
+ * @since 0.1.0
+ * @category constructors
+ */
+export const makeFrameLocator = (
+  frameLocator: CoreFrameLocator,
+): FrameLocator => {
+  const unwrap = Match.type<string | CoreLocator | Locator>().pipe(
+    Match.when(Predicate.hasProperty("_raw"), (l) => l._raw),
+    Match.orElse((l) => l),
+  );
+
+  return FrameLocator.of({
+    _raw: frameLocator,
+    first: () => makeFrameLocator(frameLocator.first()),
+    frameLocator: (selector: string) =>
+      makeFrameLocator(frameLocator.frameLocator(selector)),
+    last: () => makeFrameLocator(frameLocator.last()),
+    nth: (index: number) => makeFrameLocator(frameLocator.nth(index)),
+    owner: () => makeLocator(frameLocator.owner()),
+    locator: (selectorOrLocator, options) =>
+      makeLocator(frameLocator.locator(unwrap(selectorOrLocator), options)),
+    getByRole: (role, options) =>
+      makeLocator(frameLocator.getByRole(role, options)),
+    getByText: (text, options) =>
+      makeLocator(frameLocator.getByText(text, options)),
+    getByLabel: (text, options) =>
+      makeLocator(frameLocator.getByLabel(text, options)),
+    getByPlaceholder: (text, options) =>
+      makeLocator(frameLocator.getByPlaceholder(text, options)),
+    getByAltText: (text, options) =>
+      makeLocator(frameLocator.getByAltText(text, options)),
+    getByTitle: (text, options) =>
+      makeLocator(frameLocator.getByTitle(text, options)),
+    getByTestId: (testId) => makeLocator(frameLocator.getByTestId(testId)),
+  });
+};

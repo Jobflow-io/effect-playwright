@@ -3,7 +3,7 @@ import { Effect, Option } from "effect";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
 import { PlaywrightSpawner } from "./experimental";
-import type { FrameService } from "./frame";
+import type { Frame } from "./frame";
 
 layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
   it.scoped("should wrap frame methods", () =>
@@ -26,7 +26,7 @@ layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
       // Get the frame
       const frames = yield* page.frames;
 
-      const isTestFrame = (f: FrameService) =>
+      const isTestFrame = (f: Frame) =>
         Effect.succeed(f.name() === "test-frame");
 
       const frame = yield* Effect.findFirst(frames, isTestFrame).pipe(
