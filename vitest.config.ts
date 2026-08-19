@@ -6,8 +6,8 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     includeSource: ["src/**/*.ts"],
     alias: {
-      "effect-playwright": "src/index.ts",
       "effect-playwright/experimental": "src/experimental/index.ts",
+      "effect-playwright": "src/index.ts",
     },
     sequence: {
       concurrent: true,

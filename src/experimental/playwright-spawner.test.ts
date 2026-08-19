@@ -1,15 +1,11 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
+import { Playwright } from "effect-playwright";
+import { PlaywrightSpawner } from "effect-playwright/experimental";
 import { chromium } from "playwright-core";
-import { Browser } from "../browser";
-import {
-  Environment,
-  layer as layerPlaywrightEnvironment,
-  withBrowser,
-} from "./environment";
 
 const accessFirst = Effect.gen(function* () {
-  const browser = yield* Browser;
+  const browser = yield* Playwright.Browser;
 
   assert(browser, "Expected browser");
 
@@ -28,7 +24,7 @@ const accessFirst = Effect.gen(function* () {
 });
 
 const accessSecond = Effect.gen(function* () {
-  const browser = yield* Browser;
+  const browser = yield* Playwright.Browser;
 
   assert(browser, "Expected browser");
 
@@ -48,12 +44,14 @@ const accessSecond = Effect.gen(function* () {
   assert(url.includes("?test=1"), "Expected ?test=1");
 });
 
-layer(layerPlaywrightEnvironment(chromium))("Environment", (it) => {
+layer(PlaywrightSpawner.layer(chromium))("PlaywrightSpawner", (it) => {
   it.scoped("should launch a browser", () =>
     Effect.gen(function* () {
       const program = Effect.gen(function* () {
-        const playwright = yield* Environment;
-        const browser = yield* playwright.browser;
+        const spawner: PlaywrightSpawner.PlaywrightSpawner &
+          PlaywrightSpawner.Service =
+          yield* PlaywrightSpawner.PlaywrightSpawner;
+        const browser = yield* spawner.browser;
 
         yield* browser.newPage({ baseURL: "about:blank" });
       });
@@ -65,27 +63,27 @@ layer(layerPlaywrightEnvironment(chromium))("Environment", (it) => {
 
   it.effect("withBrowser helper should work", () =>
     Effect.gen(function* () {
-      const browser = yield* Browser;
+      const browser = yield* Playwright.Browser;
 
       yield* browser.newPage({ baseURL: "about:blank" });
-    }).pipe(withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.effect("withBrowser allows shared use", () =>
     Effect.gen(function* () {
-      const browser = yield* Browser;
+      const browser = yield* Playwright.Browser;
 
       yield* browser.newPage({ baseURL: "about:blank" });
 
       yield* accessFirst;
       yield* accessSecond;
-    }).pipe(withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.effect("withBrowser imperative use", () =>
-    withBrowser(
+    PlaywrightSpawner.withBrowser(
       Effect.gen(function* () {
-        const browser = yield* Browser;
+        const browser = yield* Playwright.Browser;
 
         yield* browser.newPage({ baseURL: "about:blank" });
       }),
@@ -94,11 +92,11 @@ layer(layerPlaywrightEnvironment(chromium))("Environment", (it) => {
 
   it.effect("withBrowser scope cleanup", () =>
     Effect.gen(function* () {
-      let capturedBrowser: typeof Browser.Service | undefined;
+      let capturedBrowser: Playwright.Browser | undefined;
 
-      yield* withBrowser(
+      yield* PlaywrightSpawner.withBrowser(
         Effect.gen(function* () {
-          const browser = yield* Browser;
+          const browser = yield* Playwright.Browser;
           capturedBrowser = browser;
 
           yield* browser.newPage({ baseURL: "about:blank" });

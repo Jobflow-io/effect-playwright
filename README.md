@@ -82,18 +82,18 @@ const program = Effect.gen(function* () {
 });
 ```
 
-## Environment (Experimental)
+## Playwright Spawner (Experimental)
 
-The `Environment` simplifies setup by allowing you to configure the browser type and launch options once and reuse them across your application.
+`PlaywrightSpawner` configures how browsers are launched and spawns browsers scoped to the current lifetime.
 
 ### Usage
 
 ```ts
 import { Playwright, chromium } from "effect-playwright";
-import { Environment } from "effect-playwright/experimental";
+import { PlaywrightSpawner } from "effect-playwright/experimental";
 import { Effect } from "effect";
 
-const liveLayer = Environment.layer(chromium, {
+const liveLayer = PlaywrightSpawner.layer(chromium, {
   headless: false /** any other launch options */,
 });
 
@@ -102,12 +102,12 @@ const program = Effect.gen(function* () {
   const page = yield* browser.newPage();
 
   yield* page.goto("https://example.com");
-}).pipe(Environment.withBrowser);
+}).pipe(PlaywrightSpawner.withBrowser);
 
 await Effect.runPromise(program.pipe(Effect.provide(liveLayer)));
 ```
 
-### `Environment.withBrowser`
+### `PlaywrightSpawner.withBrowser`
 
 The `withBrowser` utility provides the `Browser` service to your effect. It internally manages a `Scope`, which means the browser will be launched when the effect starts and closed automatically when the effect finishes (including on failure or interruption).
 
@@ -118,7 +118,7 @@ const program = Effect.gen(function* () {
 
   // ...
   // Browser close is ensured
-}).pipe(Environment.withBrowser);
+}).pipe(PlaywrightSpawner.withBrowser);
 ```
 
 ## Event Handling
@@ -152,7 +152,7 @@ const program = Effect.gen(function* () {
   );
 
   yield* page.goto("https://example.com");
-}).pipe(Environment.withBrowser);
+}).pipe(PlaywrightSpawner.withBrowser);
 ```
 
 ## Accessing Native Playwright

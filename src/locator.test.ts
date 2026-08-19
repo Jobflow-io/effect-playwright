@@ -3,9 +3,9 @@ import { assert, layer } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
-import { Environment } from "./experimental";
+import { PlaywrightSpawner } from "./experimental";
 
-layer(Environment.layer(chromium))("Locator", (it) => {
+layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
   it.scoped("should work", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
@@ -16,7 +16,7 @@ layer(Environment.layer(chromium))("Locator", (it) => {
 
       const titleText = yield* title.textContent();
       assert(titleText === "Blank", "Expected title to be 'Blank'");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("evaluate", () =>
@@ -38,7 +38,7 @@ layer(Environment.layer(chromium))("Locator", (it) => {
       });
 
       assert(result === "red");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("waitFor", () =>
@@ -66,7 +66,7 @@ layer(Environment.layer(chromium))("Locator", (it) => {
         (el) => el.style.display === "block",
       );
       assert(isVisible === true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("waitForFunction", () =>
@@ -89,7 +89,7 @@ layer(Environment.layer(chromium))("Locator", (it) => {
 
       assert(result === undefined);
       assert((yield* status.textContent()) === "Ready");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("evaluate options expose function arguments", () =>
@@ -115,7 +115,7 @@ layer(Environment.layer(chromium))("Locator", (it) => {
       );
       const handled = yield* Effect.promise(() => handle.jsonValue());
       assert(handled === "handled:hello");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("kitchensink", () =>
@@ -345,7 +345,7 @@ layer(Environment.layer(chromium))("Locator", (it) => {
         .first()
         .use((l) => l.evaluate((el) => el.id));
       assert(useResult === "btn-1");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped(
@@ -406,7 +406,7 @@ layer(Environment.layer(chromium))("Locator", (it) => {
           .locator("#in-frame")
           .textContent();
         assert(contentFrameText === "In Frame");
-      }).pipe(Environment.withBrowser),
+      }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("action methods", () =>
@@ -575,6 +575,6 @@ layer(Environment.layer(chromium))("Locator", (it) => {
         (yield* btnTap.evaluate((el) => el.getAttribute("data-tapped"))) ===
           "true",
       );
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 });

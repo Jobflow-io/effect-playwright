@@ -1,6 +1,6 @@
-import { Environment } from "effect-playwright/experimental";
+import { PlaywrightSpawner } from "effect-playwright/experimental";
 import { chromium } from "playwright-core";
 
-export const liveLayer = Environment.layer(chromium, {
+export const liveLayer = PlaywrightSpawner.layer(chromium, {
   headless: false,
 });

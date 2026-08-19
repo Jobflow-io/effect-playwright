@@ -326,7 +326,7 @@ export interface LocatorService {
    * import { chromium } from "@playwright/test";
    * import { Effect } from "effect";
    * import { Playwright } from "effect-playwright";
-   * import { Environment } from "effect-playwright/experimental";
+   * import { PlaywrightSpawner } from "effect-playwright/experimental";
    *
    * const program = Effect.gen(function* () {
    *   const browser = yield* Playwright.Browser;
@@ -337,8 +337,8 @@ export interface LocatorService {
    *     "Ready",
    *   );
    * }).pipe(
-   *   Environment.provideBrowser,
-   *   Effect.provide(Environment.layer(chromium)),
+   *   PlaywrightSpawner.withBrowser,
+   *   Effect.provide(PlaywrightSpawner.layer(chromium)),
    * );
    * ```
    *
@@ -360,7 +360,7 @@ export interface LocatorService {
    * @example
    * ```ts
    * import { Playwright } from "effect-playwright";
-   * import { Environment } from "effect-playwright/experimental";
+   * import { PlaywrightSpawner } from "effect-playwright/experimental";
    * import { chromium } from "@playwright/test";
    * import { Effect } from "effect";
    *
@@ -369,7 +369,7 @@ export interface LocatorService {
    *   const page = yield* browser.newPage();
    *   const locator = yield* page.locator("button");
    *   const buttonContent = yield* locator.evaluate((button) => button.textContent());
-   * }).pipe(Environment.provideBrowser, Effect.provide(Environment.layer(chromium)));
+   * }).pipe(PlaywrightSpawner.withBrowser, Effect.provide(PlaywrightSpawner.layer(chromium)));
    * ```
    *
    * @see {@link CoreLocator.evaluate}

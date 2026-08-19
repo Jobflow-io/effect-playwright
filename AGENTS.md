@@ -20,7 +20,7 @@ Use `pnpm` for all package management tasks.
 ### General Architecture
 
 - **Effect-First:** All asynchronous operations must be wrapped in `Effect`.
-- **Services:** Functionality is exposed via Services and Context Tags (e.g., `Page`, `PageService`).
+- **Services:** Public functionality is grouped under the `Playwright` namespace. Runtime tags and service types share names (e.g., `Playwright.Page` and `Playwright.Browser`).
 - **Resource Management:** Rely on Effect's `Scope` for automatic resource cleanup (browsers, contexts).
 
 ### Imports
@@ -28,6 +28,7 @@ Use `pnpm` for all package management tasks.
 - **Effect:** Import widely used modules from `effect` (e.g., `Effect`, `Context`, `Stream`).
 - **Playwright:** Import types from `playwright-core`.
 - **Internal:** Use relative imports (e.g., `./common`, `./errors`).
+- **Public API:** Import wrapper APIs through `Playwright` from `effect-playwright`. Import the experimental browser spawner through `PlaywrightSpawner` from `effect-playwright/experimental`. Do not reintroduce top-level wrapper exports or the old `Environment` name.
 
 ### Error Handling
 
@@ -50,18 +51,18 @@ Use `pnpm` for all package management tasks.
   ```typescript
   import { assert, layer } from "@effect/vitest";
   import { Effect } from "effect";
-  import { Browser, chromium } from "effect-playwright";
-  import { Environment } from "effect-playwright/experimental";
+  import { Playwright, chromium } from "effect-playwright";
+  import { PlaywrightSpawner } from "effect-playwright/experimental";
 
-  // Use the Environment layer
-  layer(Environment.layer(chromium))("Suite Name", (it) => {
+  // Use the PlaywrightSpawner layer
+  layer(PlaywrightSpawner.layer(chromium))("Suite Name", (it) => {
     it.scoped("should do something", () =>
       Effect.gen(function* () {
-        const browser = yield* Browser;
+        const browser = yield* Playwright.Browser;
         const page = yield* browser.newPage();
         // ... test logic
         assert.strictEqual(1, 1);
-      }).pipe(Environment.withBrowser),
+      }).pipe(PlaywrightSpawner.withBrowser),
     );
   });
   ```
@@ -71,4 +72,4 @@ Use `pnpm` for all package management tasks.
 
 ## 4. Experimental Features
 
-- Features in `src/experimental/` may have different stability guarantees but should follow the same coding standards.
+- Features in `src/experimental/` may have different stability guarantees but should follow the same coding standards. The browser-spawning service lives in `src/experimental/playwright-spawner.ts` and is exported as `PlaywrightSpawner`.

@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Playwright } from "effect-playwright";
-import { Environment } from "./experimental/environment";
+import { PlaywrightSpawner } from "effect-playwright/experimental";
 
 const tags = [
   [Playwright.Browser, "effect-playwright/browser/Browser"],
@@ -21,7 +21,10 @@ const tags = [
   [Playwright.Touchscreen, "effect-playwright/touchscreen/Touchscreen"],
   [Playwright.Tracing, "effect-playwright/tracing/Tracing"],
   [Playwright.WebStorage, "effect-playwright/web-storage/WebStorage"],
-  [Environment, "effect-playwright/experimental/environment/Environment"],
+  [
+    PlaywrightSpawner.PlaywrightSpawner,
+    "effect-playwright/experimental/playwright-spawner/PlaywrightSpawner",
+  ],
 ] as const;
 
 const models = [

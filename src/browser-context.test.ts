@@ -2,13 +2,13 @@ import { assert, layer } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
-import { Environment } from "./experimental";
+import { PlaywrightSpawner } from "./experimental";
 
 type TestWindow = Window & {
   magicValue?: number;
 };
 
-layer(Environment.layer(chromium))("BrowserContext", (it) => {
+layer(PlaywrightSpawner.layer(chromium))("BrowserContext", (it) => {
   it.scoped("should wrap context methods", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
@@ -61,7 +61,7 @@ layer(Environment.layer(chromium))("BrowserContext", (it) => {
       yield* context.setExtraHTTPHeaders({ "X-Test": "test" });
       yield* context.setGeolocation({ latitude: 52, longitude: 13 });
       yield* context.setOffline(false);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("addInitScript should execute script in all new pages", () =>
@@ -90,7 +90,7 @@ layer(Environment.layer(chromium))("BrowserContext", (it) => {
         () => (window as TestWindow).magicValue,
       );
       assert.strictEqual(magicValue2, 84);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped(
@@ -105,7 +105,7 @@ layer(Environment.layer(chromium))("BrowserContext", (it) => {
         yield* context.close;
 
         assert.strictEqual(context.isClosed(), true);
-      }).pipe(Environment.withBrowser),
+      }).pipe(PlaywrightSpawner.withBrowser),
   );
   it.scoped("credentials should create, get, and delete credentials", () =>
     Effect.gen(function* () {
@@ -129,6 +129,6 @@ layer(Environment.layer(chromium))("BrowserContext", (it) => {
         id: created.id,
       });
       assert.strictEqual(afterDelete.length, 0);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 });

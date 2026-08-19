@@ -2,9 +2,9 @@ import { assert, layer } from "@effect/vitest";
 import { Chunk, Effect, Fiber, Option, Stream } from "effect";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
-import { Environment } from "./experimental";
+import { PlaywrightSpawner } from "./experimental";
 
-layer(Environment.layer(chromium))("PlaywrightCommon", (it) => {
+layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
   it.scoped("Request and Response", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
@@ -50,7 +50,7 @@ layer(Environment.layer(chromium))("PlaywrightCommon", (it) => {
       const httpVersion = yield* response.httpVersion;
       assert(typeof httpVersion === "string");
       assert(httpVersion.length > 0);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("Worker", () =>
@@ -75,7 +75,7 @@ layer(Environment.layer(chromium))("PlaywrightCommon", (it) => {
       assert(worker.url().startsWith("blob:"));
       const result = yield* worker.evaluate(() => 1 + 1);
       assert(result === 2);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("Dialog", () =>
@@ -98,7 +98,7 @@ layer(Environment.layer(chromium))("PlaywrightCommon", (it) => {
       assert(dialog.type() === "alert");
 
       yield* dialog.accept();
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("FileChooser", () =>
@@ -126,7 +126,7 @@ layer(Environment.layer(chromium))("PlaywrightCommon", (it) => {
 
       assert(fileChooser.isMultiple() === false);
       assert(fileChooser.element() !== null);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("Download", () =>
@@ -159,6 +159,6 @@ layer(Environment.layer(chromium))("PlaywrightCommon", (it) => {
       );
 
       assert.strictEqual(text, "hello world");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 });

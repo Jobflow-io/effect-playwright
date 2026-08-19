@@ -2,10 +2,10 @@ import { assert, layer } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
-import { Environment } from "./experimental";
+import { PlaywrightSpawner } from "./experimental";
 import type { FrameService } from "./frame";
 
-layer(Environment.layer(chromium))("Frame", (it) => {
+layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
   it.scoped("should wrap frame methods", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
@@ -119,7 +119,7 @@ layer(Environment.layer(chromium))("Frame", (it) => {
       yield* frame.setContent("<h1>New Content</h1>");
       const newContent = yield* frame.content;
       assert.isTrue(newContent.includes("New Content"));
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped(
@@ -138,7 +138,7 @@ layer(Environment.layer(chromium))("Frame", (it) => {
         );
 
         assert.strictEqual(result, 42);
-      }).pipe(Environment.withBrowser),
+      }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("waitForLoadState should resolve on frame", () =>
@@ -165,6 +165,6 @@ layer(Environment.layer(chromium))("Frame", (it) => {
       yield* frameService.waitForLoadState("load");
 
       assert.ok(true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 });

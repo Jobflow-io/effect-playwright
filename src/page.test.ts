@@ -2,7 +2,7 @@ import { assert, layer } from "@effect/vitest";
 import { Effect, Fiber, Option, Ref, Stream } from "effect";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
-import { Environment } from "./experimental";
+import { PlaywrightSpawner } from "./experimental";
 
 type TestWindow = Window & {
   timerFired?: boolean;
@@ -11,7 +11,7 @@ type TestWindow = Window & {
   magicValue?: number;
 };
 
-layer(Environment.layer(chromium))("Page", (it) => {
+layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
   it.scoped("goto should navigate to a URL", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
@@ -22,7 +22,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       yield* page.goto("about:blank");
       const url = yield* page.use((p) => Promise.resolve(p.url()));
       assert(url === "about:blank");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("setContent should set the page content", () =>
@@ -33,7 +33,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       yield* page.setContent("<h1>Hello World</h1>");
       const content = yield* page.content;
       assert(content.includes("<h1>Hello World</h1>"));
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("title should return the page title", () =>
@@ -44,7 +44,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       yield* page.goto("data:text/html,<title>Test Page</title>");
       const title = yield* page.title;
       assert(title === "Test Page");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("content should return the page content", () =>
@@ -57,7 +57,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       );
       const content = yield* page.content;
       assert(content.includes("<h1>Hello</h1>"));
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("click should click an element", () =>
@@ -78,7 +78,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (window as TestWindow).clicked,
       );
       assert(clicked === true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("goto should work with options", () =>
@@ -89,7 +89,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       yield* page.goto("about:blank", { waitUntil: "domcontentloaded" });
       const url = yield* page.use((p) => Promise.resolve(p.url()));
       assert(url === "about:blank");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("waitForTimeout should wait", () =>
@@ -101,7 +101,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       yield* page.waitForTimeout(100);
       const end = Date.now();
       assert(end - start >= 100);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped(
@@ -116,7 +116,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
           [10, 20] as const,
         );
         assert(result === 30);
-      }).pipe(Environment.withBrowser),
+      }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("evaluate should run code with a single value arg", () =>
@@ -126,7 +126,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       const result = yield* page.evaluate((val: number) => val * 2, 21);
       assert(result === 42);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped(
@@ -144,7 +144,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         );
 
         assert.strictEqual(result, 42);
-      }).pipe(Environment.withBrowser),
+      }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("click should work with options", () =>
@@ -169,7 +169,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (window as TestWindow).clickCoords,
       );
       assert(coords !== null);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("use should allow accessing raw playwright page", () =>
@@ -179,7 +179,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       const content = yield* page.use((p) => p.content());
       assert(typeof content === "string");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("locator should work with options", () =>
@@ -200,7 +200,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       const attr = yield* locator.getAttribute("data-id");
       assert(attr === "target");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("getBy* methods should work", () =>
@@ -245,7 +245,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       const byTitle = yield* page.getByTitle("Title Text").textContent();
       assert(byTitle === "Hover Me");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("waitForURL should work with History API", () =>
@@ -261,7 +261,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       yield* page.waitForURL((url) => url.hash === "#test-history");
       const url = page.url();
       assert(url.endsWith("#test-history"));
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("filechooser event should work", () =>
@@ -282,7 +282,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       const results = yield* Fiber.join(fileChooser).pipe(Effect.flatten);
 
       assert(results.isMultiple() === false, "isMultiple should be false");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("waitForLoadState should resolve", () =>
@@ -299,7 +299,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       // No assertion needed other than it doesn't timeout/error
       assert.ok(true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
   it.scoped("url property should update after navigation", () =>
     Effect.gen(function* () {
@@ -313,7 +313,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       const url2 = "data:text/html,<h1>Page 2</h1>";
       yield* page.goto(url2);
       assert.strictEqual(page.url(), url2);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("goBack and goForward should navigate through history", () =>
@@ -333,7 +333,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       yield* page.goForward();
       assert.strictEqual(page.url(), url2, "URL should be updated to url2");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("requestGC should execute without error", () =>
@@ -343,7 +343,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       yield* page.requestGC;
       assert.ok(true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("clock should allow fast forwarding time", () =>
@@ -372,7 +372,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (window as TestWindow).timerFired,
       );
       assert.strictEqual(timerFired, true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("clock should allow fast forwarding time on context", () =>
@@ -404,7 +404,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (window as TestWindow).timerFired,
       );
       assert.strictEqual(timerFired, true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("addInitScript should execute script before page load", () =>
@@ -426,7 +426,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (window as TestWindow).magicValue,
       );
       assert.strictEqual(magicValue, 42);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("keyboard should allow typing text", () =>
@@ -445,7 +445,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (document.getElementById("input") as HTMLInputElement).value,
       );
       assert.strictEqual(value, "Hello Effect");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("mouse should allow dispatching events", () =>
@@ -470,7 +470,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (window as TestWindow).clicked,
       );
       assert.strictEqual(clicked, true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("touchscreen should allow dispatching events", () =>
@@ -506,7 +506,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (window as TestWindow).clickCoords,
       );
       assert.deepStrictEqual(coords, { x: 50, y: 50 });
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("screenshot should capture an image", () =>
@@ -519,7 +519,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       assert(Buffer.isBuffer(buffer));
       assert(buffer.length > 0);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("pdf should capture a PDF", () =>
@@ -532,7 +532,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       assert(Buffer.isBuffer(buffer));
       assert(buffer.length > 0);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("addScriptTag should add a script tag to the page", () =>
@@ -548,7 +548,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (window as TestWindow).magicValue,
       );
       assert.strictEqual(magicValue, 42);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("addStyleTag should add a style tag to the page", () =>
@@ -571,7 +571,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         return el ? window.getComputedStyle(el).color : null;
       });
       assert.strictEqual(color, "rgb(255, 0, 0)");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
   it.scoped("bringToFront should bring the page to the front", () =>
     Effect.gen(function* () {
@@ -585,7 +585,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       // Ensure no errors are thrown
       assert.ok(true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("consoleMessages should return console messages", () =>
@@ -605,7 +605,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       assert.strictEqual(messages.length, 2);
       assert.strictEqual(messages[0].text(), "Hello from page");
       assert.strictEqual(messages[1].text(), "Warning from page");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("pageerror event should work", () =>
@@ -628,7 +628,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       const errorOpt = yield* Fiber.join(errorFiber);
       const error = Option.getOrThrow(errorOpt);
       assert.strictEqual(error.message, "Test Error");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("pageErrors should return all page errors", () =>
@@ -653,7 +653,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       const errors = yield* page.pageErrors();
       assert.ok(errors.length >= 1);
       assert.strictEqual(errors[0].message, "Test Error");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("context should return the associated browser context", () =>
@@ -668,7 +668,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       // but we can check if it has the right methods and doesn't crash
       const pages = pageContext.pages();
       assert.strictEqual(pages.length, 1);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("dragAndDrop should drag and drop an element", () =>
@@ -700,7 +700,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => (window as TestWindow).magicValue,
       );
       assert.strictEqual(magicValue, 42);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("emulateMedia should emulate media features", () =>
@@ -725,7 +725,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         () => window.matchMedia("(prefers-color-scheme: dark)").matches,
       );
       assert.strictEqual(isDark, false);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped(
@@ -748,7 +748,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
         assert.strictEqual(yield* Ref.get(ref), 1, "Ref value is 1");
         assert.strictEqual(result, 1, "Return value is 1");
-      }).pipe(Environment.withBrowser),
+      }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("exposeFunction should work with Effect.fn", () =>
@@ -773,7 +773,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       assert.strictEqual(yield* Ref.get(ref), 15, "Ref value is 15");
       assert.strictEqual(result, 15, "Return value is 15");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("exposeEffect should expose an effect", () =>
@@ -795,7 +795,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       assert.strictEqual(yield* Ref.get(ref), 1, "Ref value is 1");
       assert.strictEqual(result, 1, "Return value is 1");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("frame should return an Option of Frame", () =>
@@ -815,7 +815,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       const nonExistentFrame = page.frame("foo");
       assert(Option.isNone(nonExistentFrame), "Frame should be None");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("isClosed should return the closed state of the page", () =>
@@ -828,7 +828,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       yield* page.close;
 
       assert.strictEqual(page.isClosed(), true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("mainFrame should return the main frame", () =>
@@ -841,7 +841,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       const url = mainFrame.url();
       assert.strictEqual(url, "about:blank");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("opener should return the opener page", () =>
@@ -868,7 +868,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       const opener = Option.getOrThrow(openerOpt);
       const url = opener.url();
       assert.strictEqual(url, "about:blank");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("setViewportSize should update viewport dimensions", () =>
@@ -884,7 +884,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       assert.strictEqual(size.width, 600);
       assert.strictEqual(size.height, 400);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("viewportSize should return the current viewport size", () =>
@@ -899,7 +899,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       assert.strictEqual(size.width, 600);
       assert.strictEqual(size.height, 400);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("setExtraHTTPHeaders should not crash", () =>
@@ -909,7 +909,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       yield* page.setExtraHTTPHeaders({ "x-custom-header": "test-value" });
       assert.ok(true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("setDefaultNavigationTimeout should not crash", () =>
@@ -919,7 +919,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
 
       page.setDefaultNavigationTimeout(1000);
       assert.ok(true);
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("setDefaultTimeout should influence timeouts", () =>
@@ -938,7 +938,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
         result._tag,
         "effect-playwright/errors/PlaywrightError",
       );
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("workers should return the list of workers", () =>
@@ -959,7 +959,7 @@ layer(Environment.layer(chromium))("Page", (it) => {
       const workers = page.workers();
       assert(workers.length >= 1);
       assert.strictEqual(typeof workers[0].url(), "string");
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
   it.scoped("web storage should round-trip items on a page origin", () =>
     Effect.gen(function* () {
@@ -996,6 +996,6 @@ layer(Environment.layer(chromium))("Page", (it) => {
         const afterClear = yield* storage.items;
         assert.deepStrictEqual(afterClear, []);
       }
-    }).pipe(Environment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 });
