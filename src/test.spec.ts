@@ -1,10 +1,6 @@
 import { test as base } from "@playwright/test";
 import { Context, Data, Effect, Layer } from "effect";
-import {
-  PlaywrightBrowser,
-  PlaywrightBrowserContext,
-  PlaywrightPage,
-} from "effect-playwright";
+import { Playwright } from "effect-playwright";
 import { expect, layer, makeMethods, test } from "effect-playwright/test";
 
 class ExpectedTestError extends Data.TaggedError("ExpectedTestError") {}
@@ -68,9 +64,9 @@ test("runs an ordinary Promise-style test", async ({ page }) => {
 
 test.effect("uses the Playwright services", () =>
   Effect.gen(function* () {
-    const page = yield* PlaywrightPage;
-    const context = yield* PlaywrightBrowserContext;
-    const browser = yield* PlaywrightBrowser;
+    const page = yield* Playwright.Page;
+    const context = yield* Playwright.BrowserContext;
+    const browser = yield* Playwright.Browser;
 
     yield* page.goto("data:text/html,<title>Effect Playwright</title>");
     expect(yield* page.title).toBe("Effect Playwright");

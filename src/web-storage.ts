@@ -1,5 +1,11 @@
+/**
+ * Effect service wrapper for page-local and session storage.
+ *
+ * @since 0.5.1
+ */
+
 import { Context, Effect, Option } from "effect";
-import type { WebStorage } from "playwright-core";
+import type { WebStorage as CoreWebStorage } from "playwright-core";
 import type { PlaywrightError } from "./errors";
 import { useHelper } from "./utils";
 
@@ -7,10 +13,10 @@ import { useHelper } from "./utils";
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightBrowser } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  *
  * const program = Effect.gen(function* () {
- *   const browser = yield* PlaywrightBrowser;
+ *   const browser = yield* Playwright.Browser;
  *   const page = yield* browser.newPage();
  *   yield* page.goto("https://example.com");
  *   yield* page.localStorage.setItem("theme", "dark");
@@ -18,98 +24,99 @@ import { useHelper } from "./utils";
  * });
  * ```
  *
- * @category model
+ * @category models
  * @since 0.5.1
  */
-export interface PlaywrightWebStorageService {
+export interface WebStorage {
   /**
    * Removes all items from storage.
    *
-   * @see {@link WebStorage.clear}
+   * @see {@link CoreWebStorage.clear}
    * @since 0.5.1
    */
   readonly clear: Effect.Effect<
-    Awaited<ReturnType<WebStorage["clear"]>>,
+    Awaited<ReturnType<CoreWebStorage["clear"]>>,
     PlaywrightError
   >;
 
   /**
    * Returns the value stored under the given name, if present.
    *
-   * @see {@link WebStorage.getItem}
+   * @see {@link CoreWebStorage.getItem}
    * @since 0.5.1
    */
   readonly getItem: (
-    name: Parameters<WebStorage["getItem"]>[0],
+    name: Parameters<CoreWebStorage["getItem"]>[0],
   ) => Effect.Effect<
-    Option.Option<NonNullable<Awaited<ReturnType<WebStorage["getItem"]>>>>,
+    Option.Option<NonNullable<Awaited<ReturnType<CoreWebStorage["getItem"]>>>>,
     PlaywrightError
   >;
 
   /**
    * Returns all items in storage as name/value pairs.
    *
-   * @see {@link WebStorage.items}
+   * @see {@link CoreWebStorage.items}
    * @since 0.5.1
    */
   readonly items: Effect.Effect<
-    Awaited<ReturnType<WebStorage["items"]>>,
+    Awaited<ReturnType<CoreWebStorage["items"]>>,
     PlaywrightError
   >;
 
   /**
    * Removes the item stored under the given name.
    *
-   * @see {@link WebStorage.removeItem}
+   * @see {@link CoreWebStorage.removeItem}
    * @since 0.5.1
    */
   readonly removeItem: (
-    name: Parameters<WebStorage["removeItem"]>[0],
+    name: Parameters<CoreWebStorage["removeItem"]>[0],
   ) => Effect.Effect<
-    Awaited<ReturnType<WebStorage["removeItem"]>>,
+    Awaited<ReturnType<CoreWebStorage["removeItem"]>>,
     PlaywrightError
   >;
 
   /**
    * Stores a value under the given name.
    *
-   * @see {@link WebStorage.setItem}
+   * @see {@link CoreWebStorage.setItem}
    * @since 0.5.1
    */
   readonly setItem: (
-    name: Parameters<WebStorage["setItem"]>[0],
-    value: Parameters<WebStorage["setItem"]>[1],
+    name: Parameters<CoreWebStorage["setItem"]>[0],
+    value: Parameters<CoreWebStorage["setItem"]>[1],
   ) => Effect.Effect<
-    Awaited<ReturnType<WebStorage["setItem"]>>,
+    Awaited<ReturnType<CoreWebStorage["setItem"]>>,
     PlaywrightError
   >;
 }
 
 /**
- * @category tag
+ * @category services
  * @since 0.5.1
  */
-export class PlaywrightWebStorage extends Context.Tag(
-  "effect-playwright/PlaywrightWebStorage",
-)<PlaywrightWebStorage, PlaywrightWebStorageService>() {
-  /**
-   * Creates a `PlaywrightWebStorage` from a Playwright `WebStorage` instance.
-   *
-   * @category constructor
-   * @since 0.5.1
-   */
-  static make(webStorage: WebStorage): PlaywrightWebStorageService {
-    const use = useHelper(webStorage);
+export const WebStorage = Context.GenericTag<WebStorage>(
+  "effect-playwright/web-storage/WebStorage",
+);
 
-    return PlaywrightWebStorage.of({
-      clear: use((storage) => storage.clear()),
-      getItem: (name) =>
-        use((storage) => storage.getItem(name)).pipe(
-          Effect.map(Option.fromNullable),
-        ),
-      items: use((storage) => storage.items()),
-      removeItem: (name) => use((storage) => storage.removeItem(name)),
-      setItem: (name, value) => use((storage) => storage.setItem(name, value)),
-    });
-  }
-}
+/**
+ * Creates a `WebStorage` from a Playwright `WebStorage` instance.
+ *
+ * @category constructors
+ * @param webStorage - The Playwright `WebStorage` instance to wrap.
+ * @since 0.5.1
+ */
+export const makeWebStorage = (webStorage: CoreWebStorage): WebStorage => {
+  const use = useHelper(webStorage);
+
+  return WebStorage.of({
+    clear: use((storage) => storage.clear()),
+    getItem: (name) =>
+      use((storage) => storage.getItem(name)).pipe(
+        Effect.map(Option.fromNullable),
+      ),
+    items: use((storage) => storage.items()),
+    removeItem: (name) => use((storage) => storage.removeItem(name)),
+    setItem: (name, value) => use((storage) => storage.setItem(name, value)),
+  });
+};

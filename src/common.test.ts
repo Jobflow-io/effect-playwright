@@ -1,13 +1,13 @@
 import { assert, layer } from "@effect/vitest";
 import { Chunk, Effect, Fiber, Option, Stream } from "effect";
 import { chromium } from "playwright-core";
-import { PlaywrightBrowser } from "./browser";
-import { PlaywrightEnvironment } from "./experimental";
+import { Browser } from "./browser";
+import { PlaywrightSpawner } from "./experimental";
 
-layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
-  it.scoped("PlaywrightRequest and PlaywrightResponse", () =>
+layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
+  it.scoped("Request and Response", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const requestFiber = yield* page
@@ -22,6 +22,8 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
 
       const request = yield* Fiber.join(requestFiber).pipe(Effect.flatten);
       const response = yield* Fiber.join(responseFiber).pipe(Effect.flatten);
+      assert.strictEqual(request._tag, "effect-playwright/common/Request");
+      assert.strictEqual(response._tag, "effect-playwright/common/Response");
 
       assert(request.url().includes("example.com"));
       assert(request.method() === "GET");
@@ -48,12 +50,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       const httpVersion = yield* response.httpVersion;
       assert(typeof httpVersion === "string");
       assert(httpVersion.length > 0);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("PlaywrightWorker", () =>
+  it.scoped("Worker", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const workerFiber = yield* page
@@ -68,16 +70,17 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       });
 
       const worker = yield* Fiber.join(workerFiber).pipe(Effect.flatten);
+      assert.strictEqual(worker._tag, "effect-playwright/common/Worker");
 
       assert(worker.url().startsWith("blob:"));
       const result = yield* worker.evaluate(() => 1 + 1);
       assert(result === 2);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("PlaywrightDialog", () =>
+  it.scoped("Dialog", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const dialogFiber = yield* page
@@ -89,17 +92,18 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       });
 
       const dialog = yield* Fiber.join(dialogFiber).pipe(Effect.flatten);
+      assert.strictEqual(dialog._tag, "effect-playwright/common/Dialog");
 
       assert(dialog.message() === "hello world");
       assert(dialog.type() === "alert");
 
       yield* dialog.accept();
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("PlaywrightFileChooser", () =>
+  it.scoped("FileChooser", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -115,15 +119,19 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       const fileChooser = yield* Fiber.join(fileChooserFiber).pipe(
         Effect.flatten,
       );
+      assert.strictEqual(
+        fileChooser._tag,
+        "effect-playwright/common/FileChooser",
+      );
 
       assert(fileChooser.isMultiple() === false);
       assert(fileChooser.element() !== null);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("PlaywrightDownload", () =>
+  it.scoped("Download", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -138,6 +146,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       yield* page.locator("#download").click();
 
       const download = yield* Fiber.join(downloadFiber).pipe(Effect.flatten);
+      assert.strictEqual(download._tag, "effect-playwright/common/Download");
 
       assert(download.suggestedFilename() === "test.txt");
       const url = download.url();
@@ -150,6 +159,6 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightCommon", (it) => {
       );
 
       assert.strictEqual(text, "hello world");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 });

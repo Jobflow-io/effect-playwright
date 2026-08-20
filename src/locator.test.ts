@@ -2,13 +2,13 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { chromium } from "playwright-core";
-import { PlaywrightBrowser } from "./browser";
-import { PlaywrightEnvironment } from "./experimental";
+import { Browser } from "./browser";
+import { PlaywrightSpawner } from "./experimental";
 
-layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
+layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
   it.scoped("should work", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
       yield* page.goto("data:text/html,<title>Blank</title>");
 
@@ -16,12 +16,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
 
       const titleText = yield* title.textContent();
       assert(titleText === "Blank", "Expected title to be 'Blank'");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("evaluate", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -38,12 +38,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       });
 
       assert(result === "red");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("waitFor", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
       yield* page.setContent(`
         <button id="hidden-btn" style="display: none;">Hidden</button>
@@ -66,12 +66,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
         (el) => el.style.display === "block",
       );
       assert(isVisible === true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("waitForFunction", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
       yield* page.setContent('<div id="status">Pending</div>');
 
@@ -89,12 +89,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
 
       assert(result === undefined);
       assert((yield* status.textContent()) === "Ready");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("evaluate options expose function arguments", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
       yield* page.setContent('<div id="message">hello</div>');
 
@@ -115,12 +115,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       );
       const handled = yield* Effect.promise(() => handle.jsonValue());
       assert(handled === "handled:hello");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("kitchensink", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.evaluate(() => {
@@ -237,7 +237,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
       const spanHtml = yield* htmlDiv.locator("span").innerHTML();
       assert(spanHtml === "Hello");
 
-      // locator with PlaywrightLocatorService
+      // locator with another Locator
       const spanLocator = page.locator("span");
       const nestedSpanHtml = yield* htmlDiv.locator(spanLocator).innerHTML();
       assert(nestedSpanHtml === "Hello");
@@ -345,14 +345,14 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
         .first()
         .use((l) => l.evaluate((el) => el.id));
       assert(useResult === "btn-1");
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped(
     "new methods: all, and, filter, or, page, frameLocator, contentFrame",
     () =>
       Effect.gen(function* () {
-        const browser = yield* PlaywrightBrowser;
+        const browser = yield* Browser;
         const page = yield* browser.newPage();
 
         yield* page.evaluate(() => {
@@ -406,12 +406,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
           .locator("#in-frame")
           .textContent();
         assert(contentFrameText === "In Frame");
-      }).pipe(PlaywrightEnvironment.withBrowser),
+      }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("action methods", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       yield* page.setContent(`
@@ -575,6 +575,6 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightLocator", (it) => {
         (yield* btnTap.evaluate((el) => el.getAttribute("data-tapped"))) ===
           "true",
       );
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 });

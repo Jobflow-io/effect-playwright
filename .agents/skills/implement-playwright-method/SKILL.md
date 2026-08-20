@@ -39,44 +39,59 @@ Determine if the method can throw and what it returns. **Do not blindly follow e
 - **`Promise<T>`** -> `Effect<T, PlaywrightError>`
 - **`Promise<void>`** -> `Effect<void, PlaywrightError>`
 - **`T` (Safe Sync)** -> `T` (Direct return)
-- **`T` (Factory)** -> `Wrapper<T>` (e.g., `PlaywrightLocator.Service`)
+- **`T` (Factory)** -> the canonical wrapper type (e.g., `Locator`)
 - **`T | null`** -> `Option<T>` (if sync) or `Effect<Option<T>, PlaywrightError>` (if async)
-- **Playwright Object (e.g., `Page`)** -> **Wrapped Object (e.g., `PlaywrightPage`)**
+- **Playwright Object (e.g., `Page`)** -> **Wrapped Object (e.g., `Page`)**
 
 ### 3. Handle Sub-APIs / Nested Properties
 
 Some Playwright interfaces expose other classes as properties (e.g., `Page.keyboard`, `Page.mouse`, `BrowserContext.tracing`).
 
-1. **Create a new Wrapper**: Create a new file, Service, and Tag for the sub-API (e.g., `PlaywrightKeyboardService` wrapping `Keyboard`).
+1. **Create a new Wrapper**: Create a same-named service interface and `Context.GenericTag` value, plus a named constructor such as `makeKeyboard`.
 2. **Expose as a Sync Property**: Expose it as a direct, read-only property on the parent service. Do not wrap property access in an `Effect`.
 
 **Example (Interface in Parent):**
 
 ```typescript
-export interface PlaywrightPageService {
+export interface Page {
   /**
    * Access the keyboard.
-   * @see {@link Page.keyboard}
+   * @see {@link CorePage.keyboard}
    */
-  readonly keyboard: PlaywrightKeyboardService;
+  readonly keyboard: Keyboard;
 }
 ```
 
-**Example (Implementation in Parent's `make`):**
+**Example (Tag and Named Constructor):**
 
 ```typescript
-static make(page: Page): PlaywrightPageService {
-  return PlaywrightPage.of({
-    // Initialize the sub-API wrapper synchronously
-    keyboard: PlaywrightKeyboard.make(page.keyboard),
+export interface Keyboard {
+  // Wrapped operations
+}
+
+export const Keyboard = Context.GenericTag<Keyboard>(
+  "effect-playwright/keyboard/Keyboard",
+);
+
+export const makeKeyboard = (keyboard: CoreKeyboard): Keyboard =>
+  Keyboard.of({
+    // Wrapped operations
+  });
+```
+
+**Example (Implementation in Parent Constructor):**
+
+```typescript
+export const makePage = (page: CorePage): Page =>
+  Page.of({
+    keyboard: makeKeyboard(page.keyboard),
     // ...
   });
-}
 ```
 
 ### 4. Define the Interface
 
-Add the method to the Service interface in the corresponding `src/X.ts` file (e.g., `PlaywrightPageService` in `src/page.ts`).
+Add the method to the canonical service interface in the corresponding `src/X.ts` file (for example, `Page` in `src/page.ts`).
 
 **Example (Async Method - Throws):**
 
@@ -101,7 +116,7 @@ readonly click: (
 readonly locator: (
   selector: string,
   options?: Parameters<Page["locator"]>[1]
-) => typeof PlaywrightLocator.Service;
+) => Locator;
 ```
 
 **Example (Sync Method - Safe):**
@@ -126,7 +141,7 @@ readonly textContent: Effect.Effect<Option.Option<string>, PlaywrightError>;
 
 ### 5. Implement the Method
 
-Implement the method in the `make` function of the implementation class (e.g., `PlaywrightPage.make`).
+Implement the method in the named wrapper constructor (for example, `makePage`).
 
 - **Async Methods**: Use `useHelper(originalObject)`.
 
@@ -143,7 +158,7 @@ Implement the method in the `make` function of the implementation class (e.g., `
 - **Factories**: Return the wrapped object directly.
 
   ```typescript
-  locator: (selector, options) => PlaywrightLocator.make(page.locator(selector, options)),
+  locator: (selector, options) => makeLocator(page.locator(selector, options)),
   ```
 
 - **Nullable Returns**: Use `Option.fromNullable`.
@@ -162,12 +177,12 @@ Implement the method in the `make` function of the implementation class (e.g., `
   ```typescript
   // Async returning object (e.g., waitForEvent returning a Page)
   waitForPopup: use((p) => p.waitForEvent("popup")).pipe(
-    Effect.map(PlaywrightPage.make)
+    Effect.map(makePage)
   ),
   ```
 
 ### 6. Verify
 
-- Ensure types match `PlaywrightXService`.
+- Ensure types match the canonical service interface exposed through `Playwright` (for example, `Playwright.Page`).
 - Run `pnpm exec biome check --write .` to ensure code style and lint rules are followed.
 - Run `pnpm type-check` and `pnpm test` to verify implementation.

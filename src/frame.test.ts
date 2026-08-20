@@ -1,14 +1,14 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { chromium } from "playwright-core";
-import { PlaywrightBrowser } from "./browser";
-import { PlaywrightEnvironment } from "./experimental";
-import type { PlaywrightFrameService } from "./frame";
+import { Browser } from "./browser";
+import { PlaywrightSpawner } from "./experimental";
+import type { Frame } from "./frame";
 
-layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
+layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
   it.scoped("should wrap frame methods", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       // Setup a page with an iframe
@@ -26,7 +26,7 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       // Get the frame
       const frames = yield* page.frames;
 
-      const isTestFrame = (f: PlaywrightFrameService) =>
+      const isTestFrame = (f: Frame) =>
         Effect.succeed(f.name() === "test-frame");
 
       const frame = yield* Effect.findFirst(frames, isTestFrame).pipe(
@@ -119,14 +119,14 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       yield* frame.setContent("<h1>New Content</h1>");
       const newContent = yield* frame.content;
       assert.isTrue(newContent.includes("New Content"));
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped(
     "evaluate should expose a function-valued argument in the frame context",
     () =>
       Effect.gen(function* () {
-        const browser = yield* PlaywrightBrowser;
+        const browser = yield* Browser;
         const page = yield* browser.newPage();
         const frame = page.mainFrame();
 
@@ -138,12 +138,12 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
         );
 
         assert.strictEqual(result, 42);
-      }).pipe(PlaywrightEnvironment.withBrowser),
+      }).pipe(PlaywrightSpawner.withBrowser),
   );
 
   it.scoped("waitForLoadState should resolve on frame", () =>
     Effect.gen(function* () {
-      const browser = yield* PlaywrightBrowser;
+      const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       // Load a page that already has an iframe
@@ -165,6 +165,6 @@ layer(PlaywrightEnvironment.layer(chromium))("PlaywrightFrame", (it) => {
       yield* frameService.waitForLoadState("load");
 
       assert.ok(true);
-    }).pipe(PlaywrightEnvironment.withBrowser),
+    }).pipe(PlaywrightSpawner.withBrowser),
   );
 });

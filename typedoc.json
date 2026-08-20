@@ -11,7 +11,20 @@
     "includeCategories": true
   },
   "defaultCategory": "other",
-  "categoryOrder": ["model", "tag", "type", "error", "util", "other"],
+  "categoryOrder": [
+    "services",
+    "models",
+    "options",
+    "constructors",
+    "layers",
+    "event streams",
+    "testing",
+    "utilities",
+    "utility types",
+    "errors",
+    "re-exports",
+    "other"
+  ],
   "readme": "./README.md",
   "externalSymbolLinkMappings": {
     "effect": {

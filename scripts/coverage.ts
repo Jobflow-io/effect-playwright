@@ -4,28 +4,20 @@ import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect } from "effect";
 import { type JSDocableNode, Project } from "ts-morph";
 
-const MAPPINGS = [
-  { pw: "Browser", ep: "PlaywrightBrowserService", type: "interface" as const },
-  {
-    pw: "BrowserContext",
-    ep: "PlaywrightBrowserContextService",
-    type: "interface" as const,
-  },
-  { pw: "Page", ep: "PlaywrightPageService", type: "interface" as const },
-  { pw: "Frame", ep: "PlaywrightFrameService", type: "interface" as const },
-  {
-    pw: "FrameLocator",
-    ep: "PlaywrightFrameLocatorService",
-    type: "interface" as const,
-  },
-  { pw: "Locator", ep: "PlaywrightLocatorService", type: "interface" as const },
-  { pw: "Request", ep: "PlaywrightRequest", type: "class" as const },
-  { pw: "Response", ep: "PlaywrightResponse", type: "class" as const },
-  { pw: "Worker", ep: "PlaywrightWorker", type: "class" as const },
-  { pw: "Dialog", ep: "PlaywrightDialog", type: "class" as const },
-  { pw: "FileChooser", ep: "PlaywrightFileChooser", type: "class" as const },
-  { pw: "Download", ep: "PlaywrightDownload", type: "class" as const },
-  { pw: "Clock", ep: "PlaywrightClockService", type: "interface" as const },
+const COVERED_TYPES = [
+  { name: "Browser", kind: "interface" as const },
+  { name: "BrowserContext", kind: "interface" as const },
+  { name: "Page", kind: "interface" as const },
+  { name: "Frame", kind: "interface" as const },
+  { name: "FrameLocator", kind: "interface" as const },
+  { name: "Locator", kind: "interface" as const },
+  { name: "Request", kind: "class" as const },
+  { name: "Response", kind: "class" as const },
+  { name: "Worker", kind: "class" as const },
+  { name: "Dialog", kind: "class" as const },
+  { name: "FileChooser", kind: "class" as const },
+  { name: "Download", kind: "class" as const },
+  { name: "Clock", kind: "interface" as const },
 ];
 
 const EXCLUDED_METHODS = new Set([
@@ -116,8 +108,8 @@ const runCoverage = Effect.gen(function* () {
   let totalPwDeprecated = 0;
   let totalEpDeprecated = 0;
 
-  for (const { pw, ep, type } of MAPPINGS) {
-    const pwInterface = pwSourceFile.getInterface(pw);
+  for (const { name, kind } of COVERED_TYPES) {
+    const pwInterface = pwSourceFile.getInterface(name);
     if (!pwInterface) continue;
 
     const pwMethods = new Map<string, boolean>(); // name -> isDeprecated
@@ -143,8 +135,8 @@ const runCoverage = Effect.gen(function* () {
     let foundEp = false;
 
     for (const sf of epSourceFiles) {
-      if (type === "interface") {
-        const epInterface = sf.getInterface(ep);
+      if (kind === "interface") {
+        const epInterface = sf.getInterface(name);
         if (epInterface) {
           foundEp = true;
           for (const prop of epInterface.getProperties())
@@ -154,7 +146,7 @@ const runCoverage = Effect.gen(function* () {
           break;
         }
       } else {
-        const epClass = sf.getClass(ep);
+        const epClass = sf.getClass(name);
         if (epClass) {
           foundEp = true;
           for (const prop of epClass.getProperties())
@@ -177,7 +169,7 @@ const runCoverage = Effect.gen(function* () {
     }
 
     if (!foundEp) {
-      yield* Console.warn(`[!] Could not find ${type} ${ep} in src/.`);
+      yield* Console.warn(`[!] Could not find ${kind} ${name} in src/.`);
       continue;
     }
 
@@ -221,7 +213,7 @@ const runCoverage = Effect.gen(function* () {
         ? "100.0"
         : ((implementedDeprecated / pwDeprecatedCount) * 100).toFixed(1);
 
-    yield* Console.log(`--- ${pw} ---`);
+    yield* Console.log(`--- ${name} ---`);
     yield* Console.log(
       `Stable Coverage:     ${coverageStable}% (${implementedStable}/${pwStableCount})`,
     );

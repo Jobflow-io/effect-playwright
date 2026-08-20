@@ -25,13 +25,16 @@ import { Playwright, chromium } from "effect-playwright";
 import { Effect } from "effect";
 
 const program = Effect.gen(function* () {
-  const playwright = yield* Playwright;
-  const browser = yield* playwright.launchScoped(chromium);
-  const page = yield* browser.newPage();
+  const playwright = yield* Playwright.Playwright;
 
-  yield* page.goto("https://example.com");
-  const title = yield* page.title;
-  yield* Effect.log(`Page title: ${title}`);
+  // The browser is closed automatically when the scope ends.
+  const browser: Playwright.Browser = yield* playwright.launchScoped(chromium, {
+    headless: true,
+  });
+
+  const page: Playwright.Page = yield* browser.newPage();
+
+  yield* page.setContent(`testing`);
 }).pipe(Effect.scoped, Effect.provide(Playwright.layer));
 
 await Effect.runPromise(program);
@@ -43,7 +46,7 @@ Using `launchScoped` is the recommended way to manage the browser lifecycle. It 
 
 ```ts
 const program = Effect.gen(function* () {
-  const playwright = yield* Playwright;
+  const playwright = yield* Playwright.Playwright;
   const browser = yield* playwright.launchScoped(chromium);
   // Browser will be closed automatically after this block
 }).pipe(Effect.scoped);
@@ -55,7 +58,7 @@ You can connect to an existing browser instance using the Chrome DevTools Protoc
 
 ```ts
 const program = Effect.gen(function* () {
-  const playwright = yield* Playwright;
+  const playwright = yield* Playwright.Playwright;
 
   // Use connectCDPScoped to automatically close the CONNECTION when the scope ends
   // Note: This does NOT close the browser process itself, only the CDP connection.
@@ -70,7 +73,7 @@ If you need to manage the connection lifecycle manually, use `connectCDP`:
 
 ```ts
 const program = Effect.gen(function* () {
-  const playwright = yield* Playwright;
+  const playwright = yield* Playwright.Playwright;
   const browser = yield* playwright.connectCDP("http://localhost:9222");
 
   // ... use browser ...
@@ -79,43 +82,43 @@ const program = Effect.gen(function* () {
 });
 ```
 
-## PlaywrightEnvironment (Experimental)
+## Playwright Spawner (Experimental)
 
-The `PlaywrightEnvironment` simplifies setup by allowing you to configure the browser type and launch options once and reuse them across your application.
+`PlaywrightSpawner` configures how browsers are launched and spawns browsers scoped to the current lifetime.
 
 ### Usage
 
 ```ts
-import { PlaywrightBrowser, chromium } from "effect-playwright";
-import { PlaywrightEnvironment } from "effect-playwright/experimental";
+import { Playwright, chromium } from "effect-playwright";
+import { PlaywrightSpawner } from "effect-playwright/experimental";
 import { Effect } from "effect";
 
-const liveLayer = PlaywrightEnvironment.layer(chromium, {
+const liveLayer = PlaywrightSpawner.layer(chromium, {
   headless: false /** any other launch options */,
 });
 
 const program = Effect.gen(function* () {
-  const browser = yield* PlaywrightBrowser;
+  const browser = yield* Playwright.Browser;
   const page = yield* browser.newPage();
 
   yield* page.goto("https://example.com");
-}).pipe(PlaywrightEnvironment.withBrowser);
+}).pipe(PlaywrightSpawner.withBrowser);
 
 await Effect.runPromise(program.pipe(Effect.provide(liveLayer)));
 ```
 
-### `PlaywrightEnvironment.withBrowser`
+### `PlaywrightSpawner.withBrowser`
 
-The `withBrowser` utility provides the `PlaywrightBrowser` service to your effect. It internally manages a `Scope`, which means the browser will be launched when the effect starts and closed automatically when the effect finishes (including on failure or interruption).
+The `withBrowser` utility provides the `Browser` service to your effect. It internally manages a `Scope`, which means the browser will be launched when the effect starts and closed automatically when the effect finishes (including on failure or interruption).
 
 ```ts
 const program = Effect.gen(function* () {
-  const browser = yield* PlaywrightBrowser; // Now available in context
+  const browser = yield* Playwright.Browser; // Now available in context
   const page = yield* browser.newPage();
 
   // ...
   // Browser close is ensured
-}).pipe(PlaywrightEnvironment.withBrowser);
+}).pipe(PlaywrightSpawner.withBrowser);
 ```
 
 ## Event Handling
@@ -123,7 +126,7 @@ const program = Effect.gen(function* () {
 You can listen to Playwright events using the `eventStream` method. This returns an Effect `Stream` that emits events as they occur.
 
 > [!NOTE]
-> `eventStream` emits "Effectified" wrappers (e.g., `PlaywrightRequest`, `PlaywrightResponse`, `PlaywrightPage`) for most events. This allows you to continue using the Effect ecosystem seamlessly within your event handlers.
+> `eventStream` emits Effect-based wrappers (for example, `Playwright.Request`, `Playwright.Response`, and `Playwright.Page`) for most events.
 
 The stream is automatically managed and will close when the underlying resource (like the Page or Browser) is closed.
 
@@ -133,7 +136,7 @@ Since event streams run indefinitely until the resource closes, you often need t
 
 ```ts
 const program = Effect.gen(function* () {
-  const browser = yield* PlaywrightBrowser;
+  const browser = yield* Playwright.Browser;
   const page = yield* browser.newPage();
 
   // Create a stream of request events
@@ -149,7 +152,7 @@ const program = Effect.gen(function* () {
   );
 
   yield* page.goto("https://example.com");
-}).pipe(PlaywrightEnvironment.withBrowser);
+}).pipe(PlaywrightSpawner.withBrowser);
 ```
 
 ## Accessing Native Playwright
@@ -161,7 +164,7 @@ import { Playwright, chromium } from "effect-playwright";
 import { Effect } from "effect";
 
 const program = Effect.gen(function* () {
-  const playwright = yield* Playwright;
+  const playwright = yield* Playwright.Playwright;
   const browser = yield* playwright.launchScoped(chromium);
   const page = yield* browser.newPage();
 
@@ -172,7 +175,7 @@ const program = Effect.gen(function* () {
 
 ## Error Handling
 
-All methods return effects that can fail with a `PlaywrightError`. This error wraps the original error from Playwright.
+All methods return effects that can fail with a `Playwright.PlaywrightError`. This error wraps the original error from Playwright.
 Note that Playwright does not support interruption, so `Effect.timeout` or similar code does not behave like you
 might expect. Playwright provides its own `timeout` option for almost every method.
 
@@ -201,12 +204,12 @@ pnpm add -D @playwright/test effect-playwright
 
 ```ts
 import { Effect } from "effect";
-import { PlaywrightPage } from "effect-playwright";
+import { Playwright } from "effect-playwright";
 import { expect, test } from "effect-playwright/test";
 
 test.effect("shows the example.com headline", () =>
   Effect.gen(function* () {
-    const page = yield* PlaywrightPage;
+    const page = yield* Playwright.Page;
     yield* page.goto("https://example.com");
 
     const headline = page.getByRole("heading", { name: "Example Domain" });

@@ -1,8 +1,18 @@
+/**
+ * Public type utilities used by page and locator evaluation APIs.
+ *
+ * @since 0.1.0
+ */
+
 import type { ElementHandle, JSHandle } from "playwright-core";
 
 /**
- * Extracted from `playwright-core/types/structs.d.ts` because it is not exported over the package boundary.
- * These types are necessary to correctly type `evaluate` functions that unwrap handles.
+ * Recursively excludes Playwright handles from an argument shape.
+ *
+ * Adapted from Playwright's internal evaluation types.
+ *
+ * @category utility types
+ * @since 0.1.0
  */
 
 export type NoHandles<Arg> = Arg extends JSHandle
@@ -15,6 +25,13 @@ export type NoHandles<Arg> = Arg extends JSHandle
         ? { [Key in keyof Arg]: NoHandles<Arg[Key]> }
         : Arg;
 
+/**
+ * Converts Playwright handles to the values visible in the browser evaluation
+ * context.
+ *
+ * @category utility types
+ * @since 0.1.0
+ */
 export type Unboxed<Arg> =
   Arg extends ElementHandle<infer T>
     ? T
@@ -40,6 +57,12 @@ export type Unboxed<Arg> =
                         ? { [Key in keyof Arg]: Unboxed<Arg[Key]> }
                         : Arg;
 
+/**
+ * A function or source string evaluated in a Playwright page context.
+ *
+ * @category utility types
+ * @since 0.1.0
+ */
 export type PageFunction<Arg, R> =
   | string
   | ((arg: Unboxed<Arg>) => R | Promise<R>);

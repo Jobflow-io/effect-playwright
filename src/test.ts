@@ -30,10 +30,16 @@ import {
   Logger,
   Scope,
 } from "effect";
-import { PlaywrightBrowser } from "./browser";
-import { PlaywrightBrowserContext } from "./browser-context";
-import { PlaywrightPage } from "./page";
+import { Browser, makeBrowser } from "./browser";
+import { BrowserContext, makeBrowserContext } from "./browser-context";
+import { makePage, Page } from "./page";
 
+/**
+ * Re-exports Playwright Test's fixtures, assertions, and test APIs.
+ *
+ * @category re-exports
+ * @since 0.6.0
+ */
 export * from "@playwright/test";
 
 /**
@@ -42,26 +48,23 @@ export * from "@playwright/test";
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Playwright.Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
-export type PlaywrightTestEnvironment =
-  | PlaywrightBrowser
-  | PlaywrightBrowserContext
-  | PlaywrightPage
-  | Scope.Scope;
+export type TestEnvironment = Browser | BrowserContext | Page | Scope.Scope;
 
 /**
  * An Effect-returning Playwright Test callback.
@@ -69,25 +72,26 @@ export type PlaywrightTestEnvironment =
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Playwright.Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
 export type EffectTestFunction<Args extends object, A, E, R = never> = (
   args: Args,
   testInfo: TestInfo,
-) => Effect.Effect<A, E, PlaywrightTestEnvironment | R>;
+) => Effect.Effect<A, E, TestEnvironment | R>;
 
 /**
  * Registers Effect-based Playwright tests.
@@ -95,18 +99,19 @@ export type EffectTestFunction<Args extends object, A, E, R = never> = (
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Playwright.Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
@@ -125,18 +130,19 @@ export interface EffectTest<Args extends object, R = never> {
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Playwright.Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-annotations
  * @since 0.6.0
  */
@@ -148,21 +154,50 @@ export interface EffectTester<Args extends object, R = never>
   readonly fail: EffectTest<Args, R> & { readonly only: EffectTest<Args, R> };
 }
 
-interface LayerOptions {
+/**
+ * Options for acquiring an Effect layer shared by a test registration block.
+ * `memoMap` controls layer memoization, while `timeout` bounds setup and
+ * teardown.
+ *
+ * @category options
+ * @since 0.6.0
+ */
+export interface LayerOptions {
   readonly memoMap?: Layer.MemoMap;
   readonly timeout?: Duration.DurationInput;
 }
-
-interface NestedLayerOptions {
+/**
+ * Options for a nested shared layer. Nested layers reuse their parent's memo
+ * map and may configure their own setup and teardown timeout.
+ *
+ * @category options
+ * @since 0.6.0
+ */
+export interface NestedLayerOptions {
   readonly timeout?: Duration.DurationInput;
 }
 
-interface LayerRegistration<T extends object, W extends object, R> {
+/**
+ * Registers tests that share an acquired Effect layer, optionally inside a
+ * named Playwright `describe` block.
+ *
+ * @category models
+ * @since 0.6.0
+ */
+export interface LayerRegistration<T extends object, W extends object, R> {
   (f: (test: LayerTestMethods<T, W, R>) => void): void;
   (name: string, f: (test: LayerTestMethods<T, W, R>) => void): void;
 }
 
-type LayerTestMethods<T extends object, W extends object, R> = TestType<
+/**
+ * Playwright test methods available inside a shared-layer registration block.
+ * The `effect` and `scoped` methods receive the layer's services, and `layer`
+ * adds another layer that depends on the current one.
+ *
+ * @category models
+ * @since 0.6.0
+ */
+export type LayerTestMethods<T extends object, W extends object, R> = TestType<
   T,
   W
 > & {
@@ -174,7 +209,13 @@ type LayerTestMethods<T extends object, W extends object, R> = TestType<
   ) => LayerRegistration<T, W, R | R2>;
 };
 
-type LayerMethod<T extends object, W extends object> = <R, E>(
+/**
+ * Creates a registration block whose tests share an Effect layer.
+ *
+ * @category models
+ * @since 0.6.0
+ */
+export type LayerMethod<T extends object, W extends object> = <R, E>(
   layer: Layer.Layer<R, E>,
   options?: LayerOptions,
 ) => LayerRegistration<T, W, R>;
@@ -185,34 +226,30 @@ type LayerMethod<T extends object, W extends object> = <R, E>(
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Playwright.Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
  * );
  * ```
  *
+ * @category models
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
-export type PlaywrightTestMethods<
-  T extends object,
-  W extends object,
-> = TestType<T, W> & {
+export type TestMethods<T extends object, W extends object> = TestType<T, W> & {
   readonly effect: EffectTester<T & W>;
   readonly layer: LayerMethod<T, W>;
 };
 
 interface EffectRunner {
   readonly abortController: AbortController;
-  readonly context: Context.Context<
-    Exclude<PlaywrightTestEnvironment, Scope.Scope>
-  >;
+  readonly context: Context.Context<Exclude<TestEnvironment, Scope.Scope>>;
   readonly running: Set<Promise<unknown>>;
   closed: boolean;
 }
@@ -246,8 +283,8 @@ const runPromise = <A, E>(
   );
 
 type EffectTransform<R> = <A, E>(
-  effect: Effect.Effect<A, E, PlaywrightTestEnvironment | R>,
-) => Effect.Effect<A, E, PlaywrightTestEnvironment>;
+  effect: Effect.Effect<A, E, TestEnvironment | R>,
+) => Effect.Effect<A, E, TestEnvironment>;
 
 const withoutLayer: EffectTransform<never> = (effect) => effect;
 
@@ -445,12 +482,12 @@ const makeLayer = <T extends object, W extends object, R, E>(
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Playwright.Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
@@ -474,6 +511,7 @@ const makeLayer = <T extends object, W extends object, R, E>(
  * );
  * ```
  *
+ * @category constructors
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
@@ -482,15 +520,15 @@ export const makeMethods: <
   W extends Pick<PlaywrightWorkerArgs, "browser">,
 >(
   testType: TestType<T, W>,
-) => PlaywrightTestMethods<T, W> = <
+) => TestMethods<T, W> = <
   T extends Pick<PlaywrightTestArgs, "context" | "page">,
   W extends Pick<PlaywrightWorkerArgs, "browser">,
 >(
   testType: TestType<T, W>,
-): PlaywrightTestMethods<T, W> => {
+): TestMethods<T, W> => {
   const cached = augmentedTesters.get(testType);
   if (cached !== undefined) {
-    return testType as PlaywrightTestMethods<T, W>;
+    return testType as TestMethods<T, W>;
   }
   if (Object.hasOwn(testType, "effect") || Object.hasOwn(testType, "layer")) {
     const method = Object.hasOwn(testType, "effect") ? "effect" : "layer";
@@ -510,12 +548,9 @@ export const makeMethods: <
           abortController: new AbortController(),
           closed: false,
           context: Context.mergeAll(
-            Context.make(PlaywrightBrowser, PlaywrightBrowser.make(browser)),
-            Context.make(
-              PlaywrightBrowserContext,
-              PlaywrightBrowserContext.make(context),
-            ),
-            Context.make(PlaywrightPage, PlaywrightPage.make(page)),
+            Context.make(Browser, makeBrowser(browser)),
+            Context.make(BrowserContext, makeBrowserContext(context)),
+            Context.make(Page, makePage(page)),
           ),
           running: new Set(),
         };
@@ -546,7 +581,7 @@ export const makeMethods: <
     effect: { value: tester },
     layer: { value: layerMethod },
   });
-  return testType as PlaywrightTestMethods<T, W>;
+  return testType as TestMethods<T, W>;
 };
 
 /**
@@ -555,18 +590,19 @@ export const makeMethods: <
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Playwright.Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
  * );
  * ```
  *
+ * @category testing
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
@@ -595,6 +631,7 @@ export const test = makeMethods(playwrightTest);
  * });
  * ```
  *
+ * @category layers
  * @see https://playwright.dev/docs/api/class-test#test-before-all
  * @since 0.6.0
  */
@@ -607,21 +644,28 @@ export const layer: LayerMethod<PlaywrightTestArgs, PlaywrightWorkerArgs> =
  * @example
  * ```ts
  * import { Effect } from "effect";
- * import { PlaywrightPage } from "effect-playwright";
+ * import { Playwright } from "effect-playwright";
  * import { expect, test } from "effect-playwright/test";
  *
  * test.effect("loads a page", () =>
  *   Effect.gen(function* () {
- *     const page = yield* PlaywrightPage;
+ *     const page = yield* Playwright.Page;
  *     yield* page.goto("data:text/html,<title>Effect</title>");
  *     expect(yield* page.title).toBe("Effect");
  *   }),
  * );
  * ```
  *
+ * @category testing
  * @see https://playwright.dev/docs/test-fixtures
  * @since 0.6.0
  */
 export const effect = test.effect;
 
+/**
+ * The standard Playwright Test API enhanced with Effect test and layer methods.
+ *
+ * @category testing
+ * @since 0.6.0
+ */
 export default test;
