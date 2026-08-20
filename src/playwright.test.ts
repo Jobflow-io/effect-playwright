@@ -5,7 +5,7 @@ import { chromium } from "playwright-core";
 import type { BrowserContext } from "./browser-context";
 
 layer(Playwright.layer)("Playwright", (it) => {
-  it.scoped("should launch a browser", () =>
+  it.effect("should launch a browser", () =>
     Effect.gen(function* () {
       const program = Effect.gen(function* () {
         const playwright: Playwright.Playwright = yield* Playwright.Playwright;
@@ -77,7 +77,7 @@ layer(Playwright.layer)("Playwright", (it) => {
     }),
   );
 
-  it.scoped("should launch and run some commands", () =>
+  it.effect("should launch and run some commands", () =>
     Effect.gen(function* () {
       const program = Effect.gen(function* () {
         const playwright = yield* Playwright.Playwright;
@@ -97,7 +97,7 @@ layer(Playwright.layer)("Playwright", (it) => {
     }),
   );
 
-  it.scoped("should launch a persistent context", () =>
+  it.effect("should launch a persistent context", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright.Playwright;
       const context = yield* playwright.launchPersistentContext(chromium, "");
@@ -111,7 +111,7 @@ layer(Playwright.layer)("Playwright", (it) => {
     }),
   );
 
-  it.scoped("should launch a persistent context and close with scope", () =>
+  it.effect("should launch a persistent context and close with scope", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright.Playwright;
       let capturedContext: BrowserContext | undefined;
@@ -137,7 +137,7 @@ layer(Playwright.layer)("Playwright", (it) => {
     }),
   );
 
-  it.scoped("should fail to launch a browser with invalid path", () =>
+  it.effect("should fail to launch a browser with invalid path", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright.Playwright;
       const result: Playwright.PlaywrightError = yield* playwright
@@ -152,7 +152,7 @@ layer(Playwright.layer)("Playwright", (it) => {
     }),
   );
 
-  it.scoped("should fail with timeout 1", () =>
+  it.effect("should fail with timeout 1", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright.Playwright;
       const result = yield* playwright
@@ -169,7 +169,7 @@ layer(Playwright.layer)("Playwright", (it) => {
     }),
   );
 
-  it.scoped(
+  it.effect(
     "should connect via CDP (confirm browser.close only closes CDP connection)",
     Effect.fn(function* () {
       const playwright = yield* Playwright.Playwright;
@@ -199,7 +199,7 @@ layer(Playwright.layer)("Playwright", (it) => {
     }),
   );
 
-  it.scoped(
+  it.effect(
     "should connect via CDP and close automatically with scope",
     Effect.fn(function* () {
       const playwright = yield* Playwright.Playwright;

@@ -1,6 +1,5 @@
-import { Command } from "@effect/cli";
-import { FileSystem, Path } from "@effect/platform";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { Console, Effect } from "effect";
 import { type JSDocableNode, Project } from "ts-morph";
 
@@ -72,12 +71,9 @@ function isDeprecated(node: JSDocableNode): boolean {
 }
 
 const runCoverage = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const pathService = yield* Path.Path;
-
   const cwd = process.cwd();
-  const tsConfigFilePath = pathService.join(cwd, "tsconfig.json");
-  const pwTypesPath = pathService.join(
+  const tsConfigFilePath = join(cwd, "tsconfig.json");
+  const pwTypesPath = join(
     cwd,
     "node_modules",
     "playwright-core",
@@ -85,8 +81,7 @@ const runCoverage = Effect.gen(function* () {
     "types.d.ts",
   );
 
-  const exists = yield* fs.exists(pwTypesPath);
-  if (!exists) {
+  if (!existsSync(pwTypesPath)) {
     return yield* Effect.fail(
       new Error(`Could not find playwright-core types at ${pwTypesPath}`),
     );
@@ -247,12 +242,4 @@ const runCoverage = Effect.gen(function* () {
   );
   yield* Console.log("=============================\n");
 });
-
-const command = Command.make("coverage", {}, () => runCoverage);
-
-const run = Command.run(command, {
-  name: "effect-playwright-coverage",
-  version: "0.1.0",
-});
-
-run(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+await Effect.runPromise(runCoverage);

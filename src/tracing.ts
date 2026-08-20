@@ -76,7 +76,7 @@ export interface Tracing {
 /**
  * @category services
  */
-export const Tracing = Context.GenericTag<Tracing>(
+export const Tracing = Context.Service<Tracing>(
   "effect-playwright/tracing/Tracing",
 );
 

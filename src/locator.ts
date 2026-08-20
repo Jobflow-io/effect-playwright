@@ -736,7 +736,7 @@ export interface Locator {
  * @since 0.1.0
  * @category services
  */
-export const Locator = Context.GenericTag<Locator>(
+export const Locator = Context.Service<Locator>(
   "effect-playwright/locator/Locator",
 );
 
@@ -789,10 +789,10 @@ export const makeLocator = (locator: CoreLocator): Locator => {
     ariaSnapshot: (options) => use((locator) => locator.ariaSnapshot(options)),
     boundingBox: (options) =>
       use((locator) => locator.boundingBox(options)).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
       ),
     describe: (description) => makeLocator(locator.describe(description)),
-    description: () => Option.fromNullable(locator.description()),
+    description: () => Option.fromNullishOr(locator.description()),
     count: use((locator) => locator.count()),
     first: () => makeLocator(locator.first()),
     last: () => makeLocator(locator.last()),
@@ -903,7 +903,7 @@ export const makeLocator = (locator: CoreLocator): Locator => {
       ),
     elementHandle: (options) =>
       use((locator) => locator.elementHandle(options)).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
       ),
     elementHandles: () =>
       use(

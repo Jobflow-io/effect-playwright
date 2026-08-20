@@ -155,42 +155,42 @@ export class Request extends Data.TaggedClass(
     return new Request({
       allHeaders: use(() => request.allHeaders()),
       existingResponse: (): Option.Option<Response> =>
-        Option.fromNullable(request.existingResponse()).pipe(
+        Option.fromNullishOr(request.existingResponse()).pipe(
           Option.map(Response.make),
         ),
-      failure: Option.liftNullable(request.failure),
+      failure: Option.liftNullishOr(request.failure),
       frame: Effect.try({
         try: () => makeFrame(request.frame()),
         catch: wrapError,
       }),
       headerValue: (name) =>
         use(() => request.headerValue(name)).pipe(
-          Effect.map(Option.fromNullable),
+          Effect.map(Option.fromNullishOr),
         ),
       headers: () => request.headers(),
       headersArray: use(() => request.headersArray()),
       isNavigationRequest: () => request.isNavigationRequest(),
       method: () => request.method(),
-      postData: Option.liftNullable(request.postData),
-      postDataBuffer: Option.liftNullable(request.postDataBuffer),
+      postData: Option.liftNullishOr(request.postData),
+      postDataBuffer: Option.liftNullishOr(request.postDataBuffer),
       postDataJSON: use(() => request.postDataJSON()).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
       ),
       redirectedFrom: (): Option.Option<Request> =>
-        Option.fromNullable(request.redirectedFrom()).pipe(
+        Option.fromNullishOr(request.redirectedFrom()).pipe(
           Option.map(Request.make),
         ),
       redirectedTo: (): Option.Option<Request> =>
-        Option.fromNullable(request.redirectedTo()).pipe(
+        Option.fromNullishOr(request.redirectedTo()).pipe(
           Option.map(Request.make),
         ),
       resourceType: () => request.resourceType(),
       response: use(() => request.response()).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
         Effect.map(Option.map(Response.make)),
       ),
       serviceWorker: () =>
-        Option.fromNullable(request.serviceWorker()).pipe(
+        Option.fromNullishOr(request.serviceWorker()).pipe(
           Option.map(Worker.make),
         ),
       sizes: use(() => request.sizes()),
@@ -284,7 +284,7 @@ export class Response extends Data.TaggedClass(
       headersArray: use(() => response.headersArray()),
       headerValue: (name) =>
         use(() => response.headerValue(name)).pipe(
-          Effect.map(Option.fromNullable),
+          Effect.map(Option.fromNullishOr),
         ),
       headerValues: (name) => use(() => response.headerValues(name)),
       httpVersion: use(() => response.httpVersion()),
@@ -292,10 +292,10 @@ export class Response extends Data.TaggedClass(
       ok: () => response.ok(),
       request: () => Request.make(response.request()),
       securityDetails: use(() => response.securityDetails()).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
       ),
       serverAddr: use(() => response.serverAddr()).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
       ),
       status: () => response.status(),
       statusText: () => response.statusText(),
@@ -357,7 +357,8 @@ export class Dialog extends Data.TaggedClass(
       defaultValue: () => dialog.defaultValue(),
       dismiss: use(() => dialog.dismiss()),
       message: () => dialog.message(),
-      page: () => Option.fromNullable(dialog.page()).pipe(Option.map(makePage)),
+      page: () =>
+        Option.fromNullishOr(dialog.page()).pipe(Option.map(makePage)),
       type: () => dialog.type(),
     });
   }
@@ -425,19 +426,19 @@ export class Download extends Data.TaggedClass(
         download.createReadStream().then((s) => Readable.toWeb(s)),
       ).pipe(
         Effect.map((s) =>
-          Stream.fromReadableStream(
-            () => s as ReadableStream<Uint8Array>,
-            wrapError,
-          ),
+          Stream.fromReadableStream({
+            evaluate: () => s as ReadableStream<Uint8Array>,
+            onError: wrapError,
+          }),
         ),
         Stream.unwrap,
       ),
       delete: use(() => download.delete()),
       failure: use(() => download.failure()).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
       ),
       page: () => makePage(download.page()),
-      path: use(() => download.path()).pipe(Effect.map(Option.fromNullable)),
+      path: use(() => download.path()).pipe(Effect.map(Option.fromNullishOr)),
       saveAs: (path) => use(() => download.saveAs(path)),
       suggestedFilename: () => download.suggestedFilename(),
       url: () => download.url(),

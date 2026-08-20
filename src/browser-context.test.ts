@@ -9,7 +9,7 @@ type TestWindow = Window & {
 };
 
 layer(PlaywrightSpawner.layer(chromium))("BrowserContext", (it) => {
-  it.scoped("should wrap context methods", () =>
+  it.effect("should wrap context methods", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const context = yield* browser.newContext();
@@ -64,7 +64,7 @@ layer(PlaywrightSpawner.layer(chromium))("BrowserContext", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("addInitScript should execute script in all new pages", () =>
+  it.effect("addInitScript should execute script in all new pages", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const context = yield* browser.newContext();
@@ -93,7 +93,7 @@ layer(PlaywrightSpawner.layer(chromium))("BrowserContext", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped(
+  it.effect(
     "isClosed should return the closed state of the browser context",
     () =>
       Effect.gen(function* () {
@@ -107,7 +107,7 @@ layer(PlaywrightSpawner.layer(chromium))("BrowserContext", (it) => {
         assert.strictEqual(context.isClosed(), true);
       }).pipe(PlaywrightSpawner.withBrowser),
   );
-  it.scoped("credentials should create, get, and delete credentials", () =>
+  it.effect("credentials should create, get, and delete credentials", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const context = yield* browser.newContext();

@@ -3,8 +3,5 @@ allowBuilds:
   esbuild: false
   msgpackr-extract: false
 minimumReleaseAgeExclude:
-  - "@effect/cli@0.75.2"
-  - "@effect/cluster@0.59.0"
-  - "@effect/platform-node-shared@0.60.0"
-  - "@effect/platform-node@0.107.0"
-  - "@effect/workflow@0.18.2"
+  - '@effect/vitest@4.0.0-rc.111'
+  - effect@4.0.0-rc.111

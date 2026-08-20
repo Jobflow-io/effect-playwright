@@ -1,11 +1,11 @@
 import { assert, layer } from "@effect/vitest";
-import { Chunk, Effect, Fiber, Stream } from "effect";
+import { Effect, Fiber, Stream } from "effect";
 import { chromium } from "playwright-core";
 import { Playwright } from "../index";
 import * as BrowserUtils from "./browser-utils";
 
 layer(Playwright.layer)("BrowserUtils", (it) => {
-  it.scoped("allPages should return all pages from all contexts", () =>
+  it.effect("allPages should return all pages from all contexts", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright.Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -22,7 +22,7 @@ layer(Playwright.layer)("BrowserUtils", (it) => {
     }),
   );
 
-  it.scoped("allFrames should return all frames from all pages", () =>
+  it.effect("allFrames should return all frames from all pages", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright.Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -38,7 +38,7 @@ layer(Playwright.layer)("BrowserUtils", (it) => {
     }),
   );
 
-  it.scoped(
+  it.effect(
     "allFrameNavigatedEventStream should capture navigations from existing and new pages across multiple contexts",
     () =>
       Effect.gen(function* () {
@@ -52,7 +52,10 @@ layer(Playwright.layer)("BrowserUtils", (it) => {
 
         // Start the event stream
         const stream = BrowserUtils.allFrameNavigatedEventStream(browser);
-        const eventFiber = yield* stream.pipe(Stream.runCollect, Effect.fork);
+        const eventFiber = yield* stream.pipe(
+          Stream.runCollect,
+          Effect.forkChild,
+        );
 
         // 1. Navigate existing page
         yield* page1.goto(
@@ -82,11 +85,11 @@ layer(Playwright.layer)("BrowserUtils", (it) => {
         yield* browser.close;
 
         const events = yield* Fiber.join(eventFiber);
-        assert.strictEqual(Chunk.size(events), 4);
+        assert.strictEqual(events.length, 4);
       }),
   );
 
-  it.scoped("page eventStream should capture framenavigated", () =>
+  it.effect("page eventStream should capture framenavigated", () =>
     Effect.gen(function* () {
       const playwright = yield* Playwright.Playwright;
       const browser = yield* playwright.launchScoped(chromium);
@@ -94,12 +97,12 @@ layer(Playwright.layer)("BrowserUtils", (it) => {
 
       const fiber = yield* BrowserUtils.allFrameNavigatedEventStream(
         browser,
-      ).pipe(Stream.take(1), Stream.runCollect, Effect.fork);
+      ).pipe(Stream.take(1), Stream.runCollect, Effect.forkChild);
 
       yield* page.goto("https://example.com");
 
       const events = yield* Fiber.join(fiber);
-      assert.strictEqual(Chunk.size(events), 1);
+      assert.strictEqual(events.length, 1);
     }),
   );
 });

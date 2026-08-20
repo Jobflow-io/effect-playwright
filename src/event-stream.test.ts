@@ -1,11 +1,11 @@
 import { layer } from "@effect/vitest";
-import { Effect, Stream } from "effect";
+import { Effect, Fiber, Stream } from "effect";
 import { PlaywrightSpawner } from "effect-playwright";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
 
 layer(PlaywrightSpawner.layer(chromium))("eventStream", (it) => {
-  it.scoped("should complete when the page closes", () =>
+  it.effect("should complete when the page closes", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -14,19 +14,19 @@ layer(PlaywrightSpawner.layer(chromium))("eventStream", (it) => {
       const stream = page.eventStream("console");
 
       // Run the stream in the background
-      const fiber = yield* Stream.runCollect(stream).pipe(Effect.fork);
+      const fiber = yield* Stream.runCollect(stream).pipe(Effect.forkChild);
 
       // Close the page
       yield* page.close;
 
       // Wait for the stream to complete
-      yield* fiber.await;
+      yield* Fiber.await(fiber);
 
       // test will timeout if the stream does not complete
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("should complete when the browser closes", () =>
+  it.effect("should complete when the browser closes", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -35,13 +35,13 @@ layer(PlaywrightSpawner.layer(chromium))("eventStream", (it) => {
       const stream = page.eventStream("console");
 
       // Run the stream in the background
-      const fiber = yield* Stream.runCollect(stream).pipe(Effect.fork);
+      const fiber = yield* Stream.runCollect(stream).pipe(Effect.forkChild);
 
       // Close the browser
       yield* browser.close;
 
       // Wait for the stream to complete
-      yield* fiber.await;
+      yield* Fiber.await(fiber);
 
       // test will timeout if the stream does not complete
     }).pipe(PlaywrightSpawner.withBrowser),

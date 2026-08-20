@@ -86,7 +86,7 @@ export interface Credentials {
  * @category services
  * @since 0.5.1
  */
-export const Credentials = Context.GenericTag<Credentials>(
+export const Credentials = Context.Service<Credentials>(
   "effect-playwright/credentials/Credentials",
 );
 

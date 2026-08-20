@@ -309,7 +309,7 @@ const launchPersistentContext: (
  * @category services
  * @since 0.1.0
  */
-export const Playwright = Context.GenericTag<Playwright>(
+export const Playwright = Context.Service<Playwright>(
   "effect-playwright/playwright/Playwright",
 );
 

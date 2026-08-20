@@ -12,7 +12,7 @@ type TestWindow = Window & {
 };
 
 layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
-  it.scoped("goto should navigate to a URL", () =>
+  it.effect("goto should navigate to a URL", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -25,7 +25,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("setContent should set the page content", () =>
+  it.effect("setContent should set the page content", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -36,7 +36,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("title should return the page title", () =>
+  it.effect("title should return the page title", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -47,7 +47,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("content should return the page content", () =>
+  it.effect("content should return the page content", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -60,7 +60,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("click should click an element", () =>
+  it.effect("click should click an element", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -81,7 +81,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("goto should work with options", () =>
+  it.effect("goto should work with options", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -92,7 +92,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("waitForTimeout should wait", () =>
+  it.effect("waitForTimeout should wait", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -104,7 +104,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped(
+  it.effect(
     "evaluate should run code in the page context with destructured arg",
     () =>
       Effect.gen(function* () {
@@ -119,7 +119,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
       }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("evaluate should run code with a single value arg", () =>
+  it.effect("evaluate should run code with a single value arg", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -129,7 +129,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped(
+  it.effect(
     "evaluate should expose a function-valued argument in the page context",
     () =>
       Effect.gen(function* () {
@@ -147,7 +147,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
       }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("click should work with options", () =>
+  it.effect("click should work with options", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -172,7 +172,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("use should allow accessing raw playwright page", () =>
+  it.effect("use should allow accessing raw playwright page", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -182,7 +182,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("locator should work with options", () =>
+  it.effect("locator should work with options", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -203,7 +203,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("getBy* methods should work", () =>
+  it.effect("getBy* methods should work", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -248,7 +248,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("waitForURL should work with History API", () =>
+  it.effect("waitForURL should work with History API", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -264,7 +264,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("filechooser event should work", () =>
+  it.effect("filechooser event should work", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -275,17 +275,19 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
 
       const fileChooser = yield* page
         .eventStream("filechooser")
-        .pipe(Stream.runHead, Effect.fork);
+        .pipe(Stream.runHead, Effect.forkChild);
 
       yield* page.locator("#fileinput").click();
 
-      const results = yield* Fiber.join(fileChooser).pipe(Effect.flatten);
+      const results = yield* Fiber.join(fileChooser).pipe(
+        Effect.flatMap(Effect.fromOption),
+      );
 
       assert(results.isMultiple() === false, "isMultiple should be false");
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("waitForLoadState should resolve", () =>
+  it.effect("waitForLoadState should resolve", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -301,7 +303,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
       assert.ok(true);
     }).pipe(PlaywrightSpawner.withBrowser),
   );
-  it.scoped("url property should update after navigation", () =>
+  it.effect("url property should update after navigation", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -316,7 +318,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("goBack and goForward should navigate through history", () =>
+  it.effect("goBack and goForward should navigate through history", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -336,7 +338,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("requestGC should execute without error", () =>
+  it.effect("requestGC should execute without error", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -346,7 +348,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("clock should allow fast forwarding time", () =>
+  it.effect("clock should allow fast forwarding time", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -375,7 +377,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("clock should allow fast forwarding time on context", () =>
+  it.effect("clock should allow fast forwarding time on context", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const context = yield* browser.newContext();
@@ -407,7 +409,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("addInitScript should execute script before page load", () =>
+  it.effect("addInitScript should execute script before page load", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -429,7 +431,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("keyboard should allow typing text", () =>
+  it.effect("keyboard should allow typing text", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -448,7 +450,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("mouse should allow dispatching events", () =>
+  it.effect("mouse should allow dispatching events", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -473,7 +475,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("touchscreen should allow dispatching events", () =>
+  it.effect("touchscreen should allow dispatching events", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const context = yield* browser.newContext({ hasTouch: true });
@@ -509,7 +511,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("screenshot should capture an image", () =>
+  it.effect("screenshot should capture an image", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -522,7 +524,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("pdf should capture a PDF", () =>
+  it.effect("pdf should capture a PDF", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -535,7 +537,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("addScriptTag should add a script tag to the page", () =>
+  it.effect("addScriptTag should add a script tag to the page", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -551,7 +553,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("addStyleTag should add a style tag to the page", () =>
+  it.effect("addStyleTag should add a style tag to the page", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -573,7 +575,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
       assert.strictEqual(color, "rgb(255, 0, 0)");
     }).pipe(PlaywrightSpawner.withBrowser),
   );
-  it.scoped("bringToFront should bring the page to the front", () =>
+  it.effect("bringToFront should bring the page to the front", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const context = yield* browser.newContext();
@@ -588,7 +590,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("consoleMessages should return console messages", () =>
+  it.effect("consoleMessages should return console messages", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -608,7 +610,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("pageerror event should work", () =>
+  it.effect("pageerror event should work", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -617,7 +619,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
 
       const errorFiber = yield* page
         .eventStream("pageerror")
-        .pipe(Stream.runHead, Effect.fork);
+        .pipe(Stream.runHead, Effect.forkChild);
 
       yield* page.evaluate(() => {
         setTimeout(() => {
@@ -631,7 +633,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("pageErrors should return all page errors", () =>
+  it.effect("pageErrors should return all page errors", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -640,7 +642,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
 
       const errorFiber = yield* page
         .eventStream("pageerror")
-        .pipe(Stream.runHead, Effect.fork);
+        .pipe(Stream.runHead, Effect.forkChild);
 
       yield* page.evaluate(() => {
         setTimeout(() => {
@@ -656,7 +658,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("context should return the associated browser context", () =>
+  it.effect("context should return the associated browser context", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const context = yield* browser.newContext();
@@ -671,7 +673,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("dragAndDrop should drag and drop an element", () =>
+  it.effect("dragAndDrop should drag and drop an element", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -703,7 +705,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("emulateMedia should emulate media features", () =>
+  it.effect("emulateMedia should emulate media features", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -728,7 +730,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped(
+  it.effect(
     "exposeFunction should expose an function that runs an effect",
     () =>
       Effect.gen(function* () {
@@ -751,7 +753,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
       }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("exposeFunction should work with Effect.fn", () =>
+  it.effect("exposeFunction should work with Effect.fn", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -776,7 +778,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("exposeEffect should expose an effect", () =>
+  it.effect("exposeEffect should expose an effect", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -798,7 +800,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("frame should return an Option of Frame", () =>
+  it.effect("frame should return an Option of Frame", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -818,7 +820,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("isClosed should return the closed state of the page", () =>
+  it.effect("isClosed should return the closed state of the page", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -831,7 +833,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("mainFrame should return the main frame", () =>
+  it.effect("mainFrame should return the main frame", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -844,7 +846,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("opener should return the opener page", () =>
+  it.effect("opener should return the opener page", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -853,7 +855,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
 
       const popupFiber = yield* page
         .eventStream("popup")
-        .pipe(Stream.runHead, Effect.fork);
+        .pipe(Stream.runHead, Effect.forkChild);
 
       yield* page.evaluate(() => {
         window.open("about:blank");
@@ -871,7 +873,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("setViewportSize should update viewport dimensions", () =>
+  it.effect("setViewportSize should update viewport dimensions", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -887,7 +889,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("viewportSize should return the current viewport size", () =>
+  it.effect("viewportSize should return the current viewport size", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -902,7 +904,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("setExtraHTTPHeaders should not crash", () =>
+  it.effect("setExtraHTTPHeaders should not crash", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -912,7 +914,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("setDefaultNavigationTimeout should not crash", () =>
+  it.effect("setDefaultNavigationTimeout should not crash", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -922,7 +924,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("setDefaultTimeout should influence timeouts", () =>
+  it.effect("setDefaultTimeout should influence timeouts", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -938,14 +940,14 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("workers should return the list of workers", () =>
+  it.effect("workers should return the list of workers", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
 
       const workerFiber = yield* page
         .eventStream("worker")
-        .pipe(Stream.runHead, Effect.fork);
+        .pipe(Stream.runHead, Effect.forkChild);
 
       yield* page.goto(
         "data:text/html,<script>new Worker(URL.createObjectURL(new Blob(['console.log(\"worker\")'], {type: 'application/javascript'})));</script>",
@@ -958,7 +960,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
       assert.strictEqual(typeof workers[0].url(), "string");
     }).pipe(PlaywrightSpawner.withBrowser),
   );
-  it.scoped("web storage should round-trip items on a page origin", () =>
+  it.effect("web storage should round-trip items on a page origin", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();

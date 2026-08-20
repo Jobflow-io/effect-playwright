@@ -20,16 +20,7 @@ import {
   type TestInfo,
   type TestType,
 } from "@playwright/test";
-import {
-  Cause,
-  Context,
-  Duration,
-  Effect,
-  Exit,
-  Layer,
-  Logger,
-  Scope,
-} from "effect";
+import { Cause, Context, Duration, Effect, Exit, Layer, Scope } from "effect";
 import { Browser, makeBrowser } from "./browser";
 import { BrowserContext, makeBrowserContext } from "./browser-context";
 import { makePage, Page } from "./page";
@@ -164,7 +155,7 @@ export interface EffectTester<Args extends object, R = never>
  */
 export interface LayerOptions {
   readonly memoMap?: Layer.MemoMap;
-  readonly timeout?: Duration.DurationInput;
+  readonly timeout?: Duration.Input;
 }
 /**
  * Options for a nested shared layer. Nested layers reuse their parent's memo
@@ -174,7 +165,7 @@ export interface LayerOptions {
  * @since 0.6.0
  */
 export interface NestedLayerOptions {
-  readonly timeout?: Duration.DurationInput;
+  readonly timeout?: Duration.Input;
 }
 
 /**
@@ -278,7 +269,7 @@ const runPromise = <A, E>(
         });
       }
       return yield* exit;
-    }).pipe(Effect.provide(Logger.pretty)),
+    }),
     { signal },
   );
 
@@ -395,14 +386,13 @@ const makeLayer = <T extends object, W extends object, R, E>(
 ): LayerRegistration<T, W, R> => {
   const memoMap = options?.memoMap ?? Effect.runSync(Layer.makeMemoMap);
   const scope = Effect.runSync(Scope.make());
-  const runtimeEffect = Layer.toRuntimeWithMemoMap(layer, memoMap).pipe(
-    Scope.extend(scope),
+  const runtimeEffect = Layer.buildWithMemoMap(layer, memoMap, scope).pipe(
     Effect.orDie,
     Effect.cached,
     Effect.runSync,
   );
   const transform: EffectTransform<R> = (effect) =>
-    Effect.flatMap(runtimeEffect, (runtime) => Effect.provide(effect, runtime));
+    Effect.flatMap(runtimeEffect, (context) => Effect.provide(effect, context));
   const tester = makeTester<T & W, R>(effectTestType, transform);
 
   const makeLayerMethods = (): LayerTestMethods<T, W, R> => {
@@ -620,7 +610,7 @@ export const test = makeMethods(playwrightTest);
  * import { Context, Effect, Layer } from "effect";
  * import { expect, layer } from "effect-playwright/test";
  *
- * class Greeting extends Context.Tag("Greeting")<Greeting, string>() {}
+ * class Greeting extends Context.Service<Greeting, string>()("Greeting") {}
  *
  * layer(Layer.succeed(Greeting, "hello"))("Greeting", (it) => {
  *   it.effect("provides the layer", () =>
