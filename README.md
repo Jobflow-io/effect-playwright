@@ -28,13 +28,13 @@ const program = Effect.gen(function* () {
   const playwright = yield* Playwright.Playwright;
 
   // The browser is closed automatically when the scope ends.
-  const browser: Playwright.Browser = yield* playwright.launchScoped(chromium, {
+  const browser = yield* playwright.launchScoped(chromium, {
     headless: true,
   });
 
-  const page: Playwright.Page = yield* browser.newPage();
+  const page = yield* browser.newPage();
 
-  yield* page.setContent(`testing`);
+  yield* page.setContent("testing");
 }).pipe(Effect.scoped, Effect.provide(Playwright.layer));
 
 await Effect.runPromise(program);
