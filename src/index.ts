@@ -11,9 +11,8 @@
  */
 
 /**
- * Playwright's Chromium, Firefox, and WebKit browser engines.
+ * Playwright's Chromium, Firefox, and WebKit browser engines re-exported from `playwright-core`.
  *
- * @category re-exports
  * @since 0.5.0
  */
 export { chromium, firefox, webkit } from "playwright-core";
