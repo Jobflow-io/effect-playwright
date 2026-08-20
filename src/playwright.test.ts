@@ -131,7 +131,7 @@ layer(Playwright.layer)("Playwright", (it) => {
       assert(capturedContext !== undefined, "Expected captured context");
       const error = yield* capturedContext.newPage.pipe(Effect.flip);
       assert(
-        error._tag === "effect-playwright/errors/PlaywrightError",
+        error._tag === "PlaywrightError",
         "Expected failure after scoped close",
       );
     }),
@@ -146,7 +146,7 @@ layer(Playwright.layer)("Playwright", (it) => {
         })
         .pipe(Effect.flip);
       assert(
-        result._tag === "effect-playwright/errors/PlaywrightError",
+        result._tag === "PlaywrightError",
         "Expected failure with invalid path",
       );
     }),
@@ -162,7 +162,7 @@ layer(Playwright.layer)("Playwright", (it) => {
         })
         .pipe(Effect.flip);
       assert(
-        result._tag === "effect-playwright/errors/PlaywrightError",
+        result._tag === "PlaywrightError",
         "Expected failure with timeout 0",
       );
       assert(result.reason === "Timeout", "Expected reason to be timeout");

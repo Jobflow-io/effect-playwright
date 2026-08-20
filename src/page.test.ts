@@ -934,10 +934,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
         .click()
         .pipe(Effect.flip);
 
-      assert.strictEqual(
-        result._tag,
-        "effect-playwright/errors/PlaywrightError",
-      );
+      assert.strictEqual(result._tag, "PlaywrightError");
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
