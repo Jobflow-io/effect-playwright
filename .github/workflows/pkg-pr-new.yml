@@ -1,0 +1,36 @@
+name: Publish Preview Package
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "!**"
+
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build package
+        run: pnpm build
+
+      - name: Publish preview package
+        run: pnpm exec pkg-pr-new publish --commentWithSha
