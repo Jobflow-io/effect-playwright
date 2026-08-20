@@ -60,9 +60,9 @@
     }
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.6",
+    "@biomejs/biome": "2.5.9",
     "@effect/cli": "^0.77.0",
-    "@effect/language-service": "0.87.1",
+    "@effect/language-service": "0.87.2",
     "@effect/platform": "^0.97.1",
     "@effect/platform-node": "^0.108.1",
     "@effect/vitest": "^0.30.0",
@@ -72,11 +72,11 @@
     "playwright": "^1.62.1",
     "ts-morph": "^28.0.0",
     "tsdown": "0.22.14",
-    "tsx": "^4.23.1",
+    "tsx": "^4.23.12",
     "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
-    "vite": "^8.2.0",
-    "vitest": "^4.1.10"
+    "vite": "^8.2.1",
+    "vitest": "^4.1.11"
   },
   "types": "./dist/index.d.mts"
 }
