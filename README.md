@@ -9,7 +9,8 @@ A Playwright wrapper for the Effect ecosystem. This library provides a set of se
 
 [Playwright Test Integration](README.md#playwright-test-integration) is also supported.
 
-> **Release channels:** [`latest`](https://www.npmjs.com/package/effect-playwright/v/latest) targets Effect v3 and is maintained on the [`v3` branch](https://github.com/Jobflow-io/effect-playwright/tree/v3). [`next`](https://www.npmjs.com/package/effect-playwright/v/next) targets Effect v4 and is maintained on the [`main` branch](https://github.com/Jobflow-io/effect-playwright/tree/main). This branch and its documentation target Effect v4.
+> [!IMPORTANT]
+> This branch and its documentation target Effect v4. The [`v3` branch can be found here](https://github.com/Jobflow-io/effect-playwright/tree/v3).
 
 ## Installation
 
