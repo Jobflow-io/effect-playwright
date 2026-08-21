@@ -6,7 +6,7 @@ import { chromium } from "playwright-core";
 import { Browser } from "./browser";
 
 layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
-  it.scoped("should work", () =>
+  it.effect("should work", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -19,7 +19,7 @@ layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("evaluate", () =>
+  it.effect("evaluate", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -41,7 +41,7 @@ layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("waitFor", () =>
+  it.effect("waitFor", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -69,7 +69,7 @@ layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("waitForFunction", () =>
+  it.effect("waitForFunction", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -92,7 +92,7 @@ layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("evaluate options expose function arguments", () =>
+  it.effect("evaluate options expose function arguments", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -118,7 +118,7 @@ layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("kitchensink", () =>
+  it.effect("kitchensink", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -348,7 +348,7 @@ layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped(
+  it.effect(
     "new methods: all, and, filter, or, page, frameLocator, contentFrame",
     () =>
       Effect.gen(function* () {
@@ -357,12 +357,12 @@ layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
 
         yield* page.evaluate(() => {
           document.body.innerHTML = `
-          <div id="container">
-            <button id="btn-1" class="btn test-and">Button 1</button>
-            <button id="btn-2" class="btn">Button 2</button>
-            <iframe id="test-iframe" name="test-iframe" srcdoc="<body><div id='in-frame'>In Frame</div></body>"></iframe>
-          </div>
-        `;
+        <div id="container">
+          <button id="btn-1" class="btn test-and">Button 1</button>
+          <button id="btn-2" class="btn">Button 2</button>
+          <iframe id="test-iframe" name="test-iframe" srcdoc="<body><div id='in-frame'>In Frame</div></body>"></iframe>
+        </div>
+      `;
         });
 
         const buttons = page.locator(".btn");
@@ -409,7 +409,7 @@ layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
       }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("action methods", () =>
+  it.effect("action methods", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();

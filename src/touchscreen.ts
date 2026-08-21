@@ -31,7 +31,7 @@ export interface Touchscreen {
  * @category services
  * @since 0.3.0
  */
-export const Touchscreen = Context.GenericTag<Touchscreen>(
+export const Touchscreen = Context.Service<Touchscreen>(
   "effect-playwright/touchscreen/Touchscreen",
 );
 

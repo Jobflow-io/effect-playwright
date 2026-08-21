@@ -262,7 +262,7 @@ export interface Frame {
  * @category services
  * @since 0.1.2
  */
-export const Frame = Context.GenericTag<Frame>("effect-playwright/frame/Frame");
+export const Frame = Context.Service<Frame>("effect-playwright/frame/Frame");
 
 /**
  * Creates a `Frame` from a Playwright `Frame` instance.
@@ -307,7 +307,7 @@ export const makeFrame = (frame: CoreFrame): Frame => {
     getByTitle: (text, options) => makeLocator(frame.getByTitle(text, options)),
     page: () => makePage(frame.page()),
     parentFrame: () =>
-      Option.fromNullable(frame.parentFrame()).pipe(Option.map(makeFrame)),
+      Option.fromNullishOr(frame.parentFrame()).pipe(Option.map(makeFrame)),
     childFrames: () => Array.map(frame.childFrames(), (f) => makeFrame(f)),
     isDetached: () => frame.isDetached(),
     waitForTimeout: (timeout) => use((f) => f.waitForTimeout(timeout)),

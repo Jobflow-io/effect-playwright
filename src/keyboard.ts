@@ -66,7 +66,7 @@ export interface Keyboard {
 /**
  * @category services
  */
-export const Keyboard = Context.GenericTag<Keyboard>(
+export const Keyboard = Context.Service<Keyboard>(
   "effect-playwright/keyboard/Keyboard",
 );
 

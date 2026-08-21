@@ -80,7 +80,7 @@ export interface Mouse {
 /**
  * @category services
  */
-export const Mouse = Context.GenericTag<Mouse>("effect-playwright/mouse/Mouse");
+export const Mouse = Context.Service<Mouse>("effect-playwright/mouse/Mouse");
 
 /**
  * Creates a `Mouse` from a Playwright `Mouse` instance.

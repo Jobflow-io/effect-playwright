@@ -5,7 +5,7 @@
  * @since 0.1.0
  */
 
-import { Context, Effect, identity, Option, Stream } from "effect";
+import { Context, Effect, identity, Option, Queue, Stream } from "effect";
 import type {
   ConsoleMessage,
   BrowserContext as CoreBrowserContext,
@@ -302,7 +302,7 @@ export interface BrowserContext {
  * @category services
  * @since 0.1.0
  */
-export const BrowserContext = Context.GenericTag<BrowserContext>(
+export const BrowserContext = Context.Service<BrowserContext>(
   "effect-playwright/browser-context/BrowserContext",
 );
 
@@ -339,7 +339,7 @@ export const makeBrowserContext = (
         ),
       ).pipe(Effect.asVoid),
     browser: () =>
-      Option.fromNullable(context.browser()).pipe(Option.map(makeBrowser)),
+      Option.fromNullishOr(context.browser()).pipe(Option.map(makeBrowser)),
     clearCookies: (options) => use((c) => c.clearCookies(options)),
     clearPermissions: use((c) => c.clearPermissions()),
     cookies: (urls) => use((c) => c.cookies(urls)),
@@ -356,19 +356,25 @@ export const makeBrowserContext = (
     storageState: (options) => use((c) => c.storageState(options)),
     setStorageState: (options) => use((c) => c.setStorageState(options)),
     eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
-      Stream.asyncPush<BrowserContextEvents[K]>((emit) =>
-        Effect.acquireRelease(
+      Stream.callback<BrowserContextEvents[K]>((queue) => {
+        const emit = (value: BrowserContextEvents[K]) => {
+          Queue.offerUnsafe(queue, value);
+        };
+        const end = () => {
+          Queue.endUnsafe(queue);
+        };
+        return Effect.acquireRelease(
           Effect.sync(() => {
-            events.on(event, emit.single);
-            events.once("close", emit.end);
+            events.on(event, emit);
+            events.once("close", end);
           }),
           () =>
             Effect.sync(() => {
-              events.off(event, emit.single);
-              events.off("close", emit.end);
+              events.off(event, emit);
+              events.off("close", end);
             }),
-        ),
-      ).pipe(
+        );
+      }).pipe(
         Stream.map((value) => {
           const mapping = eventMappings[event];
           // The selected event and mapping share the same generic event key.

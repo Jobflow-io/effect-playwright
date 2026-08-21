@@ -31,7 +31,7 @@ export interface PlaywrightSpawner {
  * @category services
  * @since 0.7.0
  */
-export const PlaywrightSpawner = Context.GenericTag<PlaywrightSpawner>(
+export const PlaywrightSpawner = Context.Service<PlaywrightSpawner>(
   "effect-playwright/playwright-spawner/PlaywrightSpawner",
 );
 

@@ -11,7 +11,7 @@ import {
   Effect,
   identity,
   Option,
-  Runtime,
+  Queue,
   Stream,
 } from "effect";
 import type {
@@ -365,10 +365,10 @@ export interface Page {
    * import { Playwright } from "effect-playwright";
    *
    * // A custom Database service used in your Effect application
-   * class Database extends Context.Tag("Database")<
+   * class Database extends Context.Service<
    *   Database,
    *   { readonly insertProduct: (name: string, price: number) => Effect.Effect<void> }
-   * >() {}
+   * >()("Database") {}
    *
    * const program = Effect.gen(function* () {
    *   const browser = yield* Playwright.Browser;
@@ -859,7 +859,7 @@ export interface Page {
  * @category services
  * @since 0.1.0
  */
-export const Page = Context.GenericTag<Page>("effect-playwright/page/Page");
+export const Page = Context.Service<Page>("effect-playwright/page/Page");
 
 /**
  * Creates a `Page` from a Playwright `Page` instance.
@@ -891,7 +891,7 @@ export const makePage = (page: CorePage): Page => {
       use((page) => page.setExtraHTTPHeaders(headers)),
     setViewportSize: (viewportSize) =>
       use((page) => page.setViewportSize(viewportSize)),
-    viewportSize: () => Option.fromNullable(page.viewportSize()),
+    viewportSize: () => Option.fromNullishOr(page.viewportSize()),
     waitForURL: (url, options) => use((page) => page.waitForURL(url, options)),
     waitForLoadState: (state, options) =>
       use((page) => page.waitForLoadState(state, options)),
@@ -927,8 +927,8 @@ export const makePage = (page: CorePage): Page => {
       name: string,
       effectFn: (...args: Args) => Effect.Effect<A, E, R>,
     ) =>
-      Effect.runtime<R>().pipe(
-        Effect.map((runtime) => Runtime.runPromise(runtime)),
+      Effect.context<R>().pipe(
+        Effect.map((context) => Effect.runPromiseWith(context)),
         Effect.flatMap((runPromise) =>
           use((page) =>
             page.exposeFunction(name, (...args: Args) =>
@@ -938,8 +938,8 @@ export const makePage = (page: CorePage): Page => {
         ),
       ),
     exposeEffect: <A, E, R>(name: string, effectFn: Effect.Effect<A, E, R>) =>
-      Effect.runtime<R>().pipe(
-        Effect.map((runtime) => Runtime.runPromise(runtime)),
+      Effect.context<R>().pipe(
+        Effect.map((context) => Effect.runPromiseWith(context)),
         Effect.flatMap((runPromise) =>
           use((page) => page.exposeFunction(name, () => runPromise(effectFn))),
         ),
@@ -970,12 +970,12 @@ export const makePage = (page: CorePage): Page => {
     ariaSnapshot: (options) => use((page) => page.ariaSnapshot(options)),
     context: () => makeBrowserContext(page.context()),
     opener: use((page) => page.opener()).pipe(
-      Effect.map(Option.fromNullable),
+      Effect.map(Option.fromNullishOr),
       Effect.map(Option.map(makePage)),
     ),
     workers: () => page.workers().map(Worker.make),
     frame: (frameSelector) =>
-      Option.fromNullable(page.frame(frameSelector)).pipe(
+      Option.fromNullishOr(page.frame(frameSelector)).pipe(
         Option.map(makeFrame),
       ),
     frames: use((page) => Promise.resolve(page.frames().map(makeFrame))),
@@ -983,12 +983,12 @@ export const makePage = (page: CorePage): Page => {
     reload: use((page) => page.reload()),
     goBack: (options) =>
       use((page) => page.goBack(options)).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
         Effect.map(Option.map(Response.make)),
       ),
     goForward: (options) =>
       use((page) => page.goForward(options)).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
         Effect.map(Option.map(Response.make)),
       ),
     requestGC: use((page) => page.requestGC()),
@@ -1002,20 +1002,26 @@ export const makePage = (page: CorePage): Page => {
       use((page) => page.dragAndDrop(source, target, options)),
     click: (selector, options) => use((page) => page.click(selector, options)),
     emulateMedia: (options) => use((page) => page.emulateMedia(options)),
-    eventStream: <K extends keyof PageEventMap>(event: K) =>
-      Stream.asyncPush<CorePageEventMap[K]>((emit) =>
-        Effect.acquireRelease(
+    eventStream: <K extends keyof CorePageEventMap>(event: K) =>
+      Stream.callback<CorePageEventMap[K]>((queue) => {
+        const emit = (value: CorePageEventMap[K]) => {
+          Queue.offerUnsafe(queue, value);
+        };
+        const end = () => {
+          Queue.endUnsafe(queue);
+        };
+        return Effect.acquireRelease(
           Effect.sync(() => {
-            events.on(event, emit.single);
-            events.once("close", emit.end);
+            events.on(event, emit);
+            events.once("close", end);
           }),
           () =>
             Effect.sync(() => {
-              events.off(event, emit.single);
-              events.off("close", emit.end);
+              events.off(event, emit);
+              events.off("close", end);
             }),
-        ),
-      ).pipe(
+        );
+      }).pipe(
         Stream.map((value) => {
           const mapping = eventMappings[event];
           // The selected event and mapping share the same generic event key.

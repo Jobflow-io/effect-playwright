@@ -5,29 +5,29 @@ import { expect, layer, makeMethods, test } from "effect-playwright/test";
 
 class ExpectedTestError extends Data.TaggedError("ExpectedTestError") {}
 
-class SharedValue extends Context.Tag("SharedValue")<
+class SharedValue extends Context.Service<
   SharedValue,
   { readonly acquisition: number }
->() {}
+>()("SharedValue") {}
 
-class NestedValue extends Context.Tag("NestedValue")<NestedValue, number>() {}
+class NestedValue extends Context.Service<NestedValue, number>()(
+  "NestedValue",
+) {}
 
-class AnonymousValue extends Context.Tag("AnonymousValue")<
-  AnonymousValue,
-  string
->() {}
+class AnonymousValue extends Context.Service<AnonymousValue, string>()(
+  "AnonymousValue",
+) {}
 
-class CustomLayerValue extends Context.Tag("CustomLayerValue")<
-  CustomLayerValue,
-  string
->() {}
+class CustomLayerValue extends Context.Service<CustomLayerValue, string>()(
+  "CustomLayerValue",
+) {}
 
 let sharedLayerAcquisitions = 0;
 let sharedLayerReleases = 0;
 let anonymousLayerAcquisitions = 0;
 let anonymousLayerReleases = 0;
 
-const sharedLayer = Layer.scoped(
+const sharedLayer = Layer.effect(
   SharedValue,
   Effect.acquireRelease(
     Effect.sync(() => ({ acquisition: ++sharedLayerAcquisitions })),
@@ -43,7 +43,7 @@ const nestedLayer = Layer.effect(
   Effect.map(SharedValue, ({ acquisition }) => acquisition + 1),
 );
 
-const anonymousLayer = Layer.scoped(
+const anonymousLayer = Layer.effect(
   AnonymousValue,
   Effect.acquireRelease(
     Effect.sync(() => {

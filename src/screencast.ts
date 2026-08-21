@@ -92,7 +92,7 @@ export interface Screencast {
 /**
  * @category services
  */
-export const Screencast = Context.GenericTag<Screencast>(
+export const Screencast = Context.Service<Screencast>(
   "effect-playwright/screencast/Screencast",
 );
 

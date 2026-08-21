@@ -103,7 +103,7 @@ export interface Clock {
  * @since 0.1.0
  * @category services
  */
-export const Clock = Context.GenericTag<Clock>("effect-playwright/clock/Clock");
+export const Clock = Context.Service<Clock>("effect-playwright/clock/Clock");
 
 /**
  * Creates a `Clock` from a Playwright `Clock` instance.

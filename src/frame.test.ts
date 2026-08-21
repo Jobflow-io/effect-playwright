@@ -6,7 +6,7 @@ import { Browser } from "./browser";
 import type { Frame } from "./frame";
 
 layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
-  it.scoped("should wrap frame methods", () =>
+  it.effect("should wrap frame methods", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -30,7 +30,7 @@ layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
         Effect.succeed(f.name() === "test-frame");
 
       const frame = yield* Effect.findFirst(frames, isTestFrame).pipe(
-        Effect.flatten,
+        Effect.flatMap(Effect.fromOption),
         Effect.retry({
           times: 3,
         }),
@@ -122,7 +122,7 @@ layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped(
+  it.effect(
     "evaluate should expose a function-valued argument in the frame context",
     () =>
       Effect.gen(function* () {
@@ -141,7 +141,7 @@ layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
       }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.scoped("waitForLoadState should resolve on frame", () =>
+  it.effect("waitForLoadState should resolve on frame", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();

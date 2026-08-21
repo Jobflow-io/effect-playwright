@@ -157,7 +157,7 @@ export interface FrameLocator {
  * @since 0.1.0
  * @category services
  */
-export const FrameLocator = Context.GenericTag<FrameLocator>(
+export const FrameLocator = Context.Service<FrameLocator>(
   "effect-playwright/frame-locator/FrameLocator",
 );
 

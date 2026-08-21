@@ -50,9 +50,8 @@
     "playwright-core": "^1.62.1"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.93.3",
     "@playwright/test": "^1.62.1",
-    "effect": "^3.19.6"
+    "effect": "^4.0.0-rc.111"
   },
   "peerDependenciesMeta": {
     "@playwright/test": {
@@ -61,14 +60,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.9",
-    "@effect/cli": "^0.77.0",
     "@effect/language-service": "0.87.2",
-    "@effect/platform": "^0.97.1",
-    "@effect/platform-node": "^0.108.1",
-    "@effect/vitest": "^0.30.0",
+    "@effect/vitest": "^4.0.0-rc.111",
     "@playwright/test": "^1.62.1",
     "@types/node": "^25.9.5",
-    "effect": "^3.22.1",
+    "effect": "^4.0.0-rc.111",
     "pkg-pr-new": "^0.0.88",
     "playwright": "^1.62.1",
     "ts-morph": "^28.0.0",

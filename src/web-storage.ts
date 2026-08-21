@@ -95,7 +95,7 @@ export interface WebStorage {
  * @category services
  * @since 0.5.1
  */
-export const WebStorage = Context.GenericTag<WebStorage>(
+export const WebStorage = Context.Service<WebStorage>(
   "effect-playwright/web-storage/WebStorage",
 );
 
@@ -113,7 +113,7 @@ export const makeWebStorage = (webStorage: CoreWebStorage): WebStorage => {
     clear: use((storage) => storage.clear()),
     getItem: (name) =>
       use((storage) => storage.getItem(name)).pipe(
-        Effect.map(Option.fromNullable),
+        Effect.map(Option.fromNullishOr),
       ),
     items: use((storage) => storage.items()),
     removeItem: (name) => use((storage) => storage.removeItem(name)),

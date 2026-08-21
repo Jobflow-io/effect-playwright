@@ -44,7 +44,7 @@ const accessSecond = Effect.gen(function* () {
 });
 
 layer(PlaywrightSpawner.layer(chromium))("PlaywrightSpawner", (it) => {
-  it.scoped("should launch a browser", () =>
+  it.effect("should launch a browser", () =>
     Effect.gen(function* () {
       const program = Effect.gen(function* () {
         const spawner: PlaywrightSpawner.PlaywrightSpawner =
