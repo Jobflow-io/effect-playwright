@@ -1,8 +1,8 @@
 import { layer } from "@effect/vitest";
 import { Effect, Stream } from "effect";
+import { PlaywrightSpawner } from "effect-playwright";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
-import { PlaywrightSpawner } from "./experimental";
 
 layer(PlaywrightSpawner.layer(chromium))("eventStream", (it) => {
   it.scoped("should complete when the page closes", () =>

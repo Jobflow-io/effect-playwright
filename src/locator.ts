@@ -339,8 +339,7 @@ export interface Locator {
    * ```ts
    * import { chromium } from "@playwright/test";
    * import { Effect } from "effect";
-   * import { Playwright } from "effect-playwright";
-   * import { PlaywrightSpawner } from "effect-playwright/experimental";
+   * import { Playwright, PlaywrightSpawner } from "effect-playwright";
    *
    * const program = Effect.gen(function* () {
    *   const browser = yield* Playwright.Browser;

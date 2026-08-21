@@ -1,8 +1,8 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect, Option } from "effect";
+import { PlaywrightSpawner } from "effect-playwright";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
-import { PlaywrightSpawner } from "./experimental";
 
 type TestWindow = Window & {
   magicValue?: number;

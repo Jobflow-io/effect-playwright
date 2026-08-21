@@ -1,7 +1,6 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
-import { Playwright } from "effect-playwright";
-import { PlaywrightSpawner } from "effect-playwright/experimental";
+import { Playwright, PlaywrightSpawner } from "effect-playwright";
 import { chromium } from "playwright-core";
 
 const accessFirst = Effect.gen(function* () {

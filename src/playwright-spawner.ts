@@ -1,14 +1,14 @@
 /**
- * Experimental service for provisioning a scoped Playwright browser.
+ * Service for provisioning a scoped Playwright browser.
  *
  * @since 0.7.0
  */
 
 import { Context, Effect, Layer } from "effect";
 import type { Scope } from "effect/Scope";
-import { Playwright } from "effect-playwright";
 import type { BrowserType, LaunchOptions } from "playwright-core";
-import type { PlaywrightError } from "../errors";
+import type { PlaywrightError } from "./errors";
+import * as Playwright from "./playwright-api";
 
 /**
  * Deferred acquisition of a browser scoped to the caller's lifetime.
@@ -32,7 +32,7 @@ export interface PlaywrightSpawner {
  * @since 0.7.0
  */
 export const PlaywrightSpawner = Context.GenericTag<PlaywrightSpawner>(
-  "effect-playwright/experimental/playwright-spawner/PlaywrightSpawner",
+  "effect-playwright/playwright-spawner/PlaywrightSpawner",
 );
 
 /**
@@ -48,8 +48,7 @@ export const PlaywrightSpawner = Context.GenericTag<PlaywrightSpawner>(
  *
  * ```ts
  * import { Effect } from "effect";
- * import { chromium } from "effect-playwright";
- * import { PlaywrightSpawner } from "effect-playwright/experimental";
+ * import { PlaywrightSpawner, chromium } from "effect-playwright";
  *
  * const program = Effect.gen(function* () {
  *   const spawner = yield* PlaywrightSpawner.PlaywrightSpawner;
@@ -104,8 +103,7 @@ const withBrowserUnscoped = Effect.provideServiceEffect(
  *
  * ```ts
  * import { Effect } from "effect";
- * import { Playwright, chromium } from "effect-playwright";
- * import { PlaywrightSpawner } from "effect-playwright/experimental";
+ * import { Playwright, PlaywrightSpawner, chromium } from "effect-playwright";
  *
  * const program = Effect.gen(function* () {
  *   const browser = yield* Playwright.Browser;

@@ -1,8 +1,8 @@
 import { assert, layer } from "@effect/vitest";
 import { Chunk, Effect, Fiber, Option, Stream } from "effect";
+import { PlaywrightSpawner } from "effect-playwright";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
-import { PlaywrightSpawner } from "./experimental";
 
 layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
   it.scoped("Request and Response", () =>
