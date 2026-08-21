@@ -1,9 +1,9 @@
 /// <reference lib="dom" />
 import { assert, layer } from "@effect/vitest";
 import { Effect, Option } from "effect";
+import { PlaywrightSpawner } from "effect-playwright";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
-import { PlaywrightSpawner } from "./experimental";
 
 layer(PlaywrightSpawner.layer(chromium))("Locator", (it) => {
   it.scoped("should work", () =>

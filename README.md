@@ -82,15 +82,14 @@ const program = Effect.gen(function* () {
 });
 ```
 
-## Playwright Spawner (Experimental)
+## Playwright Spawner
 
 `PlaywrightSpawner` configures how browsers are launched and spawns browsers scoped to the current lifetime.
 
 ### Usage
 
 ```ts
-import { Playwright, chromium } from "effect-playwright";
-import { PlaywrightSpawner } from "effect-playwright/experimental";
+import { Playwright, PlaywrightSpawner, chromium } from "effect-playwright";
 import { Effect } from "effect";
 
 const liveLayer = PlaywrightSpawner.layer(chromium, {
