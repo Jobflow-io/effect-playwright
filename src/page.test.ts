@@ -1,7 +1,7 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect, Fiber, Option, Ref, Stream } from "effect";
 import { PlaywrightSpawner } from "effect-playwright";
-import { chromium } from "playwright-core";
+import { chromium, errors } from "playwright-core";
 import { Browser } from "./browser";
 
 type TestWindow = Window & {
@@ -924,7 +924,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
-  it.effect("setDefaultTimeout should influence timeouts", () =>
+  it.effect("setDefaultTimeout should surface timeout errors", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
       const page = yield* browser.newPage();
@@ -937,6 +937,8 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
         .pipe(Effect.flip);
 
       assert.strictEqual(result._tag, "PlaywrightError");
+      assert.strictEqual(result.reason, "Timeout");
+      assert(result.cause instanceof errors.TimeoutError);
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
