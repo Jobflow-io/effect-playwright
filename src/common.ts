@@ -6,7 +6,7 @@
  */
 
 import { Readable } from "node:stream";
-import { Data, Effect, Option, Stream } from "effect";
+import { Context, Effect, Option, Stream } from "effect";
 import type {
   Dialog as CoreDialog,
   Download as CoreDownload,
@@ -26,9 +26,7 @@ import { useHelper } from "./utils";
  * @category models
  * @since 0.1.2
  */
-export class Request extends Data.TaggedClass(
-  "effect-playwright/common/Request",
-)<{
+export interface Request {
   /**
    * An object with all the request HTTP headers associated with this request. The header names are lower-cased.
    * @see {@link CoreRequest.allHeaders}
@@ -148,65 +146,81 @@ export class Request extends Data.TaggedClass(
    * @see {@link CoreRequest.url}
    */
   url: () => string;
-}> {
-  static make(request: CoreRequest): Request {
-    const use = useHelper(request);
-
-    return new Request({
-      allHeaders: use(() => request.allHeaders()),
-      existingResponse: (): Option.Option<Response> =>
-        Option.fromNullishOr(request.existingResponse()).pipe(
-          Option.map(Response.make),
-        ),
-      failure: Option.liftNullishOr(request.failure),
-      frame: Effect.try({
-        try: () => makeFrame(request.frame()),
-        catch: wrapError,
-      }),
-      headerValue: (name) =>
-        use(() => request.headerValue(name)).pipe(
-          Effect.map(Option.fromNullishOr),
-        ),
-      headers: () => request.headers(),
-      headersArray: use(() => request.headersArray()),
-      isNavigationRequest: () => request.isNavigationRequest(),
-      method: () => request.method(),
-      postData: Option.liftNullishOr(request.postData),
-      postDataBuffer: Option.liftNullishOr(request.postDataBuffer),
-      postDataJSON: use(() => request.postDataJSON()).pipe(
-        Effect.map(Option.fromNullishOr),
-      ),
-      redirectedFrom: (): Option.Option<Request> =>
-        Option.fromNullishOr(request.redirectedFrom()).pipe(
-          Option.map(Request.make),
-        ),
-      redirectedTo: (): Option.Option<Request> =>
-        Option.fromNullishOr(request.redirectedTo()).pipe(
-          Option.map(Request.make),
-        ),
-      resourceType: () => request.resourceType(),
-      response: use(() => request.response()).pipe(
-        Effect.map(Option.fromNullishOr),
-        Effect.map(Option.map(Response.make)),
-      ),
-      serviceWorker: () =>
-        Option.fromNullishOr(request.serviceWorker()).pipe(
-          Option.map(Worker.make),
-        ),
-      sizes: use(() => request.sizes()),
-      timing: () => request.timing(),
-      url: () => request.url(),
-    });
-  }
 }
+
+/**
+ * Service for a {@link Request}.
+ *
+ * @category services
+ * @since 0.1.2
+ */
+export const Request = Context.Service<Request>(
+  "effect-playwright/common/Request",
+);
+
+/**
+ * Creates a `Request` from a Playwright `Request` instance.
+ *
+ * @param request - The Playwright `Request` instance to wrap.
+ * @category constructors
+ * @since 0.1.2
+ */
+export const makeRequest = (request: CoreRequest): Request => {
+  const use = useHelper(request);
+
+  return Request.of({
+    allHeaders: use(() => request.allHeaders()),
+    existingResponse: (): Option.Option<Response> =>
+      Option.fromNullishOr(request.existingResponse()).pipe(
+        Option.map(makeResponse),
+      ),
+    failure: () => Option.fromNullishOr(request.failure()),
+    frame: Effect.try({
+      try: () => makeFrame(request.frame()),
+      catch: wrapError,
+    }),
+    headerValue: (name) =>
+      use(() => request.headerValue(name)).pipe(
+        Effect.map(Option.fromNullishOr),
+      ),
+    headers: () => request.headers(),
+    headersArray: use(() => request.headersArray()),
+    isNavigationRequest: () => request.isNavigationRequest(),
+    method: () => request.method(),
+    postData: () => Option.fromNullishOr(request.postData()),
+    postDataBuffer: () => Option.fromNullishOr(request.postDataBuffer()),
+    postDataJSON: Effect.try({
+      try: () => request.postDataJSON(),
+      catch: wrapError,
+    }).pipe(Effect.map(Option.fromNullishOr)),
+    redirectedFrom: (): Option.Option<Request> =>
+      Option.fromNullishOr(request.redirectedFrom()).pipe(
+        Option.map(makeRequest),
+      ),
+    redirectedTo: (): Option.Option<Request> =>
+      Option.fromNullishOr(request.redirectedTo()).pipe(
+        Option.map(makeRequest),
+      ),
+    resourceType: () => request.resourceType(),
+    response: use(() => request.response()).pipe(
+      Effect.map(Option.fromNullishOr),
+      Effect.map(Option.map(makeResponse)),
+    ),
+    serviceWorker: () =>
+      Option.fromNullishOr(request.serviceWorker()).pipe(
+        Option.map(makeWorker),
+      ),
+    sizes: use(() => request.sizes()),
+    timing: () => request.timing(),
+    url: () => request.url(),
+  });
+};
 
 /**
  * @category models
  * @since 0.1.2
  */
-export class Response extends Data.TaggedClass(
-  "effect-playwright/common/Response",
-)<{
+export interface Response {
   allHeaders: Effect.Effect<
     Awaited<ReturnType<CoreResponse["allHeaders"]>>,
     PlaywrightError
@@ -267,110 +281,154 @@ export class Response extends Data.TaggedClass(
     PlaywrightError
   >;
   url: () => string;
-}> {
-  static make(response: CoreResponse) {
-    const use = useHelper(response);
-
-    return new Response({
-      allHeaders: use(() => response.allHeaders()),
-      body: use(() => response.body()),
-      finished: use(() => response.finished()),
-      frame: Effect.try({
-        try: () => makeFrame(response.frame()),
-        catch: wrapError,
-      }),
-      fromServiceWorker: () => response.fromServiceWorker(),
-      headers: () => response.headers(),
-      headersArray: use(() => response.headersArray()),
-      headerValue: (name) =>
-        use(() => response.headerValue(name)).pipe(
-          Effect.map(Option.fromNullishOr),
-        ),
-      headerValues: (name) => use(() => response.headerValues(name)),
-      httpVersion: use(() => response.httpVersion()),
-      json: use(() => response.json()),
-      ok: () => response.ok(),
-      request: () => Request.make(response.request()),
-      securityDetails: use(() => response.securityDetails()).pipe(
-        Effect.map(Option.fromNullishOr),
-      ),
-      serverAddr: use(() => response.serverAddr()).pipe(
-        Effect.map(Option.fromNullishOr),
-      ),
-      status: () => response.status(),
-      statusText: () => response.statusText(),
-      text: use(() => response.text()),
-      url: () => response.url(),
-    });
-  }
 }
+
+/**
+ * Service for a {@link Response}.
+ *
+ * @category services
+ * @since 0.1.2
+ */
+export const Response = Context.Service<Response>(
+  "effect-playwright/common/Response",
+);
+
+/**
+ * Creates a `Response` from a Playwright `Response` instance.
+ *
+ * @param response - The Playwright `Response` instance to wrap.
+ * @category constructors
+ * @since 0.1.2
+ */
+export const makeResponse = (response: CoreResponse): Response => {
+  const use = useHelper(response);
+
+  return Response.of({
+    allHeaders: use(() => response.allHeaders()),
+    body: use(() => response.body()),
+    finished: use(() => response.finished()),
+    frame: Effect.try({
+      try: () => makeFrame(response.frame()),
+      catch: wrapError,
+    }),
+    fromServiceWorker: () => response.fromServiceWorker(),
+    headers: () => response.headers(),
+    headersArray: use(() => response.headersArray()),
+    headerValue: (name) =>
+      use(() => response.headerValue(name)).pipe(
+        Effect.map(Option.fromNullishOr),
+      ),
+    headerValues: (name) => use(() => response.headerValues(name)),
+    httpVersion: use(() => response.httpVersion()),
+    json: use(() => response.json()),
+    ok: () => response.ok(),
+    request: () => makeRequest(response.request()),
+    securityDetails: use(() => response.securityDetails()).pipe(
+      Effect.map(Option.fromNullishOr),
+    ),
+    serverAddr: use(() => response.serverAddr()).pipe(
+      Effect.map(Option.fromNullishOr),
+    ),
+    status: () => response.status(),
+    statusText: () => response.statusText(),
+    text: use(() => response.text()),
+    url: () => response.url(),
+  });
+};
 
 /**
  * @category models
  * @since 0.1.2
  */
-export class Worker extends Data.TaggedClass(
-  "effect-playwright/common/Worker",
-)<{
+export interface Worker {
   evaluate: <R, Arg = void>(
     pageFunction: PageFunction<Arg, R>,
     arg?: Arg,
   ) => Effect.Effect<R, PlaywrightError>;
   url: () => string;
-}> {
-  static make(worker: CoreWorker) {
-    const use = useHelper(worker);
-
-    return new Worker({
-      evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
-        use((worker) =>
-          worker.evaluate<R, Arg>(
-            // Playwright's overload cannot preserve the wrapper's generic function type.
-            f as unknown as Parameters<typeof worker.evaluate<R, Arg>>[0],
-            arg as Arg,
-          ),
-        ),
-      url: () => worker.url(),
-    });
-  }
 }
+
+/**
+ * Service for a {@link Worker}.
+ *
+ * @category services
+ * @since 0.1.2
+ */
+export const Worker = Context.Service<Worker>(
+  "effect-playwright/common/Worker",
+);
+
+/**
+ * Creates a `Worker` from a Playwright `Worker` instance.
+ *
+ * @param worker - The Playwright `Worker` instance to wrap.
+ * @category constructors
+ * @since 0.1.2
+ */
+export const makeWorker = (worker: CoreWorker): Worker => {
+  const use = useHelper(worker);
+
+  return Worker.of({
+    evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
+      use((worker) =>
+        worker.evaluate<R, Arg>(
+          // Playwright's overload cannot preserve the wrapper's generic function type.
+          f as unknown as Parameters<typeof worker.evaluate<R, Arg>>[0],
+          arg as Arg,
+        ),
+      ),
+    url: () => worker.url(),
+  });
+};
 
 /**
  * @category models
  * @since 0.1.2
  */
-export class Dialog extends Data.TaggedClass(
-  "effect-playwright/common/Dialog",
-)<{
+export interface Dialog {
   accept: (promptText?: string) => Effect.Effect<void, PlaywrightError>;
   defaultValue: () => string;
   dismiss: Effect.Effect<void, PlaywrightError>;
   message: () => string;
   page: () => Option.Option<Page>;
   type: () => string;
-}> {
-  static make(dialog: CoreDialog) {
-    const use = useHelper(dialog);
-
-    return new Dialog({
-      accept: (promptText) => use(() => dialog.accept(promptText)),
-      defaultValue: () => dialog.defaultValue(),
-      dismiss: use(() => dialog.dismiss()),
-      message: () => dialog.message(),
-      page: () =>
-        Option.fromNullishOr(dialog.page()).pipe(Option.map(makePage)),
-      type: () => dialog.type(),
-    });
-  }
 }
+
+/**
+ * Service for a {@link Dialog}.
+ *
+ * @category services
+ * @since 0.1.2
+ */
+export const Dialog = Context.Service<Dialog>(
+  "effect-playwright/common/Dialog",
+);
+
+/**
+ * Creates a `Dialog` from a Playwright `Dialog` instance.
+ *
+ * @param dialog - The Playwright `Dialog` instance to wrap.
+ * @category constructors
+ * @since 0.1.2
+ */
+export const makeDialog = (dialog: CoreDialog): Dialog => {
+  const use = useHelper(dialog);
+
+  return Dialog.of({
+    accept: (promptText) => use(() => dialog.accept(promptText)),
+    defaultValue: () => dialog.defaultValue(),
+    dismiss: use(() => dialog.dismiss()),
+    message: () => dialog.message(),
+    page: () => Option.fromNullishOr(dialog.page()).pipe(Option.map(makePage)),
+    type: () => dialog.type(),
+  });
+};
 
 /**
  * @category models
  * @since 0.1.2
  */
-export class FileChooser extends Data.TaggedClass(
-  "effect-playwright/common/FileChooser",
-)<{
+export interface FileChooser {
   element: () => ElementHandle;
   isMultiple: () => boolean;
   page: () => Page;
@@ -378,27 +436,42 @@ export class FileChooser extends Data.TaggedClass(
     files: Parameters<CoreFileChooser["setFiles"]>[0],
     options?: Parameters<CoreFileChooser["setFiles"]>[1],
   ) => Effect.Effect<void, PlaywrightError>;
-}> {
-  static make(fileChooser: CoreFileChooser) {
-    const use = useHelper(fileChooser);
-
-    return new FileChooser({
-      element: () => fileChooser.element(),
-      isMultiple: () => fileChooser.isMultiple(),
-      page: () => makePage(fileChooser.page()),
-      setFiles: (files, options) =>
-        use(() => fileChooser.setFiles(files, options)),
-    });
-  }
 }
+
+/**
+ * Service for a {@link FileChooser}.
+ *
+ * @category services
+ * @since 0.1.2
+ */
+export const FileChooser = Context.Service<FileChooser>(
+  "effect-playwright/common/FileChooser",
+);
+
+/**
+ * Creates a `FileChooser` from a Playwright `FileChooser` instance.
+ *
+ * @param fileChooser - The Playwright `FileChooser` instance to wrap.
+ * @category constructors
+ * @since 0.1.2
+ */
+export const makeFileChooser = (fileChooser: CoreFileChooser): FileChooser => {
+  const use = useHelper(fileChooser);
+
+  return FileChooser.of({
+    element: () => fileChooser.element(),
+    isMultiple: () => fileChooser.isMultiple(),
+    page: () => makePage(fileChooser.page()),
+    setFiles: (files, options) =>
+      use(() => fileChooser.setFiles(files, options)),
+  });
+};
 
 /**
  * @category models
  * @since 0.1.2
  */
-export class Download extends Data.TaggedClass(
-  "effect-playwright/common/Download",
-)<{
+export interface Download {
   cancel: Effect.Effect<void, PlaywrightError>;
   /**
    * Creates a stream of the download data.
@@ -416,33 +489,50 @@ export class Download extends Data.TaggedClass(
   use: <R>(
     f: (download: CoreDownload) => Promise<R>,
   ) => Effect.Effect<R, PlaywrightError>;
-}> {
-  static make(download: CoreDownload) {
-    const use = useHelper(download);
-
-    return new Download({
-      cancel: use(() => download.cancel()),
-      stream: use(() =>
-        download.createReadStream().then((s) => Readable.toWeb(s)),
-      ).pipe(
-        Effect.map((s) =>
-          Stream.fromReadableStream({
-            evaluate: () => s as ReadableStream<Uint8Array>,
-            onError: wrapError,
-          }),
-        ),
-        Stream.unwrap,
-      ),
-      delete: use(() => download.delete()),
-      failure: use(() => download.failure()).pipe(
-        Effect.map(Option.fromNullishOr),
-      ),
-      page: () => makePage(download.page()),
-      path: use(() => download.path()).pipe(Effect.map(Option.fromNullishOr)),
-      saveAs: (path) => use(() => download.saveAs(path)),
-      suggestedFilename: () => download.suggestedFilename(),
-      url: () => download.url(),
-      use,
-    });
-  }
 }
+
+/**
+ * Service for a {@link Download}.
+ *
+ * @category services
+ * @since 0.1.2
+ */
+export const Download = Context.Service<Download>(
+  "effect-playwright/common/Download",
+);
+
+/**
+ * Creates a `Download` from a Playwright `Download` instance.
+ *
+ * @param download - The Playwright `Download` instance to wrap.
+ * @category constructors
+ * @since 0.1.2
+ */
+export const makeDownload = (download: CoreDownload): Download => {
+  const use = useHelper(download);
+
+  return Download.of({
+    cancel: use(() => download.cancel()),
+    stream: use(() =>
+      download.createReadStream().then((s) => Readable.toWeb(s)),
+    ).pipe(
+      Effect.map((s) =>
+        Stream.fromReadableStream({
+          evaluate: () => s as ReadableStream<Uint8Array>,
+          onError: wrapError,
+        }),
+      ),
+      Stream.unwrap,
+    ),
+    delete: use(() => download.delete()),
+    failure: use(() => download.failure()).pipe(
+      Effect.map(Option.fromNullishOr),
+    ),
+    page: () => makePage(download.page()),
+    path: use(() => download.path()).pipe(Effect.map(Option.fromNullishOr)),
+    saveAs: (path) => use(() => download.saveAs(path)),
+    suggestedFilename: () => download.suggestedFilename(),
+    url: () => download.url(),
+    use,
+  });
+};

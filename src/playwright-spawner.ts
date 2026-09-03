@@ -26,7 +26,7 @@ export interface PlaywrightSpawner {
 }
 
 /**
- * Service tag for the active {@link PlaywrightSpawner}.
+ * Service for the active {@link PlaywrightSpawner}.
  *
  * @category services
  * @since 0.7.0

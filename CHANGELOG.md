@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.8.0 (currently prerelease)
+
+### Breaking Changes
+
+- **Effect 4**: Upgraded the library to Effect 4. Consumers must migrate their applications and Effect dependencies to Effect 4 before upgrading.
+- **Common wrappers are now services**: `Playwright.Request`, `Playwright.Response`, `Playwright.Worker`, `Playwright.Dialog`, `Playwright.FileChooser`, and `Playwright.Download` are now same-named `Context.Service` values and interfaces instead of `Data.TaggedClass` constructors.
+  - Replace static constructors such as `Playwright.Request.make(request)` with their named equivalents, such as `Playwright.makeRequest(request)`. The corresponding constructors are `makeRequest`, `makeResponse`, `makeWorker`, `makeDialog`, `makeFileChooser`, and `makeDownload`.
+  - Wrapped values no longer expose the `Data.TaggedClass` `_tag` field.
+
 ## 0.7.0
 
 ### Breaking Changes

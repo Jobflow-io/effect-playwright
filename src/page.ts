@@ -30,12 +30,18 @@ import type {
 import { type BrowserContext, makeBrowserContext } from "./browser-context";
 import { type Clock, makeClock } from "./clock";
 import {
-  Dialog,
-  Download,
-  FileChooser,
-  Request,
-  Response,
-  Worker,
+  type Dialog,
+  type Download,
+  type FileChooser,
+  makeDialog,
+  makeDownload,
+  makeFileChooser,
+  makeRequest,
+  makeResponse,
+  makeWorker,
+  type Request,
+  type Response,
+  type Worker,
 } from "./common";
 import type { PlaywrightError } from "./errors";
 import { type Frame, makeFrame } from "./frame";
@@ -103,22 +109,22 @@ const eventMappings = {
   close: (page: CorePage) => makePage(page),
   console: identity<ConsoleMessage>,
   crash: (page: CorePage) => makePage(page),
-  dialog: (dialog: CoreDialog) => Dialog.make(dialog),
+  dialog: (dialog: CoreDialog) => makeDialog(dialog),
   domcontentloaded: (page: CorePage) => makePage(page),
-  download: (download: CoreDownload) => Download.make(download),
-  filechooser: (fileChooser: CoreFileChooser) => FileChooser.make(fileChooser),
+  download: (download: CoreDownload) => makeDownload(download),
+  filechooser: (fileChooser: CoreFileChooser) => makeFileChooser(fileChooser),
   frameattached: (frame: CoreFrame) => makeFrame(frame),
   framedetached: (frame: CoreFrame) => makeFrame(frame),
   framenavigated: (frame: CoreFrame) => makeFrame(frame),
   load: (page: CorePage) => makePage(page),
   pageerror: identity<Error>,
   popup: (page: CorePage) => makePage(page),
-  request: (request: CoreRequest) => Request.make(request),
-  requestfailed: (request: CoreRequest) => Request.make(request),
-  requestfinished: (request: CoreRequest) => Request.make(request),
-  response: (response: CoreResponse) => Response.make(response),
+  request: (request: CoreRequest) => makeRequest(request),
+  requestfailed: (request: CoreRequest) => makeRequest(request),
+  requestfinished: (request: CoreRequest) => makeRequest(request),
+  response: (response: CoreResponse) => makeResponse(response),
   websocket: identity<WebSocket>,
-  worker: (worker: CoreWorker) => Worker.make(worker),
+  worker: (worker: CoreWorker) => makeWorker(worker),
 } as const satisfies {
   readonly [K in keyof CorePageEventMap]: (
     value: CorePageEventMap[K],
@@ -854,7 +860,7 @@ export interface Page {
 }
 
 /**
- * Service tag for the active {@link Page}.
+ * Service for the active {@link Page}.
  *
  * @category services
  * @since 0.1.0
@@ -963,7 +969,7 @@ export const makePage = (page: CorePage): Page => {
     consoleMessages: (options) => use((page) => page.consoleMessages(options)),
     pageErrors: (options) => use((page) => page.pageErrors(options)),
     requests: use((page) => page.requests()).pipe(
-      Effect.map(Array.map(Request.make)),
+      Effect.map(Array.map(makeRequest)),
     ),
     pickLocator: use((page) => page.pickLocator().then(makeLocator)),
     cancelPickLocator: use((page) => page.cancelPickLocator()),
@@ -973,7 +979,7 @@ export const makePage = (page: CorePage): Page => {
       Effect.map(Option.fromNullishOr),
       Effect.map(Option.map(makePage)),
     ),
-    workers: () => page.workers().map(Worker.make),
+    workers: () => page.workers().map(makeWorker),
     frame: (frameSelector) =>
       Option.fromNullishOr(page.frame(frameSelector)).pipe(
         Option.map(makeFrame),
@@ -984,12 +990,12 @@ export const makePage = (page: CorePage): Page => {
     goBack: (options) =>
       use((page) => page.goBack(options)).pipe(
         Effect.map(Option.fromNullishOr),
-        Effect.map(Option.map(Response.make)),
+        Effect.map(Option.map(makeResponse)),
       ),
     goForward: (options) =>
       use((page) => page.goForward(options)).pipe(
         Effect.map(Option.fromNullishOr),
-        Effect.map(Option.map(Response.make)),
+        Effect.map(Option.map(makeResponse)),
       ),
     requestGC: use((page) => page.requestGC()),
     bringToFront: use((page) => page.bringToFront()),

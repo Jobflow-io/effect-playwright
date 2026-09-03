@@ -20,7 +20,13 @@ import type {
 } from "playwright-core";
 import { type Browser, makeBrowser } from "./browser";
 import { type Clock, makeClock } from "./clock";
-import { Dialog, Download, Request, Response, Worker } from "./common";
+import {
+  makeDialog,
+  makeDownload,
+  makeRequest,
+  makeResponse,
+  makeWorker,
+} from "./common";
 import { type Credentials, makeCredentials } from "./credentials";
 import type { PlaywrightError } from "./errors";
 import { makeFrame } from "./frame";
@@ -54,19 +60,19 @@ const eventMappings = {
   backgroundpage: (page: CorePage) => makePage(page),
   close: (context: CoreBrowserContext) => makeBrowserContext(context),
   console: identity<ConsoleMessage>,
-  dialog: (dialog: CoreDialog) => Dialog.make(dialog),
-  download: (download: CoreDownload) => Download.make(download),
+  dialog: (dialog: CoreDialog) => makeDialog(dialog),
+  download: (download: CoreDownload) => makeDownload(download),
   frameattached: (frame: CoreFrame) => makeFrame(frame),
   framedetached: (frame: CoreFrame) => makeFrame(frame),
   framenavigated: (frame: CoreFrame) => makeFrame(frame),
   page: (page: CorePage) => makePage(page),
   pageclose: (page: CorePage) => makePage(page),
   pageload: (page: CorePage) => makePage(page),
-  request: (request: CoreRequest) => Request.make(request),
-  requestfailed: (request: CoreRequest) => Request.make(request),
-  requestfinished: (request: CoreRequest) => Request.make(request),
-  response: (response: CoreResponse) => Response.make(response),
-  serviceworker: (worker: CoreWorker) => Worker.make(worker),
+  request: (request: CoreRequest) => makeRequest(request),
+  requestfailed: (request: CoreRequest) => makeRequest(request),
+  requestfinished: (request: CoreRequest) => makeRequest(request),
+  response: (response: CoreResponse) => makeResponse(response),
+  serviceworker: (worker: CoreWorker) => makeWorker(worker),
   weberror: identity<WebError>,
 } as const;
 
@@ -297,7 +303,7 @@ export interface BrowserContext {
 }
 
 /**
- * Service tag for the active {@link BrowserContext}.
+ * Service for the active {@link BrowserContext}.
  *
  * @category services
  * @since 0.1.0
