@@ -192,7 +192,7 @@ export interface Browser {
 }
 
 /**
- * Service tag for the active {@link Browser}.
+ * Service for the active {@link Browser}.
  *
  * @category services
  * @since 0.1.0

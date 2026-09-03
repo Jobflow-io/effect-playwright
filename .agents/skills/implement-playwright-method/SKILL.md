@@ -47,7 +47,7 @@ Determine if the method can throw and what it returns. **Do not blindly follow e
 
 Some Playwright interfaces expose other classes as properties (e.g., `Page.keyboard`, `Page.mouse`, `BrowserContext.tracing`).
 
-1. **Create a new Wrapper**: Create a same-named service interface and `Context.GenericTag` value, plus a named constructor such as `makeKeyboard`.
+1. **Create a new Wrapper**: Create a same-named service interface and `Context.Service` value, plus a named constructor such as `makeKeyboard`.
 2. **Expose as a Sync Property**: Expose it as a direct, read-only property on the parent service. Do not wrap property access in an `Effect`.
 
 **Example (Interface in Parent):**
@@ -62,14 +62,14 @@ export interface Page {
 }
 ```
 
-**Example (Tag and Named Constructor):**
+**Example (Service and Named Constructor):**
 
 ```typescript
 export interface Keyboard {
   // Wrapped operations
 }
 
-export const Keyboard = Context.GenericTag<Keyboard>(
+export const Keyboard = Context.Service<Keyboard>(
   "effect-playwright/keyboard/Keyboard",
 );
 

@@ -50,7 +50,7 @@ pnpm exec playwright install
 
 ### 5. Implementation
 
-* **Create New Wrappers:** For significant new namespaces (e.g., `Screencast`), define a same-named service interface and `Context.GenericTag`, add a named constructor such as `makeScreencast`, and re-export them directly from `src/playwright-api.ts`.
+* **Create New Wrappers:** For significant new namespaces (e.g., `Screencast`), define a same-named service interface and `Context.Service` value, add a named constructor such as `makeScreencast`, and re-export them directly from `src/playwright-api.ts`.
 * **Fix Breakages:** Address any type errors or removed APIs.
 * **Update Tests:** Check `src/*.test.ts` for any tests that broke due to API changes (especially property-to-method conversions).
 * **Add New APIs:** Systematically add wrappers for new Playwright methods.
@@ -68,7 +68,7 @@ pnpm exec playwright install
 ## Common Gotchas
 
 - **Browser Binary Mismatch:** If tests fail with "Executable doesn't exist", you likely updated `playwright-core` but not `playwright`, or forgot to run `pnpm exec playwright install`.
-- **New Namespaces:** Large additions like `Page.screencast` should be their own same-named service interface and `Context.GenericTag`, following the pattern of `Clock` or `Keyboard`.
+- **New Namespaces:** Large additions like `Page.screencast` should be their own same-named service interface and `Context.Service` value, following the pattern of `Clock` or `Keyboard`.
 
 ## Example: Analyzing 1.60.0
 

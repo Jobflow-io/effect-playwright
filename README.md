@@ -248,7 +248,7 @@ the block has finished. Nested layers reuse their parent services.
 import { Context, Effect, Layer } from "effect";
 import { expect, layer } from "effect-playwright/test";
 
-class Greeting extends Context.Tag("Greeting")<Greeting, string>() {}
+class Greeting extends Context.Service<Greeting, string>()("Greeting") {}
 
 layer(Layer.succeed(Greeting, "hello"))("Greeting", (it) => {
   it.effect("uses a shared service", () =>

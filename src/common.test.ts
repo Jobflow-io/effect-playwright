@@ -1,10 +1,73 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect, Fiber, Option, Stream } from "effect";
 import { PlaywrightSpawner } from "effect-playwright";
-import { chromium } from "playwright-core";
+import { type Request as CoreRequest, chromium } from "playwright-core";
 import { Browser } from "./browser";
+import {
+  Dialog,
+  Download,
+  FileChooser,
+  makeRequest,
+  Request,
+  Response,
+  Worker as WorkerService,
+} from "./common";
 
 layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
+  it.effect("Request.postDataJSON handles synchronous results", () =>
+    Effect.gen(function* () {
+      const make = (postDataJSON: CoreRequest["postDataJSON"]) =>
+        makeRequest({ postDataJSON } as unknown as CoreRequest);
+
+      const parsed = yield* make(() => ({ hello: "world" })).postDataJSON;
+      assert.deepStrictEqual(parsed, Option.some({ hello: "world" }));
+
+      const empty = yield* make(() => null).postDataJSON;
+      assert(Option.isNone(empty));
+
+      const cause = new Error("invalid post data");
+      const failure = yield* make(() => {
+        throw cause;
+      }).postDataJSON.pipe(Effect.flip);
+      assert.strictEqual(failure._tag, "PlaywrightError");
+      assert.strictEqual(failure.cause, cause);
+    }),
+  );
+  it.effect("Request nullable methods preserve the receiver", () =>
+    Effect.sync(() => {
+      const body = Buffer.from("hello");
+      const coreRequest = {
+        body: body as Buffer | null,
+        failureText: "failed" as string | null,
+        postData() {
+          return this.body?.toString("utf8") ?? null;
+        },
+        postDataBuffer() {
+          return this.body;
+        },
+        failure() {
+          return this.failureText === null
+            ? null
+            : { errorText: this.failureText };
+        },
+      };
+      const request = makeRequest(coreRequest as unknown as CoreRequest);
+
+      assert.deepStrictEqual(request.postData(), Option.some("hello"));
+      assert.deepStrictEqual(request.postDataBuffer(), Option.some(body));
+      assert.deepStrictEqual(
+        request.failure(),
+        Option.some({ errorText: "failed" }),
+      );
+
+      coreRequest.body = null;
+      coreRequest.failureText = null;
+      assert(Option.isNone(request.postData()));
+      assert(Option.isNone(request.postDataBuffer()));
+      assert(Option.isNone(request.failure()));
+    }),
+  );
+
   it.effect("Request and Response", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
@@ -26,8 +89,14 @@ layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
       const response = yield* Fiber.join(responseFiber).pipe(
         Effect.flatMap(Effect.fromOption),
       );
-      assert.strictEqual(request._tag, "effect-playwright/common/Request");
-      assert.strictEqual(response._tag, "effect-playwright/common/Response");
+      assert.strictEqual(
+        yield* Request.pipe(Effect.provideService(Request, request)),
+        request,
+      );
+      assert.strictEqual(
+        yield* Response.pipe(Effect.provideService(Response, response)),
+        response,
+      );
 
       assert(request.url().includes("example.com"));
       assert(request.method() === "GET");
@@ -76,7 +145,10 @@ layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
       const worker = yield* Fiber.join(workerFiber).pipe(
         Effect.flatMap(Effect.fromOption),
       );
-      assert.strictEqual(worker._tag, "effect-playwright/common/Worker");
+      assert.strictEqual(
+        yield* WorkerService.pipe(Effect.provideService(WorkerService, worker)),
+        worker,
+      );
 
       assert(worker.url().startsWith("blob:"));
       const result = yield* worker.evaluate(() => 1 + 1);
@@ -100,7 +172,10 @@ layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
       const dialog = yield* Fiber.join(dialogFiber).pipe(
         Effect.flatMap(Effect.fromOption),
       );
-      assert.strictEqual(dialog._tag, "effect-playwright/common/Dialog");
+      assert.strictEqual(
+        yield* Dialog.pipe(Effect.provideService(Dialog, dialog)),
+        dialog,
+      );
 
       assert(dialog.message() === "hello world");
       assert(dialog.type() === "alert");
@@ -128,8 +203,10 @@ layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
         Effect.flatMap(Effect.fromOption),
       );
       assert.strictEqual(
-        fileChooser._tag,
-        "effect-playwright/common/FileChooser",
+        yield* FileChooser.pipe(
+          Effect.provideService(FileChooser, fileChooser),
+        ),
+        fileChooser,
       );
 
       assert(fileChooser.isMultiple() === false);
@@ -156,7 +233,10 @@ layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
       const download = yield* Fiber.join(downloadFiber).pipe(
         Effect.flatMap(Effect.fromOption),
       );
-      assert.strictEqual(download._tag, "effect-playwright/common/Download");
+      assert.strictEqual(
+        yield* Download.pipe(Effect.provideService(Download, download)),
+        download,
+      );
 
       assert(download.suggestedFilename() === "test.txt");
       const url = download.url();

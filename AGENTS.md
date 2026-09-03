@@ -20,8 +20,8 @@ Use `pnpm` for all package management tasks.
 ### General Architecture
 
 - **Effect-First:** All asynchronous operations must be wrapped in `Effect`.
-- **Services:** Each service module exports a same-named interface and `Context.GenericTag` value (for example, `Browser`). Core wrapper functionality is grouped under the `Playwright` namespace, where `Playwright.Browser` and similar names work in both type and value positions. Scoped browser provisioning is grouped under `PlaywrightSpawner`.
-- **Constructors:** Wrap native Playwright objects with named functions such as `makeBrowser` and `makePage`. Do not add `*Service` aliases or static `Tag.make` constructors.
+- **Services:** Each service module exports a same-named interface and `Context.Service` value (for example, `Browser`). Core wrapper functionality is grouped under the `Playwright` namespace, where `Playwright.Browser` and similar names work in both type and value positions. Scoped browser provisioning is grouped under `PlaywrightSpawner`.
+- **Constructors:** Wrap native Playwright objects with named functions such as `makeBrowser` and `makePage`. Do not add `*Service` aliases or static constructors on service values.
 - **Resource Management:** Rely on Effect's `Scope` for automatic resource cleanup (browsers, contexts).
 
 ### Imports
