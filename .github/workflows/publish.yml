@@ -27,4 +27,15 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - run: pnpm install
       - run: pnpm build
-      - run: pnpm publish --no-git-checks
+      - name: Select npm dist-tag
+        id: npm_tag
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          version_without_build="${version%%+*}"
+          if [[ "$version_without_build" == *-* ]]; then
+            echo "tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish package
+        run: pnpm publish --tag "${{ steps.npm_tag.outputs.tag }}" --no-git-checks
