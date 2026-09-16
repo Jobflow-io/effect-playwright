@@ -164,6 +164,13 @@ layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
       const dialogFiber = yield* page
         .eventStream("dialog")
         .pipe(Stream.runHead, Effect.forkChild);
+      const pageDialogClosedFiber = yield* page
+        .eventStream("dialogclosed")
+        .pipe(Stream.runHead, Effect.forkChild);
+      const contextDialogClosedFiber = yield* page
+        .context()
+        .eventStream("dialogclosed")
+        .pipe(Stream.runHead, Effect.forkChild);
 
       yield* page.evaluate(() => {
         setTimeout(() => alert("hello world"), 10);
@@ -181,6 +188,15 @@ layer(PlaywrightSpawner.layer(chromium))("PlaywrightCommon", (it) => {
       assert(dialog.type() === "alert");
 
       yield* dialog.accept();
+
+      const pageClosedDialog = yield* Fiber.join(pageDialogClosedFiber).pipe(
+        Effect.flatMap(Effect.fromOption),
+      );
+      const contextClosedDialog = yield* Fiber.join(
+        contextDialogClosedFiber,
+      ).pipe(Effect.flatMap(Effect.fromOption));
+      assert.strictEqual(pageClosedDialog.message(), "hello world");
+      assert.strictEqual(contextClosedDialog.message(), "hello world");
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 

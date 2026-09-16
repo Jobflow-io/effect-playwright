@@ -54,6 +54,12 @@ layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
       const text = yield* frame.locator("#target").textContent();
       assert.strictEqual(text, "Hello from Frame");
 
+      const anyFrameText = yield* frame
+        .frameLocator()
+        .locator("#target")
+        .textContent();
+      assert.strictEqual(anyFrameText, "Hello from Frame");
+
       // Test getByText
       const byText = yield* frame.getByText("Hello from Frame").count;
       assert.strictEqual(byText, 1);

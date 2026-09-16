@@ -5,6 +5,27 @@
  */
 
 import type { ElementHandle, JSHandle } from "playwright-core";
+/**
+ * A value representable in JSON.
+ *
+ * @category utility types
+ * @since 0.8.0
+ */
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | ReadonlyArray<JsonValue>
+  | { readonly [key: string]: JsonValue };
+
+/**
+ * The free-form accessibility tree returned by Playwright's JSON snapshot APIs.
+ *
+ * @category models
+ * @since 0.8.0
+ */
+export type AriaSnapshotJSON = JsonValue;
 
 /**
  * Recursively excludes Playwright handles from an argument shape.

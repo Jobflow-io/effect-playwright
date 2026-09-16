@@ -7,6 +7,7 @@
 import { Array, Context, type Effect, Option } from "effect";
 import type { Frame as CoreFrame, ElementHandle } from "playwright-core";
 import type { PlaywrightError } from "./errors";
+import { type FrameLocator, makeFrameLocator } from "./frame-locator";
 import { type Locator, makeLocator } from "./locator";
 import { makePage, type Page } from "./page";
 import type { PageFunction } from "./playwright-types";
@@ -87,6 +88,18 @@ export interface Frame {
     selector: string,
     options?: Parameters<CoreFrame["locator"]>[1],
   ) => Locator;
+  /**
+   * Creates a frame locator that searches this frame's subtree.
+   *
+   * When `selector` is omitted, the locator searches this frame and all
+   * descendant frames.
+   *
+   * @see {@link CoreFrame.frameLocator}
+   * @since 0.8.0
+   */
+  readonly frameLocator: (
+    selector?: Parameters<CoreFrame["frameLocator"]>[0],
+  ) => FrameLocator;
   /**
    * Returns a locator that matches the given role.
    *
@@ -295,6 +308,7 @@ export const makeFrame = (frame: CoreFrame): Frame => {
     use,
     locator: (selector, options) =>
       makeLocator(frame.locator(selector, options)),
+    frameLocator: (selector) => makeFrameLocator(frame.frameLocator(selector)),
     getByRole: (role, options) => makeLocator(frame.getByRole(role, options)),
     getByText: (text, options) => makeLocator(frame.getByText(text, options)),
     getByLabel: (label, options) =>
