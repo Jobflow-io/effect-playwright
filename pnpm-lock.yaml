@@ -19,8 +19,8 @@ importers:
         specifier: 0.87.2
         version: 0.87.2
       '@effect/vitest':
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(vitest@5.0.1(@types/node@24.13.4)(vite@8.3.0(@types/node@24.13.4)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.0)))
+        specifier: ^4.0.0
+        version: 4.0.0(effect@4.0.0)(vitest@5.0.1(@types/node@24.13.4)(vite@8.3.0(@types/node@24.13.4)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.0)))
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.63.0
@@ -28,8 +28,8 @@ importers:
         specifier: ^24.13.4
         version: 24.13.4
       effect:
-        specifier: ^4.0.0-rc.115
-        version: 4.0.0-rc.115
+        specifier: ^4.0.0
+        version: 4.0.0
       pkg-pr-new:
         specifier: ^0.0.88
         version: 0.0.88
@@ -121,10 +121,10 @@ packages:
     resolution: {integrity: sha512-CfiSoaVQO8pZgaMZGw5VvMvRGybsJ2LaSDoLYaqiVGvo/YYPYVR2GzUKY0h1NtIweq/+SQ5XLrvtzPIttWQ0GQ==}
     hasBin: true
 
-  '@effect/vitest@4.0.0-rc.115':
-    resolution: {integrity: sha512-DJR0hfdr3HNXAkzW8AzfvUz6VmrNFLrKk9tZGDURi33faMyxkc7ZewxELMMZwGpOTGN4mfqYVbX2CXgI+ZJBeQ==}
+  '@effect/vitest@4.0.0':
+    resolution: {integrity: sha512-kGElCPFGtP+CgMCwV/HjJWqtE3zYo6I1+8MSA54l+EI24lPU9p2Efa+TBp1jfkg9j711KKzEqgSAy3VzTsb76Q==}
     peerDependencies:
-      effect: ^4.0.0-rc.115
+      effect: ^4.0.0
       vitest: '>=5.0.0 <6.0.0'
 
   '@esbuild/aix-ppc64@0.28.2':
@@ -636,8 +636,8 @@ packages:
       oxc-resolver:
         optional: true
 
-  effect@4.0.0-rc.115:
-    resolution: {integrity: sha512-ogYulZ5ffeOzrJqQrG0XOkDO5lKn2s9KNHhoxJy/6wKUkF0i12dlVXWA9TgsgQ+zV/JzizyG0+XMPepZEQX6vw==}
+  effect@4.0.0:
+    resolution: {integrity: sha512-ooc1TG5t+FfzgYnFz2ff6BBKyZ7EwBRVXC7c4RhQUAD6/TZ2gTXXMeb4WX7a19ozQo4J73/QW+S00YAIresoMQ==}
 
   empathic@2.0.1:
     resolution: {integrity: sha512-YGRs8knHhKHVShLkFET/rWAU8kmHbOV5LwN938RHI0pljAJ1Gf6SzXsSmRaEzcXTtOOmVqJ5+WtQPL5uigY50Q==}
@@ -1102,9 +1102,9 @@ snapshots:
 
   '@effect/language-service@0.87.2': {}
 
-  '@effect/vitest@4.0.0-rc.115(effect@4.0.0-rc.115)(vitest@5.0.1(@types/node@24.13.4)(vite@8.3.0(@types/node@24.13.4)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.0)))':
+  '@effect/vitest@4.0.0(effect@4.0.0)(vitest@5.0.1(@types/node@24.13.4)(vite@8.3.0(@types/node@24.13.4)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.0)))':
     dependencies:
-      effect: 4.0.0-rc.115
+      effect: 4.0.0
       vitest: 5.0.1(@types/node@24.13.4)(vite@8.3.0(@types/node@24.13.4)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.0))
 
   '@esbuild/aix-ppc64@0.28.2':
@@ -1413,7 +1413,7 @@ snapshots:
 
   dts-resolver@3.0.0: {}
 
-  effect@4.0.0-rc.115: {}
+  effect@4.0.0: {}
 
   empathic@2.0.1: {}
 

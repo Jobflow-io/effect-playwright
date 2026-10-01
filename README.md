@@ -9,13 +9,10 @@ A Playwright wrapper for the Effect ecosystem. This library provides a set of se
 
 [Playwright Test Integration](README.md#playwright-test-integration) is also supported.
 
-> [!IMPORTANT]
-> This branch and its documentation target Effect v4. The [`v3` branch can be found here](https://github.com/Jobflow-io/effect-playwright/tree/v3).
-
 ## Installation
 
 ```bash
-pnpm add effect-playwright@next # Effect v4 use @latest for v3
+pnpm add effect@^4.0.0 effect-playwright
 pnpm effect-playwright install chromium
 ```
 
