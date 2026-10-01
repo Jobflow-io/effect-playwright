@@ -248,6 +248,40 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
+  it.effect("Playwright 1.63 page and locator APIs", () =>
+    Effect.gen(function* () {
+      const browser = yield* Browser;
+      const page = yield* browser.newPage();
+
+      yield* page.setContent(`
+        <button style="display: none">Hidden</button>
+        <button>Visible</button>
+        <iframe srcdoc="<button>Framed</button>"></iframe>
+      `);
+
+      const pageSnapshot = yield* page.ariaSnapshotJSON();
+      assert.deepStrictEqual(pageSnapshot, [
+        { role: "button", name: "Visible" },
+        { role: "iframe" },
+      ]);
+
+      const visibleButtons = page.locator("button").visible();
+      assert.strictEqual(yield* visibleButtons.count, 1);
+      assert.strictEqual(yield* visibleButtons.textContent(), "Visible");
+
+      const locatorSnapshot = yield* visibleButtons.ariaSnapshotJSON();
+      assert.deepStrictEqual(locatorSnapshot, [
+        { role: "button", name: "Visible" },
+      ]);
+
+      const framedText = yield* page
+        .frameLocator()
+        .getByText("Framed")
+        .textContent();
+      assert.strictEqual(framedText, "Framed");
+    }).pipe(PlaywrightSpawner.withBrowser),
+  );
+
   it.effect("waitForURL should work with History API", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;

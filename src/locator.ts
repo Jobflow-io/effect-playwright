@@ -13,7 +13,7 @@ import type {
 import type { PlaywrightError } from "./errors";
 import { type FrameLocator, makeFrameLocator } from "./frame-locator";
 import { makePage, type Page } from "./page";
-import type { Unboxed } from "./playwright-types";
+import type { AriaSnapshotJSON, Unboxed } from "./playwright-types";
 import { useHelper } from "./utils";
 
 /**
@@ -137,6 +137,15 @@ export interface Locator {
   readonly ariaSnapshot: (
     options?: Parameters<CoreLocator["ariaSnapshot"]>[0],
   ) => Effect.Effect<string, PlaywrightError>;
+  /**
+   * Captures the matched element's accessibility tree as a JSON value.
+   *
+   * @see {@link CoreLocator.ariaSnapshotJSON}
+   * @since 0.8.0
+   */
+  readonly ariaSnapshotJSON: (
+    options?: Parameters<CoreLocator["ariaSnapshotJSON"]>[0],
+  ) => Effect.Effect<AriaSnapshotJSON, PlaywrightError>;
   /**
    * Returns the bounding box of the element.
    *
@@ -323,6 +332,13 @@ export interface Locator {
   readonly isVisible: (
     options?: Parameters<CoreLocator["isVisible"]>[0],
   ) => Effect.Effect<boolean, PlaywrightError>;
+  /**
+   * Returns a locator that matches only visible elements.
+   *
+   * @see {@link CoreLocator.visible}
+   * @since 0.8.0
+   */
+  readonly visible: () => Locator;
   /**
    * Returns when element specified by locator satisfies the `state` option.
    *
@@ -787,6 +803,8 @@ export const makeLocator = (locator: CoreLocator): Locator => {
     allInnerTexts: () => use((locator) => locator.allInnerTexts()),
     allTextContents: () => use((locator) => locator.allTextContents()),
     ariaSnapshot: (options) => use((locator) => locator.ariaSnapshot(options)),
+    ariaSnapshotJSON: (options) =>
+      use((locator) => locator.ariaSnapshotJSON(options)),
     boundingBox: (options) =>
       use((locator) => locator.boundingBox(options)).pipe(
         Effect.map(Option.fromNullishOr),
@@ -830,6 +848,7 @@ export const makeLocator = (locator: CoreLocator): Locator => {
     isEnabled: (options) => use((locator) => locator.isEnabled(options)),
     isHidden: (options) => use((locator) => locator.isHidden(options)),
     isVisible: (options) => use((locator) => locator.isVisible(options)),
+    visible: () => makeLocator(locator.visible()),
     waitFor: (options) => use((locator) => locator.waitFor(options)),
     waitForFunction: <
       R,

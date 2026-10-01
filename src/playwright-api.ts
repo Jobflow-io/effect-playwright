@@ -42,7 +42,13 @@ export { Locator, makeLocator } from "./locator";
 export { Mouse, makeMouse } from "./mouse";
 export { makePage, Page, type PageEventMap } from "./page";
 export { layer, Playwright } from "./playwright";
-export type { NoHandles, PageFunction, Unboxed } from "./playwright-types";
+export type {
+  AriaSnapshotJSON,
+  JsonValue,
+  NoHandles,
+  PageFunction,
+  Unboxed,
+} from "./playwright-types";
 export { makeScreencast, Screencast } from "./screencast";
 export { makeTouchscreen, Touchscreen } from "./touchscreen";
 export { makeTracing, Tracing } from "./tracing";

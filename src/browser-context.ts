@@ -41,6 +41,7 @@ interface BrowserContextEvents {
   close: CoreBrowserContext;
   console: ConsoleMessage;
   dialog: CoreDialog;
+  dialogclosed: CoreDialog;
   download: CoreDownload;
   frameattached: CoreFrame;
   framedetached: CoreFrame;
@@ -61,6 +62,7 @@ const eventMappings = {
   close: (context: CoreBrowserContext) => makeBrowserContext(context),
   console: identity<ConsoleMessage>,
   dialog: (dialog: CoreDialog) => makeDialog(dialog),
+  dialogclosed: (dialog: CoreDialog) => makeDialog(dialog),
   download: (download: CoreDownload) => makeDownload(download),
   frameattached: (frame: CoreFrame) => makeFrame(frame),
   framedetached: (frame: CoreFrame) => makeFrame(frame),

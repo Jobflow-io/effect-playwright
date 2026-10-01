@@ -45,10 +45,15 @@ import {
 } from "./common";
 import type { PlaywrightError } from "./errors";
 import { type Frame, makeFrame } from "./frame";
+import { type FrameLocator, makeFrameLocator } from "./frame-locator";
 import { type Keyboard, makeKeyboard } from "./keyboard";
 import { type Locator, makeLocator } from "./locator";
 import { type Mouse, makeMouse } from "./mouse";
-import type { PageFunction, PatchedEvents } from "./playwright-types";
+import type {
+  AriaSnapshotJSON,
+  PageFunction,
+  PatchedEvents,
+} from "./playwright-types";
 import { makeScreencast, type Screencast } from "./screencast";
 import { makeTouchscreen, type Touchscreen } from "./touchscreen";
 import { useHelper } from "./utils";
@@ -59,6 +64,7 @@ interface CorePageEventMap {
   console: ConsoleMessage;
   crash: CorePage;
   dialog: CoreDialog;
+  dialogclosed: CoreDialog;
   domcontentloaded: CorePage;
   download: CoreDownload;
   filechooser: CoreFileChooser;
@@ -88,6 +94,7 @@ export interface PageEventMap {
   readonly console: ConsoleMessage;
   readonly crash: Page;
   readonly dialog: Dialog;
+  readonly dialogclosed: Dialog;
   readonly domcontentloaded: Page;
   readonly download: Download;
   readonly filechooser: FileChooser;
@@ -110,6 +117,7 @@ const eventMappings = {
   console: identity<ConsoleMessage>,
   crash: (page: CorePage) => makePage(page),
   dialog: (dialog: CoreDialog) => makeDialog(dialog),
+  dialogclosed: (dialog: CoreDialog) => makeDialog(dialog),
   domcontentloaded: (page: CorePage) => makePage(page),
   download: (download: CoreDownload) => makeDownload(download),
   filechooser: (fileChooser: CoreFileChooser) => makeFileChooser(fileChooser),
@@ -507,6 +515,18 @@ export interface Page {
     options?: Parameters<CorePage["locator"]>[1],
   ) => Locator;
   /**
+   * Creates a frame locator that searches the page's frame subtree.
+   *
+   * When `selector` is omitted, the locator searches the main frame and all
+   * descendant frames.
+   *
+   * @see {@link CorePage.frameLocator}
+   * @since 0.8.0
+   */
+  readonly frameLocator: (
+    selector?: Parameters<CorePage["frameLocator"]>[0],
+  ) => FrameLocator;
+  /**
    * Returns a locator that matches the given role.
    *
    * @see {@link CorePage.getByRole}
@@ -781,6 +801,15 @@ export interface Page {
   readonly ariaSnapshot: (
     options?: Parameters<CorePage["ariaSnapshot"]>[0],
   ) => Effect.Effect<string, PlaywrightError>;
+  /**
+   * Captures the page's accessibility tree as a JSON value.
+   *
+   * @see {@link CorePage.ariaSnapshotJSON}
+   * @since 0.8.0
+   */
+  readonly ariaSnapshotJSON: (
+    options?: Parameters<CorePage["ariaSnapshotJSON"]>[0],
+  ) => Effect.Effect<AriaSnapshotJSON, PlaywrightError>;
 
   /**
    * Returns all workers.
@@ -952,6 +981,7 @@ export const makePage = (page: CorePage): Page => {
       ),
     locator: (selector, options) =>
       makeLocator(page.locator(selector, options)),
+    frameLocator: (selector) => makeFrameLocator(page.frameLocator(selector)),
     getByRole: (role, options) => makeLocator(page.getByRole(role, options)),
     getByText: (text, options) => makeLocator(page.getByText(text, options)),
     getByLabel: (label, options) =>
@@ -974,6 +1004,8 @@ export const makePage = (page: CorePage): Page => {
     pickLocator: use((page) => page.pickLocator().then(makeLocator)),
     cancelPickLocator: use((page) => page.cancelPickLocator()),
     ariaSnapshot: (options) => use((page) => page.ariaSnapshot(options)),
+    ariaSnapshotJSON: (options) =>
+      use((page) => page.ariaSnapshotJSON(options)),
     context: () => makeBrowserContext(page.context()),
     opener: use((page) => page.opener()).pipe(
       Effect.map(Option.fromNullishOr),

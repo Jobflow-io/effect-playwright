@@ -11,6 +11,11 @@ All notable changes to this project will be documented in this file.
   - Replace static constructors such as `Playwright.Request.make(request)` with their named equivalents, such as `Playwright.makeRequest(request)`. The corresponding constructors are `makeRequest`, `makeResponse`, `makeWorker`, `makeDialog`, `makeFileChooser`, and `makeDownload`.
   - Wrapped values no longer expose the `Data.TaggedClass` `_tag` field.
 
+### Features
+
+- **Playwright 1.63.0 Upgrade**: Upgraded `playwright-core`, `playwright`, and `@playwright/test` to version `1.63.0`.
+- **Playwright 1.63 APIs**: Added `Page.frameLocator()`, `Frame.frameLocator()`, `Locator.visible()`, `Page.ariaSnapshotJSON()`, `Locator.ariaSnapshotJSON()`, and `dialogclosed` page and browser-context event streams.
+
 ## 0.7.0
 
 ### Breaking Changes

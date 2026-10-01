@@ -47,11 +47,11 @@
   ],
   "packageManager": "pnpm@11.5.1",
   "dependencies": {
-    "playwright-core": "^1.62.1"
+    "playwright-core": "^1.63.0"
   },
   "peerDependencies": {
-    "@playwright/test": "^1.62.1",
-    "effect": "^4.0.0-rc.111"
+    "@playwright/test": "^1.63.0",
+    "effect": "^4.0.0-rc.115"
   },
   "peerDependenciesMeta": {
     "@playwright/test": {
@@ -59,21 +59,21 @@
     }
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.9",
+    "@biomejs/biome": "2.5.13",
     "@effect/language-service": "0.87.2",
-    "@effect/vitest": "^4.0.0-rc.111",
-    "@playwright/test": "^1.62.1",
-    "@types/node": "^25.9.5",
-    "effect": "^4.0.0-rc.111",
+    "@effect/vitest": "^4.0.0-rc.115",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.13.4",
+    "effect": "^4.0.0-rc.115",
     "pkg-pr-new": "^0.0.88",
-    "playwright": "^1.62.1",
+    "playwright": "^1.63.0",
     "ts-morph": "^28.0.0",
-    "tsdown": "0.22.14",
-    "tsx": "^4.23.12",
+    "tsdown": "0.23.0",
+    "tsx": "^4.23.13",
     "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
-    "vite": "^8.2.1",
-    "vitest": "^4.1.11"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
   },
   "types": "./dist/index.d.mts"
 }
