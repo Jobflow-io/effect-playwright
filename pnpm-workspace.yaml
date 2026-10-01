@@ -3,5 +3,5 @@ allowBuilds:
   esbuild: false
   msgpackr-extract: false
 minimumReleaseAgeExclude:
-  - '@effect/vitest@4.0.0-rc.111'
-  - effect@4.0.0-rc.111
+  - '@effect/vitest@4.0.0'
+  - effect@4.0.0
