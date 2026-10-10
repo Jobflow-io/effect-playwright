@@ -147,6 +147,28 @@ layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
       }).pipe(PlaywrightSpawner.withBrowser),
   );
 
+  it.effect("goto should return the main resource response", () =>
+    Effect.gen(function* () {
+      const browser = yield* Browser;
+      const page = yield* browser.newPage();
+
+      yield* page.use((playwrightPage) =>
+        playwrightPage.route("http://frame.test/", (route) =>
+          route.fulfill({
+            status: 404,
+            body: "<!doctype html><title>Not found</title>",
+          }),
+        ),
+      );
+      const response = yield* page.mainFrame().goto("http://frame.test/");
+
+      assert.deepStrictEqual(
+        Option.map(response, (response) => response.status()),
+        Option.some(404),
+      );
+    }).pipe(PlaywrightSpawner.withBrowser),
+  );
+
   it.effect("waitForLoadState should resolve on frame", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;

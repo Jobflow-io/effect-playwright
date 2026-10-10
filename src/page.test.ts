@@ -92,6 +92,39 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
+  it.effect("goto should return the main resource response", () =>
+    Effect.gen(function* () {
+      const browser = yield* Browser;
+      const page = yield* browser.newPage();
+
+      yield* page.use((playwrightPage) =>
+        playwrightPage.route("http://status.test/", (route) =>
+          route.fulfill({
+            status: 404,
+            body: "<!doctype html><title>Not found</title>",
+          }),
+        ),
+      );
+      const response = yield* page.goto("http://status.test/");
+
+      assert.deepStrictEqual(
+        Option.map(response, (response) => [response.status(), response.ok()]),
+        Option.some([404, false]),
+      );
+    }).pipe(PlaywrightSpawner.withBrowser),
+  );
+
+  it.effect("goto should return None when there is no response", () =>
+    Effect.gen(function* () {
+      const browser = yield* Browser;
+      const page = yield* browser.newPage();
+
+      const response = yield* page.goto("about:blank");
+
+      assert.isTrue(Option.isNone(response));
+    }).pipe(PlaywrightSpawner.withBrowser),
+  );
+
   it.effect("waitForTimeout should wait", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;
