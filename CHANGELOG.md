@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Breaking Changes
+
+- **`Page.reload` is a method**: `Page.reload` changed from an `Effect` property to a method that takes Playwright's reload options, like `Page.goBack()` and `Page.goForward()`. Replace `yield* page.reload` with `yield* page.reload()`.
+
 ### Features
 
-- **Navigation responses**: `Page.goto()` and `Frame.goto()` now return the main resource response as `Option<Playwright.Response>`, like `Page.goBack()` and `Page.goForward()`, instead of `void`. Playwright does not fail on an error status such as 404, so the response is the way to tell whether the page loaded. Code that ignores the result is unaffected, and code that needs `Effect<void, PlaywrightError>` can pipe `Effect.asVoid`.
+- **Navigation responses**: `Page.goto()`, `Frame.goto()` and `Page.reload()` now return the main resource response as `Option<Playwright.Response>`, like `Page.goBack()` and `Page.goForward()`, instead of `void`. Playwright does not fail on an error status such as 404, so the response is the way to tell whether the page loaded. Code that ignores the result is unaffected, and code that needs `Effect<void, PlaywrightError>` can pipe `Effect.asVoid`.
 
 ## 0.8.0
 

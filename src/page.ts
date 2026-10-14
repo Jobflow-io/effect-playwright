@@ -673,12 +673,18 @@ export interface Page {
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
-   * Reloads the page.
+   * Reloads the page and returns the main resource response, or `None` when
+   * there is none, such as for `about:blank`.
+   *
+   * It succeeds whatever HTTP status the server answers with, including 404
+   * and 500, so read the status from the response.
    *
    * @see {@link CorePage.reload}
    * @since 0.1.0
    */
-  readonly reload: Effect.Effect<void, PlaywrightError>;
+  readonly reload: (
+    options?: Parameters<CorePage["reload"]>[0],
+  ) => Effect.Effect<Option.Option<Response>, PlaywrightError>;
   /**
    * Navigate to the previous page in history.
    *
@@ -1040,7 +1046,11 @@ export const makePage = (page: CorePage): Page => {
       ),
     frames: use((page) => Promise.resolve(page.frames().map(makeFrame))),
     mainFrame: () => makeFrame(page.mainFrame()),
-    reload: use((page) => page.reload()),
+    reload: (options) =>
+      use((page) => page.reload(options)).pipe(
+        Effect.map(Option.fromNullishOr),
+        Effect.map(Option.map(makeResponse)),
+      ),
     goBack: (options) =>
       use((page) => page.goBack(options)).pipe(
         Effect.map(Option.fromNullishOr),
