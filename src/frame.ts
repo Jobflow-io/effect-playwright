@@ -24,8 +24,8 @@ export interface Frame {
    * response, or `None` when there is none, such as for `about:blank` or a
    * change of the URL hash.
    *
-   * Like Playwright, it succeeds whatever HTTP status the server answers with,
-   * including 404 and 500, so read the status from the response.
+   * It succeeds whatever HTTP status the server answers with, including 404
+   * and 500, so read the status from the response.
    *
    * @see {@link CoreFrame.goto}
    * @since 0.1.3
