@@ -4,8 +4,9 @@
  * @since 0.1.2
  */
 
-import { Array, Context, type Effect, Option } from "effect";
+import { Array, Context, Effect, Option } from "effect";
 import type { Frame as CoreFrame, ElementHandle } from "playwright-core";
+import { makeResponse, type Response } from "./common";
 import type { PlaywrightError } from "./errors";
 import { type FrameLocator, makeFrameLocator } from "./frame-locator";
 import { type Locator, makeLocator } from "./locator";
@@ -19,7 +20,12 @@ import { useHelper } from "./utils";
  */
 export interface Frame {
   /**
-   * Navigates the frame to the given URL.
+   * Navigates the frame to the given URL and returns the main resource
+   * response, or `None` when there is none, such as for `about:blank` or a
+   * change of the URL hash.
+   *
+   * It succeeds whatever HTTP status the server answers with, including 404
+   * and 500, so read the status from the response.
    *
    * @see {@link CoreFrame.goto}
    * @since 0.1.3
@@ -27,7 +33,7 @@ export interface Frame {
   readonly goto: (
     url: string,
     options?: Parameters<CoreFrame["goto"]>[1],
-  ) => Effect.Effect<void, PlaywrightError>;
+  ) => Effect.Effect<Option.Option<Response>, PlaywrightError>;
   /**
    * Waits for the frame to navigate to the given URL.
    *
@@ -288,7 +294,11 @@ export const makeFrame = (frame: CoreFrame): Frame => {
   const use = useHelper(frame);
 
   return Frame.of({
-    goto: (url, options) => use((f) => f.goto(url, options)),
+    goto: (url, options) =>
+      use((f) => f.goto(url, options)).pipe(
+        Effect.map(Option.fromNullishOr),
+        Effect.map(Option.map(makeResponse)),
+      ),
     waitForURL: (url, options) => use((f) => f.waitForURL(url, options)),
     waitForLoadState: (state, options) =>
       use((f) => f.waitForLoadState(state, options)),

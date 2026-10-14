@@ -92,6 +92,87 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
     }).pipe(PlaywrightSpawner.withBrowser),
   );
 
+  it.effect("goto should return the main resource response", () =>
+    Effect.gen(function* () {
+      const browser = yield* Browser;
+      const page = yield* browser.newPage();
+
+      yield* page.use((playwrightPage) =>
+        playwrightPage.route("http://status.test/", (route) =>
+          route.fulfill({
+            status: 404,
+            body: "<!doctype html><title>Not found</title>",
+          }),
+        ),
+      );
+      const response = yield* page.goto("http://status.test/");
+
+      assert.deepStrictEqual(
+        Option.map(response, (response) => [response.status(), response.ok()]),
+        Option.some([404, false]),
+      );
+    }).pipe(PlaywrightSpawner.withBrowser),
+  );
+
+  it.effect("goto should return None when there is no response", () =>
+    Effect.gen(function* () {
+      const browser = yield* Browser;
+      const page = yield* browser.newPage();
+
+      const response = yield* page.goto("about:blank");
+
+      assert.isTrue(Option.isNone(response));
+    }).pipe(PlaywrightSpawner.withBrowser),
+  );
+
+  it.effect("reload should return the response of the reloaded page", () =>
+    Effect.gen(function* () {
+      const browser = yield* Browser;
+      const page = yield* browser.newPage();
+      let requests = 0;
+
+      yield* page.use((playwrightPage) =>
+        playwrightPage.route("http://reload.test/", (route) => {
+          requests++;
+          return route.fulfill({
+            status: requests === 1 ? 200 : 503,
+            body: "<!doctype html><title>Reload</title>",
+          });
+        }),
+      );
+      yield* page.goto("http://reload.test/");
+      const response = yield* page.reload();
+
+      assert.deepStrictEqual(
+        Option.map(response, (response) => response.status()),
+        Option.some(503),
+      );
+    }).pipe(PlaywrightSpawner.withBrowser),
+  );
+
+  it.effect("reload should time out after the timeout option", () =>
+    Effect.gen(function* () {
+      const browser = yield* Browser;
+      const page = yield* browser.newPage();
+      let requests = 0;
+
+      yield* page.use((playwrightPage) =>
+        playwrightPage.route("http://reload.test/", async (route) => {
+          requests++;
+          if (requests === 1) {
+            await route.fulfill({
+              body: "<!doctype html><title>Reload</title>",
+            });
+          }
+        }),
+      );
+      yield* page.goto("http://reload.test/");
+      const error = yield* page.reload({ timeout: 100 }).pipe(Effect.flip);
+
+      assert.strictEqual(error.reason, "Timeout");
+    }).pipe(PlaywrightSpawner.withBrowser),
+  );
+
   it.effect("waitForTimeout should wait", () =>
     Effect.gen(function* () {
       const browser = yield* Browser;

@@ -200,14 +200,32 @@ export interface Page {
    */
   readonly sessionStorage: WebStorage;
   /**
-   * Navigates the page to the given URL.
+   * Navigates the page to the given URL and returns the main resource
+   * response, or `None` when there is none, such as for `about:blank` or a
+   * change of the URL hash.
+   *
+   * It succeeds whatever HTTP status the server answers with, including 404
+   * and 500, so read the status from the response.
+   *
+   * **Example** (Reading the status of the page)
+   *
+   * ```ts
+   * import { Effect, Option } from "effect";
+   * import { Playwright } from "effect-playwright";
+   *
+   * const status = Effect.gen(function* () {
+   *   const page = yield* Playwright.Page;
+   *   const response = yield* page.goto("https://example.com");
+   *   return Option.map(response, (response) => response.status());
+   * });
+   * ```
    * @see {@link CorePage.goto}
    * @since 0.1.0
    */
   readonly goto: (
     url: string,
     options?: Parameters<CorePage["goto"]>[1],
-  ) => Effect.Effect<void, PlaywrightError>;
+  ) => Effect.Effect<Option.Option<Response>, PlaywrightError>;
   /**
    * This method internally calls [document.write()](https://developer.mozilla.org/en-US/docs/Web/API/Document/write),
    * inheriting all its specific characteristics and behaviors.
@@ -655,12 +673,18 @@ export interface Page {
   ) => Effect.Effect<void, PlaywrightError>;
 
   /**
-   * Reloads the page.
+   * Reloads the page and returns the main resource response, or `None` when
+   * there is none, such as for `about:blank`.
+   *
+   * It succeeds whatever HTTP status the server answers with, including 404
+   * and 500, so read the status from the response.
    *
    * @see {@link CorePage.reload}
    * @since 0.1.0
    */
-  readonly reload: Effect.Effect<void, PlaywrightError>;
+  readonly reload: (
+    options?: Parameters<CorePage["reload"]>[0],
+  ) => Effect.Effect<Option.Option<Response>, PlaywrightError>;
   /**
    * Navigate to the previous page in history.
    *
@@ -915,7 +939,11 @@ export const makePage = (page: CorePage): Page => {
     touchscreen: makeTouchscreen(page.touchscreen),
     screencast: makeScreencast(page.screencast),
     sessionStorage: makeWebStorage(page.sessionStorage),
-    goto: (url, options) => use((page) => page.goto(url, options)),
+    goto: (url, options) =>
+      use((page) => page.goto(url, options)).pipe(
+        Effect.map(Option.fromNullishOr),
+        Effect.map(Option.map(makeResponse)),
+      ),
     setContent: (html, options) =>
       use((page) => page.setContent(html, options)),
     waitForTimeout: (timeout) => use((page) => page.waitForTimeout(timeout)),
@@ -1018,7 +1046,11 @@ export const makePage = (page: CorePage): Page => {
       ),
     frames: use((page) => Promise.resolve(page.frames().map(makeFrame))),
     mainFrame: () => makeFrame(page.mainFrame()),
-    reload: use((page) => page.reload()),
+    reload: (options) =>
+      use((page) => page.reload(options)).pipe(
+        Effect.map(Option.fromNullishOr),
+        Effect.map(Option.map(makeResponse)),
+      ),
     goBack: (options) =>
       use((page) => page.goBack(options)).pipe(
         Effect.map(Option.fromNullishOr),
