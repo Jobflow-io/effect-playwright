@@ -7,10 +7,14 @@ All notable changes to this project will be documented in this file.
 ### Breaking Changes
 
 - **`Page.reload` is a method**: `Page.reload` changed from an `Effect` property to a method that takes Playwright's reload options, like `Page.goBack()` and `Page.goForward()`. Replace `yield* page.reload` with `yield* page.reload()`.
+- **`Page.content` and `Frame.content` are methods**: They changed from `Effect` properties to methods that accept Playwright's new `includeShadow` option. Replace `yield* page.content` with `yield* page.content()`.
+- **Playwright 1.64 behavior changes**: Elements inside hidden iframes are now considered hidden by actions and `Locator.isVisible()`. The `@playwright/test` peer dependency now requires `^1.64.1`.
 
 ### Features
 
 - **Navigation responses**: `Page.goto()`, `Frame.goto()` and `Page.reload()` now return the main resource response as `Option<Playwright.Response>`, like `Page.goBack()` and `Page.goForward()`, instead of `void`. Playwright does not fail on an error status such as 404, so the response is the way to tell whether the page loaded. Code that ignores the result is unaffected, and code that needs `Effect<void, PlaywrightError>` can pipe `Effect.asVoid`.
+- **Playwright 1.64.1 Upgrade**: Upgraded `playwright-core`, `playwright`, and `@playwright/test` to version `1.64.1`.
+- **Playwright 1.64 APIs**: Added `Locator.within()`, `Page.getByRef()`, the `includeShadow` option of `Page.content()` and `Frame.content()`, and `Page.webmcp` and `Frame.webmcp`, backed by the new `Playwright.WebMCP` service (`tools()` and `callTool()`). New `fps` and action `style` video options pass through the existing option types.
 
 ## 0.8.0
 

@@ -90,8 +90,8 @@ export const Tracing = Context.Service<Tracing>(
 export const makeTracing = (tracing: CoreTracing): Tracing => {
   const use = useHelper(tracing);
   return Tracing.of({
-    start: (options) => use((t) => t.start(options)),
-    startChunk: (options) => use((t) => t.startChunk(options)),
+    start: (options) => use((t) => t.start(options).then(() => {})),
+    startChunk: (options) => use((t) => t.startChunk(options).then(() => {})),
     stopChunk: (options) => use((t) => t.stopChunk(options)),
     stop: (options) => use((t) => t.stop(options)),
     startHar: (options) => use((t) => t.startHar(options).then(() => {})),
