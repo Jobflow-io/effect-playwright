@@ -31,7 +31,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
       const page = yield* browser.newPage();
 
       yield* page.setContent("<h1>Hello World</h1>");
-      const content = yield* page.content;
+      const content = yield* page.content();
       assert(content.includes("<h1>Hello World</h1>"));
     }).pipe(PlaywrightSpawner.withBrowser),
   );
@@ -55,7 +55,7 @@ layer(PlaywrightSpawner.layer(chromium))("Page", (it) => {
       yield* page.goto(
         "data:text/html,<html><head><title>Content</title></head><body><h1>Hello</h1></body></html>",
       );
-      const content = yield* page.content;
+      const content = yield* page.content();
       assert(content.includes("<h1>Hello</h1>"));
     }).pipe(PlaywrightSpawner.withBrowser),
   );
