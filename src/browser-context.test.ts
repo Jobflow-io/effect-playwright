@@ -1,5 +1,8 @@
+import { mkdtemp, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { assert, layer } from "@effect/vitest";
-import { Effect, Option } from "effect";
+import { Effect, Exit, Option } from "effect";
 import { PlaywrightSpawner } from "effect-playwright";
 import { chromium } from "playwright-core";
 import { Browser } from "./browser";
@@ -130,5 +133,60 @@ layer(PlaywrightSpawner.layer(chromium))("BrowserContext", (it) => {
       });
       assert.strictEqual(afterDelete.length, 0);
     }).pipe(PlaywrightSpawner.withBrowser),
+  );
+  it.effect("tracing.startScoped saves the trace when the scope fails", () =>
+    Effect.gen(function* () {
+      const browser = yield* Browser;
+      const context = yield* browser.newContext();
+      const dir = yield* Effect.promise(() =>
+        mkdtemp(join(tmpdir(), "effect-playwright-trace-")),
+      );
+      yield* Effect.addFinalizer(() =>
+        Effect.promise(() => rm(dir, { recursive: true, force: true })),
+      );
+      const path = join(dir, "trace.zip");
+
+      const exit = yield* Effect.gen(function* () {
+        yield* context.tracing.startScoped({ snapshots: true }, { path });
+        const page = yield* context.newPage;
+        yield* page.setContent("<h1>traced</h1>");
+        return yield* Effect.fail("workflow failed");
+      }).pipe(Effect.scoped, Effect.exit);
+
+      assert.isTrue(Exit.isFailure(exit));
+      const trace = yield* Effect.promise(() => stat(path));
+      assert.isAbove(trace.size, 0);
+
+      // Tracing was stopped, so it can be started again.
+      yield* context.tracing.start();
+      yield* context.tracing.stop();
+    }).pipe(PlaywrightSpawner.withBrowser),
+  );
+
+  it.effect(
+    "tracing.startChunkScoped saves the chunk when the scope closes",
+    () =>
+      Effect.gen(function* () {
+        const browser = yield* Browser;
+        const context = yield* browser.newContext();
+        const dir = yield* Effect.promise(() =>
+          mkdtemp(join(tmpdir(), "effect-playwright-trace-")),
+        );
+        yield* Effect.addFinalizer(() =>
+          Effect.promise(() => rm(dir, { recursive: true, force: true })),
+        );
+        const path = join(dir, "chunk.zip");
+
+        yield* context.tracing.start();
+        yield* Effect.gen(function* () {
+          yield* context.tracing.startChunkScoped(undefined, { path });
+          const page = yield* context.newPage;
+          yield* page.setContent("<h1>chunk</h1>");
+        }).pipe(Effect.scoped);
+
+        const chunk = yield* Effect.promise(() => stat(path));
+        assert.isAbove(chunk.size, 0);
+        yield* context.tracing.stop();
+      }).pipe(PlaywrightSpawner.withBrowser),
   );
 });
