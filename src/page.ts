@@ -58,6 +58,7 @@ import { makeScreencast, type Screencast } from "./screencast";
 import { makeTouchscreen, type Touchscreen } from "./touchscreen";
 import { useHelper } from "./utils";
 import { makeWebStorage, type WebStorage } from "./web-storage";
+import { makeWebMCP, type WebMCP } from "./webmcp";
 
 interface CorePageEventMap {
   close: CorePage;
@@ -199,6 +200,17 @@ export interface Page {
    * @since 0.5.1
    */
   readonly sessionStorage: WebStorage;
+  /**
+   * Access the tools that the main frame registers through the experimental
+   * WebMCP browser API.
+   *
+   * Shortcut for `page.mainFrame().webmcp`. Child frames expose their tools
+   * through their own {@link Frame.webmcp}.
+   *
+   * @see {@link CorePage.webmcp}
+   * @since 0.9.0
+   */
+  readonly webmcp: WebMCP;
   /**
    * Navigates the page to the given URL and returns the main resource
    * response, or `None` when there is none, such as for `about:blank` or a
@@ -486,10 +498,16 @@ export interface Page {
   readonly title: Effect.Effect<string, PlaywrightError>;
   /**
    * Returns the full HTML contents of the page, including the doctype.
+   *
+   * Pass `includeShadow: true` to serialize open shadow roots as declarative
+   * shadow DOM.
+   *
    * @see {@link CorePage.content}
    * @since 0.3.0
    */
-  readonly content: Effect.Effect<string, PlaywrightError>;
+  readonly content: (
+    options?: Parameters<CorePage["content"]>[0],
+  ) => Effect.Effect<string, PlaywrightError>;
   /**
    * Runs an asynchronous operation against the underlying Playwright `Page`.
    *
@@ -583,6 +601,16 @@ export interface Page {
   readonly getByTestId: (
     testId: Parameters<CorePage["getByTestId"]>[0],
   ) => Locator;
+  /**
+   * Returns a locator for the element with the given aria ref, such as `e2`.
+   *
+   * Refs are reported by {@link Page.ariaSnapshot} in `"ai"` mode and resolve
+   * against the latest snapshot taken in the element's frame.
+   *
+   * @see {@link CorePage.getByRef}
+   * @since 0.9.0
+   */
+  readonly getByRef: (ref: string) => Locator;
   /**
    * Returns a locator that matches the given alt text.
    *
@@ -939,6 +967,7 @@ export const makePage = (page: CorePage): Page => {
     touchscreen: makeTouchscreen(page.touchscreen),
     screencast: makeScreencast(page.screencast),
     sessionStorage: makeWebStorage(page.sessionStorage),
+    webmcp: makeWebMCP(page.webmcp),
     goto: (url, options) =>
       use((page) => page.goto(url, options)).pipe(
         Effect.map(Option.fromNullishOr),
@@ -959,7 +988,7 @@ export const makePage = (page: CorePage): Page => {
     waitForLoadState: (state, options) =>
       use((page) => page.waitForLoadState(state, options)),
     title: use((page) => page.title()),
-    content: use((page) => page.content()),
+    content: (options) => use((page) => page.content(options)),
     evaluate: <R, Arg>(
       fn: PageFunction<Arg, R>,
       arg?: Arg,
@@ -1015,6 +1044,7 @@ export const makePage = (page: CorePage): Page => {
     getByLabel: (label, options) =>
       makeLocator(page.getByLabel(label, options)),
     getByTestId: (testId) => makeLocator(page.getByTestId(testId)),
+    getByRef: (ref) => makeLocator(page.getByRef(ref)),
     getByAltText: (text, options) =>
       makeLocator(page.getByAltText(text, options)),
     getByPlaceholder: (text, options) =>

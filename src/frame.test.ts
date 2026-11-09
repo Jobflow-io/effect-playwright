@@ -43,7 +43,7 @@ layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
       assert.strictEqual(title, "Frame Title");
 
       // Test content
-      const content = yield* frame.content;
+      const content = yield* frame.content();
       assert.isTrue(content.includes("Hello from Frame"));
 
       // Test evaluate
@@ -123,7 +123,7 @@ layer(PlaywrightSpawner.layer(chromium))("Frame", (it) => {
 
       // Test setContent
       yield* frame.setContent("<h1>New Content</h1>");
-      const newContent = yield* frame.content;
+      const newContent = yield* frame.content();
       assert.isTrue(newContent.includes("New Content"));
     }).pipe(PlaywrightSpawner.withBrowser),
   );

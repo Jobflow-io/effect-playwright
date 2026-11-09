@@ -53,3 +53,9 @@ export { makeScreencast, Screencast } from "./screencast";
 export { makeTouchscreen, Touchscreen } from "./touchscreen";
 export { makeTracing, Tracing } from "./tracing";
 export { makeWebStorage, WebStorage } from "./web-storage";
+export {
+  makeWebMCP,
+  WebMCP,
+  type WebMCPTool,
+  type WebMCPToolAnnotations,
+} from "./webmcp";

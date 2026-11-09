@@ -554,6 +554,33 @@ export interface Locator {
    */
   readonly or: (locator: Locator | CoreLocator) => Locator;
   /**
+   * Returns a locator that matches this locator's elements inside each element
+   * matched by `locator`.
+   *
+   * Relative locators such as {@link Locator.nth} or {@link Locator.first} are
+   * resolved separately inside each matched parent.
+   *
+   * @example
+   * ```ts
+   * import { Effect } from "effect";
+   * import { Playwright } from "effect-playwright";
+   *
+   * const program = Effect.gen(function* () {
+   *   const page = yield* Playwright.Page;
+   *   // The third cell of every row, not the third cell in the table.
+   *   const thirdColumn = page
+   *     .getByRole("cell")
+   *     .nth(2)
+   *     .within(page.getByRole("row"));
+   *   return yield* thirdColumn.allTextContents();
+   * });
+   * ```
+   *
+   * @see {@link CoreLocator.within}
+   * @since 0.9.0
+   */
+  readonly within: (locator: Locator | CoreLocator) => Locator;
+  /**
    * A page this locator belongs to.
    *
    * @see {@link CoreLocator.page}
@@ -824,6 +851,8 @@ export const makeLocator = (locator: CoreLocator): Locator => {
     frameLocator: (selector) =>
       makeFrameLocator(locator.frameLocator(selector)),
     or: (locatorOrService) => makeLocator(locator.or(unwrap(locatorOrService))),
+    within: (locatorOrService) =>
+      makeLocator(locator.within(unwrap(locatorOrService))),
     page: () => makePage(locator.page()),
     locator: (selectorOrLocator, options) =>
       makeLocator(

@@ -13,6 +13,7 @@ import { type Locator, makeLocator } from "./locator";
 import { makePage, type Page } from "./page";
 import type { PageFunction } from "./playwright-types";
 import { useHelper } from "./utils";
+import { makeWebMCP, type WebMCP } from "./webmcp";
 
 /**
  * @category models
@@ -243,10 +244,24 @@ export interface Frame {
   /**
    * Returns the full HTML contents of the frame, including the doctype.
    *
+   * Pass `includeShadow: true` to serialize open shadow roots as declarative
+   * shadow DOM.
+   *
    * @see {@link CoreFrame.content}
    * @since 0.1.3
    */
-  readonly content: Effect.Effect<string, PlaywrightError>;
+  readonly content: (
+    options?: Parameters<CoreFrame["content"]>[0],
+  ) => Effect.Effect<string, PlaywrightError>;
+
+  /**
+   * Access the tools that the frame registers through the experimental
+   * WebMCP browser API.
+   *
+   * @see {@link CoreFrame.webmcp}
+   * @since 0.9.0
+   */
+  readonly webmcp: WebMCP;
 
   /**
    * Returns the owner iframe element for the frame.
@@ -337,7 +352,8 @@ export const makeFrame = (frame: CoreFrame): Frame => {
     waitForTimeout: (timeout) => use((f) => f.waitForTimeout(timeout)),
     setContent: (html, options) => use((f) => f.setContent(html, options)),
     url: () => frame.url(),
-    content: use((f) => f.content()),
+    content: (options) => use((f) => f.content(options)),
+    webmcp: makeWebMCP(frame.webmcp),
     frameElement: use((f) => f.frameElement()),
     name: () => frame.name(),
     click: (selector, options) => use((f) => f.click(selector, options)),
