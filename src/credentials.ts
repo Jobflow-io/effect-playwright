@@ -7,7 +7,7 @@
 import { Context, type Effect } from "effect";
 import type { Credentials as CoreCredentials } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * @example
@@ -98,12 +98,16 @@ export const Credentials = Context.Service<Credentials>(
  * @since 0.5.1
  */
 export const makeCredentials = (credentials: CoreCredentials): Credentials => {
-  const use = useHelper(credentials);
+  const { traced } = makeTracedUse(credentials, "Credentials");
 
   return Credentials.of({
-    install: use((c) => c.install()),
-    create: (rpId, options) => use((c) => c.create(rpId, options)),
-    get: (options) => use((c) => c.get(options)),
-    delete: (id) => use((c) => c.delete(id)),
+    install: traced("install", (c) => c.install()),
+    create: (rpId, options) =>
+      traced("create", (c) => c.create(rpId, options), {
+        target: rpId,
+        attributes: () => ({ "playwright.rp_id": rpId }),
+      }),
+    get: (options) => traced("get", (c) => c.get(options)),
+    delete: (id) => traced("delete", (c) => c.delete(id)),
   });
 };

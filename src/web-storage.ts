@@ -7,7 +7,7 @@
 import { Context, Effect, Option } from "effect";
 import type { WebStorage as CoreWebStorage } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * @example
@@ -107,16 +107,25 @@ export const WebStorage = Context.Service<WebStorage>(
  * @since 0.5.1
  */
 export const makeWebStorage = (webStorage: CoreWebStorage): WebStorage => {
-  const use = useHelper(webStorage);
+  const { traced } = makeTracedUse(webStorage, "WebStorage");
 
   return WebStorage.of({
-    clear: use((storage) => storage.clear()),
+    clear: traced("clear", (storage) => storage.clear()),
     getItem: (name) =>
-      use((storage) => storage.getItem(name)).pipe(
-        Effect.map(Option.fromNullishOr),
-      ),
-    items: use((storage) => storage.items()),
-    removeItem: (name) => use((storage) => storage.removeItem(name)),
-    setItem: (name, value) => use((storage) => storage.setItem(name, value)),
+      traced("getItem", (storage) => storage.getItem(name), {
+        target: name,
+        attributes: () => ({ "playwright.storage.key": name }),
+      }).pipe(Effect.map(Option.fromNullishOr)),
+    items: traced("items", (storage) => storage.items()),
+    removeItem: (name) =>
+      traced("removeItem", (storage) => storage.removeItem(name), {
+        target: name,
+        attributes: () => ({ "playwright.storage.key": name }),
+      }),
+    setItem: (name, value) =>
+      traced("setItem", (storage) => storage.setItem(name, value), {
+        target: name,
+        attributes: () => ({ "playwright.storage.key": name }),
+      }),
   });
 };

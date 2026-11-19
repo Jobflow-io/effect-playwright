@@ -14,7 +14,7 @@ import type { PlaywrightError } from "./errors";
 import { type FrameLocator, makeFrameLocator } from "./frame-locator";
 import { makePage, type Page } from "./page";
 import type { AriaSnapshotJSON, Unboxed } from "./playwright-types";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * Effect-friendly operations for a Playwright locator.
@@ -810,7 +810,20 @@ export const Locator = Context.Service<Locator>(
  * @since 0.1.0
  */
 export const makeLocator = (locator: CoreLocator): Locator => {
-  const use = useHelper(locator);
+  const { traced, use } = makeTracedUse(
+    locator,
+    "Locator",
+    () => {
+      const description = locator.description();
+      return description !== null
+        ? {
+            "playwright.selector": locator.toString(),
+            "playwright.locator.description": description,
+          }
+        : { "playwright.selector": locator.toString() };
+    },
+    () => locator.description() ?? locator.toString(),
+  );
   const unwrap = Match.type<CoreLocator | Locator>().pipe(
     Match.when(Predicate.hasProperty("_raw"), (locator) => locator._raw),
     Match.orElse((locator) => locator),
@@ -818,32 +831,46 @@ export const makeLocator = (locator: CoreLocator): Locator => {
 
   return Locator.of({
     _raw: locator,
-    click: (options) => use((locator) => locator.click(options)),
-    check: (options) => use((locator) => locator.check(options)),
-    fill: (value, options) => use((locator) => locator.fill(value, options)),
+    click: (options) => traced("click", (locator) => locator.click(options)),
+    check: (options) => traced("check", (locator) => locator.check(options)),
+    fill: (value, options) =>
+      traced("fill", (locator) => locator.fill(value, options)),
     getAttribute: (name, options) =>
-      use((locator) => locator.getAttribute(name, options)),
-    innerText: (options) => use((locator) => locator.innerText(options)),
-    innerHTML: (options) => use((locator) => locator.innerHTML(options)),
-    inputValue: (options) => use((locator) => locator.inputValue(options)),
-    textContent: (options) => use((locator) => locator.textContent(options)),
-    allInnerTexts: () => use((locator) => locator.allInnerTexts()),
-    allTextContents: () => use((locator) => locator.allTextContents()),
-    ariaSnapshot: (options) => use((locator) => locator.ariaSnapshot(options)),
+      traced("getAttribute", (locator) => locator.getAttribute(name, options), {
+        attributes: () => ({ "playwright.attribute.name": name }),
+      }),
+    innerText: (options) =>
+      traced("innerText", (locator) => locator.innerText(options)),
+    innerHTML: (options) =>
+      traced("innerHTML", (locator) => locator.innerHTML(options)),
+    inputValue: (options) =>
+      traced("inputValue", (locator) => locator.inputValue(options)),
+    textContent: (options) =>
+      traced("textContent", (locator) => locator.textContent(options)),
+    allInnerTexts: () =>
+      traced("allInnerTexts", (locator) => locator.allInnerTexts()),
+    allTextContents: () =>
+      traced("allTextContents", (locator) => locator.allTextContents()),
+    ariaSnapshot: (options) =>
+      traced("ariaSnapshot", (locator) => locator.ariaSnapshot(options)),
     ariaSnapshotJSON: (options) =>
-      use((locator) => locator.ariaSnapshotJSON(options)),
+      traced("ariaSnapshotJSON", (locator) =>
+        locator.ariaSnapshotJSON(options),
+      ),
     boundingBox: (options) =>
-      use((locator) => locator.boundingBox(options)).pipe(
+      traced("boundingBox", (locator) => locator.boundingBox(options)).pipe(
         Effect.map(Option.fromNullishOr),
       ),
     describe: (description) => makeLocator(locator.describe(description)),
     description: () => Option.fromNullishOr(locator.description()),
-    count: use((locator) => locator.count()),
+    count: traced("count", (locator) => locator.count()),
     first: () => makeLocator(locator.first()),
     last: () => makeLocator(locator.last()),
     nth: (index: number) => makeLocator(locator.nth(index)),
     all: () =>
-      use((locator) => locator.all()).pipe(Effect.map(Array.map(makeLocator))),
+      traced("all", (locator) => locator.all()).pipe(
+        Effect.map(Array.map(makeLocator)),
+      ),
     and: (locatorOrService) =>
       makeLocator(locator.and(unwrap(locatorOrService))),
     contentFrame: () => makeFrameLocator(locator.contentFrame()),
@@ -871,14 +898,23 @@ export const makeLocator = (locator: CoreLocator): Locator => {
     getByTitle: (text, options) =>
       makeLocator(locator.getByTitle(text, options)),
     getByTestId: (testId) => makeLocator(locator.getByTestId(testId)),
-    isChecked: (options) => use((locator) => locator.isChecked(options)),
-    isDisabled: (options) => use((locator) => locator.isDisabled(options)),
-    isEditable: (options) => use((locator) => locator.isEditable(options)),
-    isEnabled: (options) => use((locator) => locator.isEnabled(options)),
-    isHidden: (options) => use((locator) => locator.isHidden(options)),
-    isVisible: (options) => use((locator) => locator.isVisible(options)),
+    isChecked: (options) =>
+      traced("isChecked", (locator) => locator.isChecked(options)),
+    isDisabled: (options) =>
+      traced("isDisabled", (locator) => locator.isDisabled(options)),
+    isEditable: (options) =>
+      traced("isEditable", (locator) => locator.isEditable(options)),
+    isEnabled: (options) =>
+      traced("isEnabled", (locator) => locator.isEnabled(options)),
+    isHidden: (options) =>
+      traced("isHidden", (locator) => locator.isHidden(options)),
+    isVisible: (options) =>
+      traced("isVisible", (locator) => locator.isVisible(options)),
     visible: () => makeLocator(locator.visible()),
-    waitFor: (options) => use((locator) => locator.waitFor(options)),
+    waitFor: (options) =>
+      traced("waitFor", (locator) => locator.waitFor(options), {
+        attributes: () => ({ "playwright.wait_state": options?.state }),
+      }),
     waitForFunction: <
       R,
       Arg = void,
@@ -888,7 +924,7 @@ export const makeLocator = (locator: CoreLocator): Locator => {
       arg?: Arg,
       options?: Parameters<CoreLocator["waitForFunction"]>[2],
     ) =>
-      use((locator) =>
+      traced("waitForFunction", (locator) =>
         locator.waitForFunction<Arg, E>(
           pageFunction as unknown as Parameters<
             typeof locator.waitForFunction<Arg, E>
@@ -906,7 +942,7 @@ export const makeLocator = (locator: CoreLocator): Locator => {
       arg?: Arg,
       options?: Parameters<CoreLocator["evaluate"]>[2],
     ) =>
-      use((locator) =>
+      traced("evaluate", (locator) =>
         locator.evaluate<R, Arg, E>(
           pageFunction as unknown as Parameters<
             typeof locator.evaluate<R, Arg, E>
@@ -923,7 +959,7 @@ export const makeLocator = (locator: CoreLocator): Locator => {
       pageFunction: (elements: E[], arg: Unboxed<Arg>) => R | Promise<R>,
       arg?: Arg,
     ) =>
-      use((locator) =>
+      traced("evaluateAll", (locator) =>
         locator.evaluateAll<R, Arg, E>(
           pageFunction as unknown as Parameters<
             typeof locator.evaluateAll<R, Arg, E>
@@ -940,7 +976,7 @@ export const makeLocator = (locator: CoreLocator): Locator => {
       arg?: Arg,
       options?: Parameters<CoreLocator["evaluateHandle"]>[2],
     ) =>
-      use((locator) =>
+      traced("evaluateHandle", (locator) =>
         locator.evaluateHandle<R, Arg, E>(
           pageFunction as unknown as Parameters<
             typeof locator.evaluateHandle<R, Arg, E>
@@ -950,44 +986,79 @@ export const makeLocator = (locator: CoreLocator): Locator => {
         ),
       ),
     elementHandle: (options) =>
-      use((locator) => locator.elementHandle(options)).pipe(
+      traced("elementHandle", (locator) => locator.elementHandle(options)).pipe(
         Effect.map(Option.fromNullishOr),
       ),
     elementHandles: () =>
-      use(
+      traced(
+        "elementHandles",
         (locator) =>
           locator.elementHandles() as Promise<
             Array<ElementHandle<SVGElement | HTMLElement>>
           >,
       ),
-    highlight: (options) => use((locator) => locator.highlight(options)),
-    hideHighlight: use((locator) => locator.hideHighlight()),
-    drop: (data, options) => use((locator) => locator.drop(data, options)),
-    normalize: () => use((locator) => locator.normalize().then(makeLocator)),
-    screenshot: (options) => use((locator) => locator.screenshot(options)),
-    blur: (options) => use((locator) => locator.blur(options)),
-    clear: (options) => use((locator) => locator.clear(options)),
-    dblclick: (options) => use((locator) => locator.dblclick(options)),
+    highlight: (options) =>
+      traced("highlight", (locator) => locator.highlight(options)),
+    hideHighlight: traced("hideHighlight", (locator) =>
+      locator.hideHighlight(),
+    ),
+    drop: (data, options) =>
+      traced("drop", (locator) => locator.drop(data, options)),
+    normalize: () =>
+      traced("normalize", (locator) => locator.normalize().then(makeLocator)),
+    screenshot: (options) =>
+      traced("screenshot", (locator) => locator.screenshot(options)),
+    blur: (options) => traced("blur", (locator) => locator.blur(options)),
+    clear: (options) => traced("clear", (locator) => locator.clear(options)),
+    dblclick: (options) =>
+      traced("dblclick", (locator) => locator.dblclick(options)),
     dispatchEvent: (type, eventInit, options) =>
-      use((locator) => locator.dispatchEvent(type, eventInit, options)),
-    dragTo: (target, options) =>
-      use((locator) => locator.dragTo(unwrap(target), options)),
-    focus: (options) => use((locator) => locator.focus(options)),
-    hover: (options) => use((locator) => locator.hover(options)),
-    press: (key, options) => use((locator) => locator.press(key, options)),
+      traced(
+        "dispatchEvent",
+        (locator) => locator.dispatchEvent(type, eventInit, options),
+        {
+          attributes: () => ({ "playwright.event.type": type }),
+        },
+      ),
+    dragTo: (target, options) => {
+      const rawTarget = unwrap(target);
+      return traced("dragTo", (locator) => locator.dragTo(rawTarget, options), {
+        attributes: () => ({
+          "playwright.target_selector": rawTarget.toString(),
+        }),
+      });
+    },
+    focus: (options) => traced("focus", (locator) => locator.focus(options)),
+    hover: (options) => traced("hover", (locator) => locator.hover(options)),
+    press: (key, options) =>
+      traced("press", (locator) => locator.press(key, options), {
+        attributes: () => ({ "playwright.key": key }),
+      }),
     pressSequentially: (text, options) =>
-      use((locator) => locator.pressSequentially(text, options)),
+      traced("pressSequentially", (locator) =>
+        locator.pressSequentially(text, options),
+      ),
     scrollIntoViewIfNeeded: (options) =>
-      use((locator) => locator.scrollIntoViewIfNeeded(options)),
+      traced("scrollIntoViewIfNeeded", (locator) =>
+        locator.scrollIntoViewIfNeeded(options),
+      ),
     selectOption: (values, options) =>
-      use((locator) => locator.selectOption(values, options)),
-    selectText: (options) => use((locator) => locator.selectText(options)),
+      traced("selectOption", (locator) =>
+        locator.selectOption(values, options),
+      ),
+    selectText: (options) =>
+      traced("selectText", (locator) => locator.selectText(options)),
     setChecked: (checked, options) =>
-      use((locator) => locator.setChecked(checked, options)),
+      traced("setChecked", (locator) => locator.setChecked(checked, options), {
+        attributes: () => ({ "playwright.checked": checked }),
+      }),
     setInputFiles: (files, options) =>
-      use((locator) => locator.setInputFiles(files, options)),
-    tap: (options) => use((locator) => locator.tap(options)),
-    uncheck: (options) => use((locator) => locator.uncheck(options)),
+      traced("setInputFiles", (locator) =>
+        locator.setInputFiles(files, options),
+      ),
+    tap: (options) => traced("tap", (locator) => locator.tap(options)),
+    uncheck: (options) =>
+      traced("uncheck", (locator) => locator.uncheck(options)),
     toString: () => locator.toString(),
     use,
   });

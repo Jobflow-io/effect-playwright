@@ -56,7 +56,7 @@ import type {
 } from "./playwright-types";
 import { makeScreencast, type Screencast } from "./screencast";
 import { makeTouchscreen, type Touchscreen } from "./touchscreen";
-import { useHelper } from "./utils";
+import { makeTracedUse, sanitizeUrl, urlAttributes } from "./tracer";
 import { makeWebStorage, type WebStorage } from "./web-storage";
 import { makeWebMCP, type WebMCP } from "./webmcp";
 
@@ -957,7 +957,7 @@ export const Page = Context.Service<Page>("effect-playwright/page/Page");
  */
 export const makePage = (page: CorePage): Page => {
   const events = page as PageWithPatchedEvents;
-  const use = useHelper(page);
+  const { traced, use } = makeTracedUse(page, "Page");
 
   return Page.of({
     clock: makeClock(page.clock),
@@ -969,32 +969,68 @@ export const makePage = (page: CorePage): Page => {
     sessionStorage: makeWebStorage(page.sessionStorage),
     webmcp: makeWebMCP(page.webmcp),
     goto: (url, options) =>
-      use((page) => page.goto(url, options)).pipe(
+      traced("goto", (page) => page.goto(url, options), {
+        getTarget: () => sanitizeUrl(url),
+        attributes: () => ({
+          ...urlAttributes(url),
+          "playwright.wait_until": options?.waitUntil,
+        }),
+        onSuccess: (response) =>
+          response !== null
+            ? { "http.response.status_code": response.status() }
+            : undefined,
+      }).pipe(
         Effect.map(Option.fromNullishOr),
         Effect.map(Option.map(makeResponse)),
       ),
     setContent: (html, options) =>
-      use((page) => page.setContent(html, options)),
-    waitForTimeout: (timeout) => use((page) => page.waitForTimeout(timeout)),
+      traced("setContent", (page) => page.setContent(html, options), {
+        attributes: () => ({ "playwright.wait_until": options?.waitUntil }),
+      }),
+    waitForTimeout: (timeout) =>
+      traced("waitForTimeout", (page) => page.waitForTimeout(timeout), {
+        attributes: () => ({ "playwright.timeout_ms": timeout }),
+      }),
     setDefaultNavigationTimeout: (timeout) =>
       page.setDefaultNavigationTimeout(timeout),
     setDefaultTimeout: (timeout) => page.setDefaultTimeout(timeout),
     setExtraHTTPHeaders: (headers) =>
-      use((page) => page.setExtraHTTPHeaders(headers)),
+      traced("setExtraHTTPHeaders", (page) =>
+        page.setExtraHTTPHeaders(headers),
+      ),
     setViewportSize: (viewportSize) =>
-      use((page) => page.setViewportSize(viewportSize)),
+      traced("setViewportSize", (page) => page.setViewportSize(viewportSize), {
+        attributes: () => ({
+          "playwright.viewport.width": viewportSize.width,
+          "playwright.viewport.height": viewportSize.height,
+        }),
+      }),
     viewportSize: () => Option.fromNullishOr(page.viewportSize()),
-    waitForURL: (url, options) => use((page) => page.waitForURL(url, options)),
+    waitForURL: (url, options) =>
+      traced("waitForURL", (page) => page.waitForURL(url, options), {
+        getTarget: () =>
+          typeof url === "string" ? sanitizeUrl(url) : undefined,
+        attributes: () => ({
+          ...(typeof url === "string" ? urlAttributes(url) : undefined),
+          "playwright.wait_until": options?.waitUntil,
+        }),
+      }),
     waitForLoadState: (state, options) =>
-      use((page) => page.waitForLoadState(state, options)),
-    title: use((page) => page.title()),
-    content: (options) => use((page) => page.content(options)),
+      traced(
+        "waitForLoadState",
+        (page) => page.waitForLoadState(state, options),
+        {
+          attributes: () => ({ "playwright.wait_state": state }),
+        },
+      ),
+    title: traced("title", (page) => page.title()),
+    content: (options) => traced("content", (page) => page.content(options)),
     evaluate: <R, Arg>(
       fn: PageFunction<Arg, R>,
       arg?: Arg,
       options?: Parameters<CorePage["evaluate"]>[2],
     ) =>
-      use((page) =>
+      traced("evaluate", (page) =>
         page.evaluate<R, Arg>(
           fn as unknown as Parameters<typeof page.evaluate<R, Arg>>[0],
           arg as Arg,
@@ -1006,15 +1042,17 @@ export const makePage = (page: CorePage): Page => {
       arg?: Arg,
       options?: Parameters<CorePage["addInitScript"]>[2],
     ) =>
-      use((page) =>
+      traced("addInitScript", (page) =>
         page.addInitScript<Arg>(
           script as unknown as Parameters<typeof page.addInitScript<Arg>>[0],
           arg,
           options,
         ),
       ).pipe(Effect.asVoid),
-    addScriptTag: (options) => use((page) => page.addScriptTag(options)),
-    addStyleTag: (options) => use((page) => page.addStyleTag(options)),
+    addScriptTag: (options) =>
+      traced("addScriptTag", (page) => page.addScriptTag(options)),
+    addStyleTag: (options) =>
+      traced("addStyleTag", (page) => page.addStyleTag(options)),
     exposeFunction: <A, E, R, Args extends unknown[]>(
       name: string,
       effectFn: (...args: Args) => Effect.Effect<A, E, R>,
@@ -1022,10 +1060,16 @@ export const makePage = (page: CorePage): Page => {
       Effect.context<R>().pipe(
         Effect.map((context) => Effect.runPromiseWith(context)),
         Effect.flatMap((runPromise) =>
-          use((page) =>
-            page.exposeFunction(name, (...args: Args) =>
-              runPromise(effectFn(...args)),
-            ),
+          traced(
+            "exposeFunction",
+            (page) =>
+              page.exposeFunction(name, (...args: Args) =>
+                runPromise(effectFn(...args)),
+              ),
+            {
+              target: name,
+              attributes: () => ({ "playwright.function.name": name }),
+            },
           ),
         ),
       ),
@@ -1033,7 +1077,14 @@ export const makePage = (page: CorePage): Page => {
       Effect.context<R>().pipe(
         Effect.map((context) => Effect.runPromiseWith(context)),
         Effect.flatMap((runPromise) =>
-          use((page) => page.exposeFunction(name, () => runPromise(effectFn))),
+          traced(
+            "exposeEffect",
+            (page) => page.exposeFunction(name, () => runPromise(effectFn)),
+            {
+              target: name,
+              attributes: () => ({ "playwright.function.name": name }),
+            },
+          ),
         ),
       ),
     locator: (selector, options) =>
@@ -1051,21 +1102,32 @@ export const makePage = (page: CorePage): Page => {
       makeLocator(page.getByPlaceholder(text, options)),
     getByTitle: (text, options) => makeLocator(page.getByTitle(text, options)),
     url: () => page.url(),
-    hideHighlight: use((page) => page.hideHighlight()),
-    clearConsoleMessages: use((page) => page.clearConsoleMessages()),
-    clearPageErrors: use((page) => page.clearPageErrors()),
-    consoleMessages: (options) => use((page) => page.consoleMessages(options)),
-    pageErrors: (options) => use((page) => page.pageErrors(options)),
-    requests: use((page) => page.requests()).pipe(
+    hideHighlight: traced("hideHighlight", (page) => page.hideHighlight()),
+    clearConsoleMessages: traced("clearConsoleMessages", (page) =>
+      page.clearConsoleMessages(),
+    ),
+    clearPageErrors: traced("clearPageErrors", (page) =>
+      page.clearPageErrors(),
+    ),
+    consoleMessages: (options) =>
+      traced("consoleMessages", (page) => page.consoleMessages(options)),
+    pageErrors: (options) =>
+      traced("pageErrors", (page) => page.pageErrors(options)),
+    requests: traced("requests", (page) => page.requests()).pipe(
       Effect.map(Array.map(makeRequest)),
     ),
-    pickLocator: use((page) => page.pickLocator().then(makeLocator)),
-    cancelPickLocator: use((page) => page.cancelPickLocator()),
-    ariaSnapshot: (options) => use((page) => page.ariaSnapshot(options)),
+    pickLocator: traced("pickLocator", (page) =>
+      page.pickLocator().then(makeLocator),
+    ),
+    cancelPickLocator: traced("cancelPickLocator", (page) =>
+      page.cancelPickLocator(),
+    ),
+    ariaSnapshot: (options) =>
+      traced("ariaSnapshot", (page) => page.ariaSnapshot(options)),
     ariaSnapshotJSON: (options) =>
-      use((page) => page.ariaSnapshotJSON(options)),
+      traced("ariaSnapshotJSON", (page) => page.ariaSnapshotJSON(options)),
     context: () => makeBrowserContext(page.context()),
-    opener: use((page) => page.opener()).pipe(
+    opener: traced("opener", (page) => page.opener()).pipe(
       Effect.map(Option.fromNullishOr),
       Effect.map(Option.map(makePage)),
     ),
@@ -1074,34 +1136,82 @@ export const makePage = (page: CorePage): Page => {
       Option.fromNullishOr(page.frame(frameSelector)).pipe(
         Option.map(makeFrame),
       ),
-    frames: use((page) => Promise.resolve(page.frames().map(makeFrame))),
+    frames: traced("frames", (page) =>
+      Promise.resolve(page.frames().map(makeFrame)),
+    ),
     mainFrame: () => makeFrame(page.mainFrame()),
     reload: (options) =>
-      use((page) => page.reload(options)).pipe(
+      traced("reload", (page) => page.reload(options), {
+        getTarget: () => sanitizeUrl(page.url()),
+        attributes: () => ({
+          ...urlAttributes(page.url()),
+          "playwright.wait_until": options?.waitUntil,
+        }),
+        onSuccess: (response) =>
+          response !== null
+            ? { "http.response.status_code": response.status() }
+            : undefined,
+      }).pipe(
         Effect.map(Option.fromNullishOr),
         Effect.map(Option.map(makeResponse)),
       ),
     goBack: (options) =>
-      use((page) => page.goBack(options)).pipe(
+      traced("goBack", (page) => page.goBack(options), {
+        getTarget: () => sanitizeUrl(page.url()),
+        attributes: () => ({
+          ...urlAttributes(page.url()),
+          "playwright.wait_until": options?.waitUntil,
+        }),
+        onSuccess: (response) =>
+          response !== null
+            ? { "http.response.status_code": response.status() }
+            : undefined,
+      }).pipe(
         Effect.map(Option.fromNullishOr),
         Effect.map(Option.map(makeResponse)),
       ),
     goForward: (options) =>
-      use((page) => page.goForward(options)).pipe(
+      traced("goForward", (page) => page.goForward(options), {
+        getTarget: () => sanitizeUrl(page.url()),
+        attributes: () => ({
+          ...urlAttributes(page.url()),
+          "playwright.wait_until": options?.waitUntil,
+        }),
+        onSuccess: (response) =>
+          response !== null
+            ? { "http.response.status_code": response.status() }
+            : undefined,
+      }).pipe(
         Effect.map(Option.fromNullishOr),
         Effect.map(Option.map(makeResponse)),
       ),
-    requestGC: use((page) => page.requestGC()),
-    bringToFront: use((page) => page.bringToFront()),
-    pause: use((page) => page.pause()),
-    close: use((page) => page.close()),
+    requestGC: traced("requestGC", (page) => page.requestGC()),
+    bringToFront: traced("bringToFront", (page) => page.bringToFront()),
+    pause: traced("pause", (page) => page.pause()),
+    close: traced("close", (page) => page.close()),
     isClosed: () => page.isClosed(),
-    screenshot: (options) => use((page) => page.screenshot(options)),
-    pdf: (options) => use((page) => page.pdf(options)),
+    screenshot: (options) =>
+      traced("screenshot", (page) => page.screenshot(options)),
+    pdf: (options) => traced("pdf", (page) => page.pdf(options)),
     dragAndDrop: (source, target, options) =>
-      use((page) => page.dragAndDrop(source, target, options)),
-    click: (selector, options) => use((page) => page.click(selector, options)),
-    emulateMedia: (options) => use((page) => page.emulateMedia(options)),
+      traced(
+        "dragAndDrop",
+        (page) => page.dragAndDrop(source, target, options),
+        {
+          target: source,
+          attributes: () => ({
+            "playwright.source": source,
+            "playwright.target": target,
+          }),
+        },
+      ),
+    click: (selector, options) =>
+      traced("click", (page) => page.click(selector, options), {
+        target: selector,
+        attributes: () => ({ "playwright.selector": selector }),
+      }),
+    emulateMedia: (options) =>
+      traced("emulateMedia", (page) => page.emulateMedia(options)),
     eventStream: <K extends keyof CorePageEventMap>(event: K) =>
       Stream.callback<CorePageEventMap[K]>((queue) => {
         const emit = (value: CorePageEventMap[K]) => {

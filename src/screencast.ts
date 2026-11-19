@@ -7,7 +7,7 @@
 import { Context, type Effect } from "effect";
 import type { Screencast as CoreScreencast } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * @category models
@@ -104,16 +104,18 @@ export const Screencast = Context.Service<Screencast>(
  * @since 0.5.0
  */
 export const makeScreencast = (screencast: CoreScreencast): Screencast => {
-  const use = useHelper(screencast);
+  const { traced } = makeTracedUse(screencast, "Screencast");
   return Screencast.of({
-    start: (options) => use((s) => s.start(options).then(() => {})),
-    stop: use((s) => s.stop()),
-    showActions: (options) => use((s) => s.showActions(options).then(() => {})),
-    hideActions: use((s) => s.hideActions()),
-    showChapter: (title, options) => use((s) => s.showChapter(title, options)),
+    start: (options) => traced("start", (s) => s.start(options).then(() => {})),
+    stop: traced("stop", (s) => s.stop()),
+    showActions: (options) =>
+      traced("showActions", (s) => s.showActions(options).then(() => {})),
+    hideActions: traced("hideActions", (s) => s.hideActions()),
+    showChapter: (title, options) =>
+      traced("showChapter", (s) => s.showChapter(title, options)),
     showOverlay: (html, options) =>
-      use((s) => s.showOverlay(html, options).then(() => {})),
-    showOverlays: use((s) => s.showOverlays()),
-    hideOverlays: use((s) => s.hideOverlays()),
+      traced("showOverlay", (s) => s.showOverlay(html, options).then(() => {})),
+    showOverlays: traced("showOverlays", (s) => s.showOverlays()),
+    hideOverlays: traced("hideOverlays", (s) => s.hideOverlays()),
   });
 };

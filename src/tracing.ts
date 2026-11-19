@@ -7,7 +7,7 @@
 import { Context, Effect, type Scope } from "effect";
 import type { Tracing as CoreTracing } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * @category models
@@ -147,14 +147,15 @@ export const Tracing = Context.Service<Tracing>(
  * @since 0.5.0
  */
 export const makeTracing = (tracing: CoreTracing): Tracing => {
-  const use = useHelper(tracing);
+  const { traced } = makeTracedUse(tracing, "Tracing");
   const start: Tracing["start"] = (options) =>
-    use((t) => t.start(options).then(() => {}));
+    traced("start", (t) => t.start(options).then(() => {}));
   const startChunk: Tracing["startChunk"] = (options) =>
-    use((t) => t.startChunk(options).then(() => {}));
+    traced("startChunk", (t) => t.startChunk(options).then(() => {}));
   const stopChunk: Tracing["stopChunk"] = (options) =>
-    use((t) => t.stopChunk(options));
-  const stop: Tracing["stop"] = (options) => use((t) => t.stop(options));
+    traced("stopChunk", (t) => t.stopChunk(options));
+  const stop: Tracing["stop"] = (options) =>
+    traced("stop", (t) => t.stop(options));
   return Tracing.of({
     start,
     startChunk,
@@ -168,7 +169,8 @@ export const makeTracing = (tracing: CoreTracing): Tracing => {
       ),
     stopChunk,
     stop,
-    startHar: (options) => use((t) => t.startHar(options).then(() => {})),
-    stopHar: use((t) => t.stopHar()),
+    startHar: (options) =>
+      traced("startHar", (t) => t.startHar(options).then(() => {})),
+    stopHar: traced("stopHar", (t) => t.stopHar()),
   });
 };

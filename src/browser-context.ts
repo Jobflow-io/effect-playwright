@@ -32,8 +32,8 @@ import type { PlaywrightError } from "./errors";
 import { makeFrame } from "./frame";
 import { makePage, type Page } from "./page";
 import type { PageFunction, PatchedEvents } from "./playwright-types";
+import { makeTracedUse } from "./tracer";
 import { makeTracing, type Tracing } from "./tracing";
-import { useHelper } from "./utils";
 
 interface BrowserContextEvents {
   /** @deprecated Since Playwright 1.56.0. This event is no longer emitted. */
@@ -325,21 +325,21 @@ export const makeBrowserContext = (
   context: CoreBrowserContext,
 ): BrowserContext => {
   const events = context as BrowserContextWithPatchedEvents;
-  const use = useHelper(context);
+  const { traced } = makeTracedUse(context, "BrowserContext");
   return BrowserContext.of({
     clock: makeClock(context.clock),
     credentials: makeCredentials(context.credentials),
     tracing: makeTracing(context.tracing),
     pages: () => context.pages().map(makePage),
-    newPage: use((c) => c.newPage().then(makePage)),
-    close: use((c) => c.close()),
+    newPage: traced("newPage", (c) => c.newPage().then(makePage)),
+    close: traced("close", (c) => c.close()),
     isClosed: () => context.isClosed(),
     addInitScript: <Arg>(
       script: PageFunction<Arg, unknown> | { path?: string; content?: string },
       arg?: Arg,
       options?: Parameters<CoreBrowserContext["addInitScript"]>[2],
     ) =>
-      use((c) =>
+      traced("addInitScript", (c) =>
         c.addInitScript<Arg>(
           script as unknown as Parameters<typeof c.addInitScript<Arg>>[0],
           arg,
@@ -348,21 +348,36 @@ export const makeBrowserContext = (
       ).pipe(Effect.asVoid),
     browser: () =>
       Option.fromNullishOr(context.browser()).pipe(Option.map(makeBrowser)),
-    clearCookies: (options) => use((c) => c.clearCookies(options)),
-    clearPermissions: use((c) => c.clearPermissions()),
-    cookies: (urls) => use((c) => c.cookies(urls)),
-    addCookies: (cookies) => use((c) => c.addCookies(cookies)),
+    clearCookies: (options) =>
+      traced("clearCookies", (c) => c.clearCookies(options)),
+    clearPermissions: traced("clearPermissions", (c) => c.clearPermissions()),
+    cookies: (urls) => traced("cookies", (c) => c.cookies(urls)),
+    addCookies: (cookies) => traced("addCookies", (c) => c.addCookies(cookies)),
     grantPermissions: (permissions, options) =>
-      use((c) => c.grantPermissions(permissions, options)),
+      traced(
+        "grantPermissions",
+        (c) => c.grantPermissions(permissions, options),
+        {
+          attributes: () => ({
+            "playwright.permissions": permissions.join(","),
+          }),
+        },
+      ),
     setExtraHTTPHeaders: (headers) =>
-      use((c) => c.setExtraHTTPHeaders(headers)),
-    setGeolocation: (geolocation) => use((c) => c.setGeolocation(geolocation)),
-    setOffline: (offline) => use((c) => c.setOffline(offline)),
+      traced("setExtraHTTPHeaders", (c) => c.setExtraHTTPHeaders(headers)),
+    setGeolocation: (geolocation) =>
+      traced("setGeolocation", (c) => c.setGeolocation(geolocation)),
+    setOffline: (offline) =>
+      traced("setOffline", (c) => c.setOffline(offline), {
+        attributes: () => ({ "playwright.offline": offline }),
+      }),
     setDefaultNavigationTimeout: (timeout) =>
       context.setDefaultNavigationTimeout(timeout),
     setDefaultTimeout: (timeout) => context.setDefaultTimeout(timeout),
-    storageState: (options) => use((c) => c.storageState(options)),
-    setStorageState: (options) => use((c) => c.setStorageState(options)),
+    storageState: (options) =>
+      traced("storageState", (c) => c.storageState(options)),
+    setStorageState: (options) =>
+      traced("setStorageState", (c) => c.setStorageState(options)),
     eventStream: <K extends keyof BrowserContextEvents>(event: K) =>
       Stream.callback<BrowserContextEvents[K]>((queue) => {
         const emit = (value: BrowserContextEvents[K]) => {

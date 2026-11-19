@@ -7,7 +7,7 @@
 import { Context, type Effect } from "effect";
 import type { Touchscreen as CoreTouchscreen } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * @category models
@@ -43,9 +43,15 @@ export const Touchscreen = Context.Service<Touchscreen>(
  * @category constructors
  */
 export const makeTouchscreen = (touchscreen: CoreTouchscreen): Touchscreen => {
-  const use = useHelper(touchscreen);
+  const { traced } = makeTracedUse(touchscreen, "Touchscreen");
 
   return Touchscreen.of({
-    tap: (x, y) => use((t) => t.tap(x, y)),
+    tap: (x, y) =>
+      traced("tap", (t) => t.tap(x, y), {
+        attributes: () => ({
+          "playwright.touch.x": x,
+          "playwright.touch.y": y,
+        }),
+      }),
   });
 };

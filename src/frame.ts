@@ -12,7 +12,7 @@ import { type FrameLocator, makeFrameLocator } from "./frame-locator";
 import { type Locator, makeLocator } from "./locator";
 import { makePage, type Page } from "./page";
 import type { PageFunction } from "./playwright-types";
-import { useHelper } from "./utils";
+import { makeTracedUse, sanitizeUrl, urlAttributes } from "./tracer";
 import { makeWebMCP, type WebMCP } from "./webmcp";
 
 /**
@@ -306,30 +306,61 @@ export const Frame = Context.Service<Frame>("effect-playwright/frame/Frame");
  * @category constructors
  */
 export const makeFrame = (frame: CoreFrame): Frame => {
-  const use = useHelper(frame);
+  const { traced, use } = makeTracedUse(
+    frame,
+    "Frame",
+    () => {
+      const name = frame.name();
+      return name !== "" ? { "playwright.frame.name": name } : {};
+    },
+    () => {
+      const name = frame.name();
+      return name !== "" ? name : undefined;
+    },
+  );
 
   return Frame.of({
     goto: (url, options) =>
-      use((f) => f.goto(url, options)).pipe(
+      traced("goto", (f) => f.goto(url, options), {
+        getTarget: () => sanitizeUrl(url),
+        attributes: () => ({
+          ...urlAttributes(url),
+          "playwright.wait_until": options?.waitUntil,
+        }),
+        onSuccess: (response) =>
+          response !== null
+            ? { "http.response.status_code": response.status() }
+            : undefined,
+      }).pipe(
         Effect.map(Option.fromNullishOr),
         Effect.map(Option.map(makeResponse)),
       ),
-    waitForURL: (url, options) => use((f) => f.waitForURL(url, options)),
+    waitForURL: (url, options) =>
+      traced("waitForURL", (f) => f.waitForURL(url, options), {
+        getTarget: () =>
+          typeof url === "string" ? sanitizeUrl(url) : undefined,
+        attributes: () => ({
+          ...(typeof url === "string" ? urlAttributes(url) : undefined),
+          "playwright.wait_until": options?.waitUntil,
+        }),
+      }),
     waitForLoadState: (state, options) =>
-      use((f) => f.waitForLoadState(state, options)),
+      traced("waitForLoadState", (f) => f.waitForLoadState(state, options), {
+        attributes: () => ({ "playwright.wait_state": state }),
+      }),
     evaluate: <R, Arg>(
       f: PageFunction<Arg, R>,
       arg?: Arg,
       options?: Parameters<CoreFrame["evaluate"]>[2],
     ) =>
-      use((frame) =>
+      traced("evaluate", (frame) =>
         frame.evaluate<R, Arg>(
           f as unknown as Parameters<typeof frame.evaluate<R, Arg>>[0],
           arg as Arg,
           options,
         ),
       ),
-    title: use((f) => f.title()),
+    title: traced("title", (f) => f.title()),
     use,
     locator: (selector, options) =>
       makeLocator(frame.locator(selector, options)),
@@ -349,13 +380,23 @@ export const makeFrame = (frame: CoreFrame): Frame => {
       Option.fromNullishOr(frame.parentFrame()).pipe(Option.map(makeFrame)),
     childFrames: () => Array.map(frame.childFrames(), (f) => makeFrame(f)),
     isDetached: () => frame.isDetached(),
-    waitForTimeout: (timeout) => use((f) => f.waitForTimeout(timeout)),
-    setContent: (html, options) => use((f) => f.setContent(html, options)),
+    waitForTimeout: (timeout) =>
+      traced("waitForTimeout", (f) => f.waitForTimeout(timeout), {
+        attributes: () => ({ "playwright.timeout_ms": timeout }),
+      }),
+    setContent: (html, options) =>
+      traced("setContent", (f) => f.setContent(html, options), {
+        attributes: () => ({ "playwright.wait_until": options?.waitUntil }),
+      }),
     url: () => frame.url(),
-    content: (options) => use((f) => f.content(options)),
+    content: (options) => traced("content", (f) => f.content(options)),
     webmcp: makeWebMCP(frame.webmcp),
-    frameElement: use((f) => f.frameElement()),
+    frameElement: traced("frameElement", (f) => f.frameElement()),
     name: () => frame.name(),
-    click: (selector, options) => use((f) => f.click(selector, options)),
+    click: (selector, options) =>
+      traced("click", (f) => f.click(selector, options), {
+        target: selector,
+        attributes: () => ({ "playwright.selector": selector }),
+      }),
   });
 };

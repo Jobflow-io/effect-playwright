@@ -17,7 +17,7 @@ import { type BrowserContext, makeBrowserContext } from "./browser-context";
 import type { PlaywrightError } from "./errors";
 import { makePage, type Page } from "./page";
 import type { PatchedEvents } from "./playwright-types";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * Options for launching a Playwright browser.
@@ -210,23 +210,31 @@ export const Browser = Context.Service<Browser>(
  */
 export const makeBrowser = (browser: CoreBrowser): Browser => {
   const events = browser as BrowserWithPatchedEvents;
-  const use = useHelper(browser);
+  const { traced, use } = makeTracedUse(browser, "Browser", () => ({
+    "playwright.browser.name": browser.browserType().name(),
+    "playwright.browser.version": browser.version(),
+  }));
 
   return Browser.of({
     newPage: (options) =>
-      use((browser) => browser.newPage(options).then(makePage)),
-    close: use((browser) => browser.close()),
+      traced("newPage", (browser) => browser.newPage(options).then(makePage)),
+    close: traced("close", (browser) => browser.close()),
     contexts: () => browser.contexts().map(makeBrowserContext),
     newContext: (options) =>
       Effect.acquireRelease(
-        use((browser) => browser.newContext(options).then(makeBrowserContext)),
+        traced("newContext", (browser) =>
+          browser.newContext(options).then(makeBrowserContext),
+        ),
         (context) => context.close.pipe(Effect.ignore({ log: true })),
       ),
     browserType: () => browser.browserType(),
     version: () => browser.version(),
     isConnected: () => browser.isConnected(),
-    bind: (title, options) => use((browser) => browser.bind(title, options)),
-    unbind: use((browser) => browser.unbind()),
+    bind: (title, options) =>
+      traced("bind", (browser) => browser.bind(title, options), {
+        attributes: () => ({ "playwright.bind.title": title }),
+      }),
+    unbind: traced("unbind", (browser) => browser.unbind()),
     eventStream: <K extends keyof BrowserEvents>(event: K) =>
       Stream.callback<BrowserEvents[K]>((queue) => {
         const emit = (value: BrowserEvents[K]) => {

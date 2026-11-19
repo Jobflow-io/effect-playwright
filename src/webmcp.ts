@@ -7,7 +7,7 @@
 import { Context, type Effect } from "effect";
 import type { WebMCP as CoreWebMCP } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * Hints a page provides about a WebMCP tool.
@@ -123,10 +123,13 @@ export const WebMCP = Context.Service<WebMCP>(
  * @since 0.9.0
  */
 export const makeWebMCP = (webmcp: CoreWebMCP): WebMCP => {
-  const use = useHelper(webmcp);
+  const { traced } = makeTracedUse(webmcp, "WebMCP");
   return WebMCP.of({
     callTool: (name, input, options) =>
-      use((w) => w.callTool(name, input, options)),
-    tools: (options) => use((w) => w.tools(options)),
+      traced("callTool", (w) => w.callTool(name, input, options), {
+        target: name,
+        attributes: () => ({ "playwright.webmcp.tool": name }),
+      }),
+    tools: (options) => traced("tools", (w) => w.tools(options)),
   });
 };
