@@ -231,9 +231,7 @@ export const makeBrowser = (browser: CoreBrowser): Browser => {
     version: () => browser.version(),
     isConnected: () => browser.isConnected(),
     bind: (title, options) =>
-      traced("bind", (browser) => browser.bind(title, options), {
-        attributes: () => ({ "playwright.bind.title": title }),
-      }),
+      traced("bind", (browser) => browser.bind(title, options)),
     unbind: traced("unbind", (browser) => browser.unbind()),
     eventStream: <K extends keyof BrowserEvents>(event: K) =>
       Stream.callback<BrowserEvents[K]>((queue) => {

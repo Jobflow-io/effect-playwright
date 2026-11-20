@@ -188,10 +188,10 @@ All fallible Playwright operations emit Effect `Tracer` spans (`kind: "client"`)
 By default:
 
 - Spans are named `Playwright.<method>` for launch/connection operations (for example, `Playwright.launch`) and `Playwright.<Service>.<method>` for service operations (for example, `Playwright.Page.goto`, `Playwright.Locator.click`).
-- Safe metadata is attached as span attributes (such as `playwright.service`, `playwright.method`, `playwright.selector`, `playwright.error.reason`, `url.*`, and `http.response.status_code`).
-- Sensitive payloads are not recorded: input values (`fill`, `type`, `insertText`, `pressSequentially`), extra HTTP headers, cookies, storage values, HTML content, and `data:` URL payloads are omitted, and credentials embedded in URLs are redacted.
+- Safe, low-cardinality metadata is attached as span attributes (such as `playwright.service`, `playwright.method`, `playwright.error.reason`, `playwright.browser.name`, `playwright.browser.version`, `url.scheme`, `server.address`, `server.port`, `http.request.method`, and `http.response.status_code`).
+- Sensitive payloads and high-cardinality identifiers are never recorded on spans: input values, keystrokes, selectors, coordinates, headers, cookies, storage keys/values, HTML content, URL paths, queries, fragments, credentials, opaque URL payloads, and raw error causes are omitted or redacted. Use `Effect.annotateSpans` or `Effect.withSpan` when you want to attach additional application context.
 
-Use `Playwright.TracerDisabledWhen`, `Playwright.TracerAttributeFilter`, and `Playwright.SpanNameGenerator` to customize Playwright tracing behavior:
+Use `Playwright.TracerDisabledWhen`, `Playwright.TracerAttributeFilter`, and `Playwright.SpanNameGenerator` to customize Playwright tracing behavior (`Playwright.TracerAttributeFilter` filters attributes emitted by `effect-playwright` and does not filter annotations inherited from `Effect.annotateSpans`):
 
 ```ts
 import { Effect, Layer } from "effect";
@@ -203,25 +203,21 @@ const tracingLayer = Layer.mergeAll(
     Playwright.TracerDisabledWhen,
     (op) => op.service === "Mouse" || op.method === "title",
   ),
-  // Drop query strings, full URLs, and selectors from span attributes
+  // Drop host and port attributes from Playwright spans
   Layer.succeed(
     Playwright.TracerAttributeFilter,
-    (name) =>
-      name !== "url.query" &&
-      name !== "url.full" &&
-      name !== "playwright.selector",
+    (name) => name !== "server.address" && name !== "server.port",
   ),
   // Customize span names
-  Layer.succeed(Playwright.SpanNameGenerator, (op) =>
-    op.target !== undefined
-      ? `${op.service}.${op.method} (${op.target})`
-      : `${op.service}.${op.method}`,
+  Layer.succeed(
+    Playwright.SpanNameGenerator,
+    (op) => `${op.service}.${op.method}`,
   ),
 );
 
 const program = Effect.gen(function* () {
   const page = yield* Playwright.Page;
-  yield* page.goto("https://example.com/search?token=secret");
+  yield* page.goto("https://example.com/account/settings");
   yield* page.locator("button").click();
 }).pipe(Effect.provide(tracingLayer));
 ```

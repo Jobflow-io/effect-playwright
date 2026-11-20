@@ -810,20 +810,7 @@ export const Locator = Context.Service<Locator>(
  * @since 0.1.0
  */
 export const makeLocator = (locator: CoreLocator): Locator => {
-  const { traced, use } = makeTracedUse(
-    locator,
-    "Locator",
-    () => {
-      const description = locator.description();
-      return description !== null
-        ? {
-            "playwright.selector": locator.toString(),
-            "playwright.locator.description": description,
-          }
-        : { "playwright.selector": locator.toString() };
-    },
-    () => locator.description() ?? locator.toString(),
-  );
+  const { traced, use } = makeTracedUse(locator, "Locator");
   const unwrap = Match.type<CoreLocator | Locator>().pipe(
     Match.when(Predicate.hasProperty("_raw"), (locator) => locator._raw),
     Match.orElse((locator) => locator),
@@ -836,9 +823,7 @@ export const makeLocator = (locator: CoreLocator): Locator => {
     fill: (value, options) =>
       traced("fill", (locator) => locator.fill(value, options)),
     getAttribute: (name, options) =>
-      traced("getAttribute", (locator) => locator.getAttribute(name, options), {
-        attributes: () => ({ "playwright.attribute.name": name }),
-      }),
+      traced("getAttribute", (locator) => locator.getAttribute(name, options)),
     innerText: (options) =>
       traced("innerText", (locator) => locator.innerText(options)),
     innerHTML: (options) =>
@@ -912,9 +897,7 @@ export const makeLocator = (locator: CoreLocator): Locator => {
       traced("isVisible", (locator) => locator.isVisible(options)),
     visible: () => makeLocator(locator.visible()),
     waitFor: (options) =>
-      traced("waitFor", (locator) => locator.waitFor(options), {
-        attributes: () => ({ "playwright.wait_state": options?.state }),
-      }),
+      traced("waitFor", (locator) => locator.waitFor(options)),
     waitForFunction: <
       R,
       Arg = void,
@@ -1013,27 +996,15 @@ export const makeLocator = (locator: CoreLocator): Locator => {
     dblclick: (options) =>
       traced("dblclick", (locator) => locator.dblclick(options)),
     dispatchEvent: (type, eventInit, options) =>
-      traced(
-        "dispatchEvent",
-        (locator) => locator.dispatchEvent(type, eventInit, options),
-        {
-          attributes: () => ({ "playwright.event.type": type }),
-        },
+      traced("dispatchEvent", (locator) =>
+        locator.dispatchEvent(type, eventInit, options),
       ),
-    dragTo: (target, options) => {
-      const rawTarget = unwrap(target);
-      return traced("dragTo", (locator) => locator.dragTo(rawTarget, options), {
-        attributes: () => ({
-          "playwright.target_selector": rawTarget.toString(),
-        }),
-      });
-    },
+    dragTo: (target, options) =>
+      traced("dragTo", (locator) => locator.dragTo(unwrap(target), options)),
     focus: (options) => traced("focus", (locator) => locator.focus(options)),
     hover: (options) => traced("hover", (locator) => locator.hover(options)),
     press: (key, options) =>
-      traced("press", (locator) => locator.press(key, options), {
-        attributes: () => ({ "playwright.key": key }),
-      }),
+      traced("press", (locator) => locator.press(key, options)),
     pressSequentially: (text, options) =>
       traced("pressSequentially", (locator) =>
         locator.pressSequentially(text, options),
@@ -1049,9 +1020,7 @@ export const makeLocator = (locator: CoreLocator): Locator => {
     selectText: (options) =>
       traced("selectText", (locator) => locator.selectText(options)),
     setChecked: (checked, options) =>
-      traced("setChecked", (locator) => locator.setChecked(checked, options), {
-        attributes: () => ({ "playwright.checked": checked }),
-      }),
+      traced("setChecked", (locator) => locator.setChecked(checked, options)),
     setInputFiles: (files, options) =>
       traced("setInputFiles", (locator) =>
         locator.setInputFiles(files, options),

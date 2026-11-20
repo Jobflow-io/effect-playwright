@@ -6,18 +6,35 @@
  * while respecting Effect's native tracing controls (`Effect.withTracerEnabled`,
  * `Tracer.DisablePropagation`, `Tracer.MinimumTraceLevel`,
  * `Effect.withTracerTiming`, and `Effect.annotateSpans`). Sensitive payloads
- * (such as typed text, headers, cookies, storage values, raw HTML, `data:` URL
- * bodies, and URL credentials) are omitted or redacted by default.
+ * (such as input values, keystrokes, selectors, coordinates, headers, cookies,
+ * storage keys/values, HTML content, URL paths, queries, fragments,
+ * credentials, opaque URL payloads, and raw error causes) are never recorded
+ * on spans.
  *
  * Use {@link TracerDisabledWhen}, {@link TracerAttributeFilter}, and
  * {@link SpanNameGenerator} to customize Playwright-specific tracing behavior.
  * These references configure Effect tracing and are separate from Playwright's
  * trace viewer recordings (`context.tracing`).
  *
+ * @see https://playwright.dev/docs/api/class-playwright
  * @since 0.10.0
  */
 
-import { Context, Effect, type Predicate, References, Tracer } from "effect";
+import {
+  Cause,
+  Clock,
+  Context,
+  Effect,
+  Exit,
+  Option,
+  type Predicate,
+  Record,
+  References,
+  Result,
+  Schema,
+  SchemaTransformation,
+  Tracer,
+} from "effect";
 import { PlaywrightError, wrapError } from "./errors";
 import { useHelper } from "./utils";
 
@@ -44,6 +61,7 @@ import { useHelper } from "./utils";
  * );
  * ```
  *
+ * @see https://playwright.dev/docs/api/class-playwright
  * @category models
  * @since 0.10.0
  */
@@ -74,8 +92,8 @@ export type SpanService =
  * Metadata describing a Playwright operation being traced.
  *
  * Passed to {@link TracerDisabledWhen}, {@link TracerAttributeFilter}, and
- * {@link SpanNameGenerator} so tracing behavior can be customized per service,
- * method, or target.
+ * {@link SpanNameGenerator} so tracing behavior can be customized per service
+ * or method.
  *
  * @example
  * ```ts
@@ -83,9 +101,7 @@ export type SpanService =
  * import { Playwright } from "effect-playwright";
  *
  * const formatSpanName = (op: Playwright.SpanOperation): string =>
- *   op.target !== undefined
- *     ? `${op.service}.${op.method} (${op.target})`
- *     : `${op.service}.${op.method}`;
+ *   `${op.service}.${op.method}`;
  *
  * const program = Effect.gen(function* () {
  *   const page = yield* Playwright.Page;
@@ -95,6 +111,7 @@ export type SpanService =
  * );
  * ```
  *
+ * @see https://playwright.dev/docs/api/class-playwright
  * @category models
  * @since 0.10.0
  */
@@ -107,11 +124,6 @@ export interface SpanOperation {
    * The operation method name (for example, `"goto"`, `"click"`, or `"launch"`).
    */
   readonly method: string;
-  /**
-   * Optional sanitized target summary, such as a locator selector/description
-   * or a credential-redacted URL.
-   */
-  readonly target?: string | undefined;
 }
 
 /**
@@ -148,6 +160,7 @@ export interface SpanOperation {
  * );
  * ```
  *
+ * @see https://playwright.dev/docs/api/class-playwright
  * @see {@link TracerAttributeFilter}
  * @see {@link SpanNameGenerator}
  * @category services
@@ -167,15 +180,15 @@ export const TracerDisabledWhen: Context.Reference<
  *
  * **When to use**
  *
- * Use when you want to trim trace size or omit potentially sensitive metadata
- * such as `"url.query"`, `"url.full"`, or `"playwright.selector"`.
+ * Use when you want to trim trace size or omit metadata such as
+ * `"server.address"` or `"playwright.browser.version"`.
  *
  * **Details**
  *
- * Defaults to `() => true`. Return `false` for any attribute name you want to
- * omit from spans. Sensitive payloads (input values, headers, cookies, storage
- * values, raw HTML, `data:` URL bodies, and URL credentials) are already
- * omitted or redacted by default.
+ * Defaults to `() => true`. Return `false` for any attribute name recorded by
+ * `effect-playwright` that you want to omit from spans. This filter only
+ * applies to attributes emitted by `effect-playwright` and does not filter
+ * annotations inherited from `Effect.annotateSpans`.
  *
  * @example
  * ```ts
@@ -184,15 +197,16 @@ export const TracerDisabledWhen: Context.Reference<
  *
  * const program = Effect.gen(function* () {
  *   const page = yield* Playwright.Page;
- *   yield* page.goto("https://example.com/search?token=secret");
+ *   yield* page.goto("https://example.com/account/settings");
  * }).pipe(
  *   Effect.provideService(
  *     Playwright.TracerAttributeFilter,
- *     (name) => name !== "url.query" && name !== "url.full",
+ *     (name) => name !== "server.address" && name !== "server.port",
  *   ),
  * );
  * ```
  *
+ * @see https://playwright.dev/docs/api/class-page
  * @see {@link TracerDisabledWhen}
  * @see {@link SpanNameGenerator}
  * @category services
@@ -211,8 +225,7 @@ export const TracerAttributeFilter: Context.Reference<
  *
  * **When to use**
  *
- * Use to adopt a custom span naming scheme or to include
- * {@link SpanOperation.target} (such as locator descriptions) in span names.
+ * Use to adopt a custom span naming scheme for Playwright operations.
  *
  * **Details**
  *
@@ -227,16 +240,16 @@ export const TracerAttributeFilter: Context.Reference<
  *
  * const program = Effect.gen(function* () {
  *   const page = yield* Playwright.Page;
- *   yield* page.locator("button").click();
+ *   yield* page.goto("https://example.com");
  * }).pipe(
- *   Effect.provideService(Playwright.SpanNameGenerator, (op) =>
- *     op.target !== undefined
- *       ? `${op.service}.${op.method} (${op.target})`
- *       : `${op.service}.${op.method}`,
+ *   Effect.provideService(
+ *     Playwright.SpanNameGenerator,
+ *     (op) => `pw.${op.service}.${op.method}`,
  *   ),
  * );
  * ```
  *
+ * @see https://playwright.dev/docs/api/class-playwright
  * @see {@link TracerDisabledWhen}
  * @see {@link TracerAttributeFilter}
  * @category services
@@ -258,80 +271,126 @@ export const SpanNameGenerator: Context.Reference<
 export interface TraceSpanConfig<A> {
   readonly service: SpanService;
   readonly method: string;
-  readonly target?: string | undefined;
-  readonly getTarget?: (() => string | undefined) | undefined;
   readonly attributes?: (() => Record<string, unknown>) | undefined;
   readonly onSuccess?:
     | ((value: A) => Record<string, unknown> | undefined)
     | undefined;
 }
 
-/** @internal */
-export const sanitizeUrl = (rawUrl: string): string | undefined => {
-  if (rawUrl === "") {
-    return undefined;
-  }
-  try {
-    const parsed = new URL(rawUrl);
-    if (parsed.protocol === "data:") {
-      return "data:";
-    }
-    if (parsed.username !== "" || parsed.password !== "") {
-      parsed.username = "REDACTED";
-      parsed.password = "REDACTED";
-    }
-    return parsed.toString();
-  } catch {
-    return rawUrl;
-  }
+const NetworkScheme = Schema.Literals(["http", "https", "ws", "wss"]);
+const isNetworkScheme = Schema.is(NetworkScheme);
+
+const parseAbsoluteUrl = Schema.decodeOption(
+  Schema.String.pipe(
+    Schema.decodeTo(Schema.URL, SchemaTransformation.urlFromString),
+  ),
+);
+
+const normalizeHostname = (hostname: string): string | undefined => {
+  if (hostname === "") return undefined;
+  return hostname.startsWith("[") && hostname.endsWith("]")
+    ? hostname.slice(1, -1)
+    : hostname;
 };
 
 /** @internal */
-export const urlAttributes = (rawUrl: string): Record<string, unknown> => {
-  if (rawUrl === "") {
-    return {};
-  }
-  try {
-    const parsed = new URL(rawUrl);
-    const scheme = parsed.protocol.slice(0, -1);
-    if (parsed.protocol === "data:") {
-      return { "url.scheme": scheme };
-    }
-    if (parsed.username !== "" || parsed.password !== "") {
-      parsed.username = "REDACTED";
-      parsed.password = "REDACTED";
-    }
-    const attrs: Record<string, unknown> = {
-      "url.full": parsed.toString(),
-      "url.scheme": scheme,
-      "url.path": parsed.pathname,
-    };
-    if (parsed.origin !== "null") {
-      attrs["server.address"] = parsed.origin;
-    }
-    if (parsed.port !== "") {
-      attrs["server.port"] = +parsed.port;
-    }
-    const query = parsed.search.slice(1);
-    if (query !== "") {
-      attrs["url.query"] = query;
-    }
-    return attrs;
-  } catch {
-    const hashIndex = rawUrl.indexOf("#");
-    const withoutHash = hashIndex === -1 ? rawUrl : rawUrl.slice(0, hashIndex);
-    const queryIndex = withoutHash.indexOf("?");
-    const attrs: Record<string, unknown> = {
-      "url.full": rawUrl,
-      "url.path":
-        queryIndex === -1 ? withoutHash : withoutHash.slice(0, queryIndex),
-    };
-    if (queryIndex !== -1 && queryIndex < withoutHash.length - 1) {
-      attrs["url.query"] = withoutHash.slice(queryIndex + 1);
-    }
-    return attrs;
-  }
-};
+export const urlAttributes = (rawUrl: string): Record<string, unknown> =>
+  Option.match(parseAbsoluteUrl(rawUrl), {
+    onNone: () => ({}),
+    onSome: (url) => {
+      const scheme = url.protocol.slice(0, -1);
+      if (!isNetworkScheme(scheme)) {
+        return { "url.scheme": scheme };
+      }
+      const hostname = normalizeHostname(url.hostname);
+      const port = url.port !== "" ? Number(url.port) : undefined;
+      return {
+        "url.scheme": scheme,
+        ...(hostname !== undefined
+          ? { "server.address": hostname }
+          : undefined),
+        ...(port !== undefined ? { "server.port": port } : undefined),
+      };
+    },
+  });
+
+const StandardHttpMethod = Schema.Literals([
+  "CONNECT",
+  "DELETE",
+  "GET",
+  "HEAD",
+  "OPTIONS",
+  "PATCH",
+  "POST",
+  "PUT",
+  "QUERY",
+  "TRACE",
+]);
+const isStandardHttpMethod = Schema.is(StandardHttpMethod);
+
+/** @internal */
+export const sanitizeHttpMethod = (method: string): string =>
+  isStandardHttpMethod(method) ? method : "_OTHER";
+
+const StandardLoadState = Schema.Literals([
+  "load",
+  "domcontentloaded",
+  "networkidle",
+]);
+const isStandardLoadState = Schema.is(StandardLoadState);
+
+/** @internal */
+export type StandardLoadState = Schema.Schema.Type<typeof StandardLoadState>;
+
+/** @internal */
+export const sanitizeLoadState = (
+  state: string | undefined,
+): Option.Option<StandardLoadState> =>
+  Option.fromNullishOr(state).pipe(Option.filter(isStandardLoadState));
+
+const isPlaywrightError = (error: unknown): error is PlaywrightError =>
+  error instanceof PlaywrightError;
+
+const bigint0 = BigInt(0);
+
+const sanitizeSpanExit = <A, E>(
+  exit: Exit.Exit<A, E>,
+): Exit.Exit<unknown, unknown> =>
+  Exit.match(exit, {
+    onSuccess: () => Exit.void,
+    onFailure: (cause) => {
+      if (Cause.hasInterruptsOnly(cause)) {
+        return exit;
+      }
+      const reason = Cause.findErrorOption(cause).pipe(
+        Option.filter(isPlaywrightError),
+        Option.map((error) => error.reason),
+        Option.getOrElse(() => "Unknown" as const),
+      );
+      return Exit.fail(new PlaywrightError({ reason, cause: undefined }));
+    },
+  });
+
+const isSpanSampled = (span: Tracer.Span): boolean =>
+  Result.getOrElse(
+    Result.try(() => span.sampled),
+    () => false,
+  );
+
+const isSpanEnded = (span: Tracer.Span): boolean =>
+  Result.getOrElse(
+    Result.try(() => span.status._tag === "Ended"),
+    () => false,
+  );
+
+interface ResolvedSpanSetup {
+  readonly operation: SpanOperation;
+  readonly spanName: string;
+  readonly attributeFilter: (
+    attributeName: string,
+    operation: SpanOperation,
+  ) => boolean;
+}
 
 /** @internal */
 export const withPlaywrightSpan = <A, E, R>(
@@ -346,20 +405,28 @@ export const withPlaywrightSpan = <A, E, R>(
       return effect;
     }
 
-    const target =
-      config.target !== undefined ? config.target : config.getTarget?.();
+    const setup = Result.getSuccess(
+      Result.try((): Option.Option<ResolvedSpanSetup> => {
+        const operation: SpanOperation = {
+          service: config.service,
+          method: config.method,
+        };
+        if (fiber.getRef(TracerDisabledWhen)(operation)) {
+          return Option.none();
+        }
+        return Option.some({
+          operation,
+          spanName: fiber.getRef(SpanNameGenerator)(operation),
+          attributeFilter: fiber.getRef(TracerAttributeFilter),
+        });
+      }),
+    ).pipe(Option.flatten);
 
-    const operation: SpanOperation =
-      target !== undefined
-        ? { service: config.service, method: config.method, target }
-        : { service: config.service, method: config.method };
-
-    if (fiber.getRef(TracerDisabledWhen)(operation)) {
+    if (Option.isNone(setup)) {
       return effect;
     }
 
-    const spanName = fiber.getRef(SpanNameGenerator)(operation);
-    const attributeFilter = fiber.getRef(TracerAttributeFilter);
+    const { operation, spanName, attributeFilter } = setup.value;
 
     const setAttribute = (
       span: Tracer.Span,
@@ -367,56 +434,88 @@ export const withPlaywrightSpan = <A, E, R>(
       value: unknown,
     ): void => {
       if (value === undefined) return;
-      if (!attributeFilter(key, operation)) return;
-      span.attribute(key, value);
+      Result.try(() => {
+        if (attributeFilter(key, operation)) {
+          span.attribute(key, value);
+        }
+      });
     };
 
-    return Effect.useSpan(spanName, { kind: "client" }, (span) => {
-      if (span.sampled) {
-        setAttribute(span, "playwright.service", operation.service);
-        setAttribute(span, "playwright.method", operation.method);
-        if (config.attributes !== undefined) {
-          const attrs = config.attributes();
-          for (const key in attrs) {
-            setAttribute(span, key, attrs[key]);
+    const setAttributes = (
+      span: Tracer.Span,
+      getAttributes: () => Record<string, unknown> | undefined,
+    ): void => {
+      Result.getSuccess(Result.try(getAttributes)).pipe(
+        Option.flatMap(Option.fromNullishOr),
+        Option.map((attrs) =>
+          Record.toEntries(attrs).forEach(([key, value]) => {
+            setAttribute(span, key, value);
+          }),
+        ),
+      );
+    };
+
+    const clock = fiber.getRef(Clock.Clock);
+    const timingEnabled = fiber.getRef(References.TracerTimingEnabled);
+
+    return Effect.uninterruptibleMask((restore) =>
+      Effect.makeSpan(spanName, { kind: "client" }).pipe(
+        Effect.catchDefect(() => Effect.succeed(undefined)),
+        Effect.flatMap((span) => {
+          if (span === undefined) {
+            return restore(effect);
           }
-        }
-      }
 
-      let result = Effect.withParentSpan(effect, span, {
-        captureStackTrace: false,
-      });
-
-      if (span.sampled && config.onSuccess !== undefined) {
-        const onSuccess = config.onSuccess;
-        result = Effect.map(result, (value) => {
-          const attrs = onSuccess(value);
-          if (attrs !== undefined) {
-            for (const key in attrs) {
-              setAttribute(span, key, attrs[key]);
+          if (isSpanSampled(span)) {
+            setAttribute(span, "playwright.service", operation.service);
+            setAttribute(span, "playwright.method", operation.method);
+            if (config.attributes !== undefined) {
+              setAttributes(span, config.attributes);
             }
           }
-          return value;
-        });
-      }
 
-      if (span.sampled) {
-        result = Effect.mapError(result, (error) => {
-          if (error instanceof PlaywrightError) {
-            setAttribute(span, "playwright.error.reason", error.reason);
-          }
-          return error;
-        });
-      }
-
-      return result;
-    });
+          return Effect.onExit(
+            Effect.withParentSpan(restore(effect), span, {
+              captureStackTrace: false,
+            }),
+            (exit) =>
+              Effect.sync(() => {
+                if (isSpanEnded(span)) return;
+                if (isSpanSampled(span)) {
+                  Exit.match(exit, {
+                    onSuccess: (value) => {
+                      if (config.onSuccess !== undefined) {
+                        const onSuccess = config.onSuccess;
+                        setAttributes(span, () => onSuccess(value));
+                      }
+                    },
+                    onFailure: (cause) => {
+                      Cause.findErrorOption(cause).pipe(
+                        Option.filter(isPlaywrightError),
+                        Option.map((error) =>
+                          setAttribute(
+                            span,
+                            "playwright.error.reason",
+                            error.reason,
+                          ),
+                        ),
+                      );
+                    },
+                  });
+                }
+                const endTime = timingEnabled
+                  ? clock.currentTimeNanosUnsafe()
+                  : bigint0;
+                span.end(endTime, sanitizeSpanExit(exit));
+              }).pipe(Effect.catchDefect(() => Effect.void)),
+          );
+        }),
+      ),
+    );
   });
 
 /** @internal */
 export interface TracedCallOptions<A> {
-  readonly target?: string | undefined;
-  readonly getTarget?: (() => string | undefined) | undefined;
   readonly attributes?: (() => Record<string, unknown>) | undefined;
   readonly onSuccess?:
     | ((value: A) => Record<string, unknown> | undefined)
@@ -428,23 +527,17 @@ export const makeTracedUse = <Wrap>(
   api: Wrap,
   service: SpanService,
   baseAttributes?: () => Record<string, unknown>,
-  baseTarget?: () => string | undefined,
 ) => {
   const rawUse = useHelper(api);
 
-  const traced = <A>(
+  const traceEffect = <A>(
     method: string,
-    userFunction: (api: Wrap) => Promise<A>,
+    effect: Effect.Effect<A, PlaywrightError>,
     options?: TracedCallOptions<A>,
   ): Effect.Effect<A, PlaywrightError> =>
-    withPlaywrightSpan(rawUse(userFunction), {
+    withPlaywrightSpan(effect, {
       service,
       method,
-      target: options?.target,
-      getTarget:
-        options?.target !== undefined
-          ? undefined
-          : (options?.getTarget ?? baseTarget),
       attributes:
         baseAttributes !== undefined || options?.attributes !== undefined
           ? () => ({
@@ -457,11 +550,18 @@ export const makeTracedUse = <Wrap>(
       onSuccess: options?.onSuccess,
     });
 
+  const traced = <A>(
+    method: string,
+    userFunction: (api: Wrap) => Promise<A>,
+    options?: TracedCallOptions<A>,
+  ): Effect.Effect<A, PlaywrightError> =>
+    traceEffect(method, rawUse(userFunction), options);
+
   const use = <A>(
     userFunction: (api: Wrap) => Promise<A>,
   ): Effect.Effect<A, PlaywrightError> => traced("use", userFunction);
 
-  return { traced, use } as const;
+  return { traced, traceEffect, use } as const;
 };
 
 /** @internal */
@@ -474,8 +574,6 @@ export const tracedTry = <A>(
   withPlaywrightSpan(Effect.try({ try: thunk, catch: wrapError }), {
     service,
     method,
-    target: options?.target,
-    getTarget: options?.getTarget,
     attributes: options?.attributes,
     onSuccess: options?.onSuccess,
   });

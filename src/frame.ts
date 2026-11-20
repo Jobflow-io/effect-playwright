@@ -12,7 +12,7 @@ import { type FrameLocator, makeFrameLocator } from "./frame-locator";
 import { type Locator, makeLocator } from "./locator";
 import { makePage, type Page } from "./page";
 import type { PageFunction } from "./playwright-types";
-import { makeTracedUse, sanitizeUrl, urlAttributes } from "./tracer";
+import { makeTracedUse, sanitizeLoadState, urlAttributes } from "./tracer";
 import { makeWebMCP, type WebMCP } from "./webmcp";
 
 /**
@@ -306,47 +306,31 @@ export const Frame = Context.Service<Frame>("effect-playwright/frame/Frame");
  * @category constructors
  */
 export const makeFrame = (frame: CoreFrame): Frame => {
-  const { traced, use } = makeTracedUse(
-    frame,
-    "Frame",
-    () => {
-      const name = frame.name();
-      return name !== "" ? { "playwright.frame.name": name } : {};
-    },
-    () => {
-      const name = frame.name();
-      return name !== "" ? name : undefined;
-    },
-  );
+  const { traced, use } = makeTracedUse(frame, "Frame");
 
   return Frame.of({
     goto: (url, options) =>
       traced("goto", (f) => f.goto(url, options), {
-        getTarget: () => sanitizeUrl(url),
-        attributes: () => ({
-          ...urlAttributes(url),
-          "playwright.wait_until": options?.waitUntil,
-        }),
         onSuccess: (response) =>
           response !== null
-            ? { "http.response.status_code": response.status() }
-            : undefined,
+            ? {
+                ...urlAttributes(response.url()),
+                "http.response.status_code": response.status(),
+              }
+            : urlAttributes(frame.url()),
       }).pipe(
         Effect.map(Option.fromNullishOr),
         Effect.map(Option.map(makeResponse)),
       ),
     waitForURL: (url, options) =>
-      traced("waitForURL", (f) => f.waitForURL(url, options), {
-        getTarget: () =>
-          typeof url === "string" ? sanitizeUrl(url) : undefined,
-        attributes: () => ({
-          ...(typeof url === "string" ? urlAttributes(url) : undefined),
-          "playwright.wait_until": options?.waitUntil,
-        }),
-      }),
+      traced("waitForURL", (f) => f.waitForURL(url, options)),
     waitForLoadState: (state, options) =>
       traced("waitForLoadState", (f) => f.waitForLoadState(state, options), {
-        attributes: () => ({ "playwright.wait_state": state }),
+        attributes: () => ({
+          "playwright.wait_state": Option.getOrUndefined(
+            sanitizeLoadState(state),
+          ),
+        }),
       }),
     evaluate: <R, Arg>(
       f: PageFunction<Arg, R>,
@@ -385,18 +369,13 @@ export const makeFrame = (frame: CoreFrame): Frame => {
         attributes: () => ({ "playwright.timeout_ms": timeout }),
       }),
     setContent: (html, options) =>
-      traced("setContent", (f) => f.setContent(html, options), {
-        attributes: () => ({ "playwright.wait_until": options?.waitUntil }),
-      }),
+      traced("setContent", (f) => f.setContent(html, options)),
     url: () => frame.url(),
     content: (options) => traced("content", (f) => f.content(options)),
     webmcp: makeWebMCP(frame.webmcp),
     frameElement: traced("frameElement", (f) => f.frameElement()),
     name: () => frame.name(),
     click: (selector, options) =>
-      traced("click", (f) => f.click(selector, options), {
-        target: selector,
-        attributes: () => ({ "playwright.selector": selector }),
-      }),
+      traced("click", (f) => f.click(selector, options)),
   });
 };

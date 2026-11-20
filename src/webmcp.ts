@@ -126,10 +126,7 @@ export const makeWebMCP = (webmcp: CoreWebMCP): WebMCP => {
   const { traced } = makeTracedUse(webmcp, "WebMCP");
   return WebMCP.of({
     callTool: (name, input, options) =>
-      traced("callTool", (w) => w.callTool(name, input, options), {
-        target: name,
-        attributes: () => ({ "playwright.webmcp.tool": name }),
-      }),
+      traced("callTool", (w) => w.callTool(name, input, options)),
     tools: (options) => traced("tools", (w) => w.tools(options)),
   });
 };

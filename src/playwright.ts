@@ -15,7 +15,7 @@ import {
 import { type Browser, type LaunchOptions, makeBrowser } from "./browser";
 import { type BrowserContext, makeBrowserContext } from "./browser-context";
 import { type PlaywrightError, wrapError } from "./errors";
-import { sanitizeUrl, urlAttributes, withPlaywrightSpan } from "./tracer";
+import { urlAttributes, withPlaywrightSpan } from "./tracer";
 
 type LaunchPersistentContextOptions = Parameters<
   BrowserType["launchPersistentContext"]
@@ -271,11 +271,8 @@ const launch: (
     {
       service: "Playwright",
       method: "launch",
-      target: browserType.name(),
       attributes: () => ({
         "playwright.browser.name": browserType.name(),
-        "playwright.headless": options?.headless,
-        "playwright.channel": options?.channel,
       }),
       onSuccess: (browser) => ({
         "playwright.browser.version": browser.version(),
@@ -295,7 +292,6 @@ const connectCDP: (
     {
       service: "Playwright",
       method: "connectCDP",
-      getTarget: () => sanitizeUrl(cdpUrl),
       attributes: () => urlAttributes(cdpUrl),
       onSuccess: (browser) => ({
         "playwright.browser.version": browser.version(),
@@ -320,11 +316,8 @@ const launchPersistentContext: (
     {
       service: "Playwright",
       method: "launchPersistentContext",
-      target: browserType.name(),
       attributes: () => ({
         "playwright.browser.name": browserType.name(),
-        "playwright.headless": options?.headless,
-        "playwright.channel": options?.channel,
       }),
     },
   );

@@ -46,12 +46,6 @@ export const makeTouchscreen = (touchscreen: CoreTouchscreen): Touchscreen => {
   const { traced } = makeTracedUse(touchscreen, "Touchscreen");
 
   return Touchscreen.of({
-    tap: (x, y) =>
-      traced("tap", (t) => t.tap(x, y), {
-        attributes: () => ({
-          "playwright.touch.x": x,
-          "playwright.touch.y": y,
-        }),
-      }),
+    tap: (x, y) => traced("tap", (t) => t.tap(x, y)),
   });
 };

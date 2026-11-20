@@ -93,43 +93,12 @@ export const makeMouse = (mouse: CoreMouse): Mouse => {
   const { traced } = makeTracedUse(mouse, "Mouse");
 
   return Mouse.of({
-    click: (x, y, options) =>
-      traced("click", (m) => m.click(x, y, options), {
-        attributes: () => ({
-          "playwright.mouse.x": x,
-          "playwright.mouse.y": y,
-          "playwright.mouse.button": options?.button,
-        }),
-      }),
+    click: (x, y, options) => traced("click", (m) => m.click(x, y, options)),
     dblclick: (x, y, options) =>
-      traced("dblclick", (m) => m.dblclick(x, y, options), {
-        attributes: () => ({
-          "playwright.mouse.x": x,
-          "playwright.mouse.y": y,
-          "playwright.mouse.button": options?.button,
-        }),
-      }),
-    down: (options) =>
-      traced("down", (m) => m.down(options), {
-        attributes: () => ({ "playwright.mouse.button": options?.button }),
-      }),
-    move: (x, y, options) =>
-      traced("move", (m) => m.move(x, y, options), {
-        attributes: () => ({
-          "playwright.mouse.x": x,
-          "playwright.mouse.y": y,
-        }),
-      }),
-    up: (options) =>
-      traced("up", (m) => m.up(options), {
-        attributes: () => ({ "playwright.mouse.button": options?.button }),
-      }),
-    wheel: (deltaX, deltaY) =>
-      traced("wheel", (m) => m.wheel(deltaX, deltaY), {
-        attributes: () => ({
-          "playwright.mouse.delta_x": deltaX,
-          "playwright.mouse.delta_y": deltaY,
-        }),
-      }),
+      traced("dblclick", (m) => m.dblclick(x, y, options)),
+    down: (options) => traced("down", (m) => m.down(options)),
+    move: (x, y, options) => traced("move", (m) => m.move(x, y, options)),
+    up: (options) => traced("up", (m) => m.up(options)),
+    wheel: (deltaX, deltaY) => traced("wheel", (m) => m.wheel(deltaX, deltaY)),
   });
 };

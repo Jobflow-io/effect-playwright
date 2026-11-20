@@ -112,20 +112,13 @@ export const makeWebStorage = (webStorage: CoreWebStorage): WebStorage => {
   return WebStorage.of({
     clear: traced("clear", (storage) => storage.clear()),
     getItem: (name) =>
-      traced("getItem", (storage) => storage.getItem(name), {
-        target: name,
-        attributes: () => ({ "playwright.storage.key": name }),
-      }).pipe(Effect.map(Option.fromNullishOr)),
+      traced("getItem", (storage) => storage.getItem(name)).pipe(
+        Effect.map(Option.fromNullishOr),
+      ),
     items: traced("items", (storage) => storage.items()),
     removeItem: (name) =>
-      traced("removeItem", (storage) => storage.removeItem(name), {
-        target: name,
-        attributes: () => ({ "playwright.storage.key": name }),
-      }),
+      traced("removeItem", (storage) => storage.removeItem(name)),
     setItem: (name, value) =>
-      traced("setItem", (storage) => storage.setItem(name, value), {
-        target: name,
-        attributes: () => ({ "playwright.storage.key": name }),
-      }),
+      traced("setItem", (storage) => storage.setItem(name, value)),
   });
 };

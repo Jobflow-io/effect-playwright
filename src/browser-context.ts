@@ -359,7 +359,7 @@ export const makeBrowserContext = (
         (c) => c.grantPermissions(permissions, options),
         {
           attributes: () => ({
-            "playwright.permissions": permissions.join(","),
+            "playwright.permissions.count": permissions.length,
           }),
         },
       ),

@@ -20,7 +20,12 @@ import { type PlaywrightError, wrapError } from "./errors";
 import { type Frame, makeFrame } from "./frame";
 import { makePage, type Page } from "./page";
 import type { PageFunction } from "./playwright-types";
-import { makeTracedUse, sanitizeUrl, tracedTry, urlAttributes } from "./tracer";
+import {
+  makeTracedUse,
+  sanitizeHttpMethod,
+  tracedTry,
+  urlAttributes,
+} from "./tracer";
 
 /**
  * @category models
@@ -166,15 +171,10 @@ export const Request = Context.Service<Request>(
  * @since 0.1.2
  */
 export const makeRequest = (request: CoreRequest): Request => {
-  const { traced } = makeTracedUse(
-    request,
-    "Request",
-    () => ({
-      "http.request.method": request.method(),
-      ...urlAttributes(request.url()),
-    }),
-    () => sanitizeUrl(request.url()),
-  );
+  const { traced } = makeTracedUse(request, "Request", () => ({
+    "http.request.method": sanitizeHttpMethod(request.method()),
+    ...urlAttributes(request.url()),
+  }));
 
   return Request.of({
     allHeaders: traced("allHeaders", (r) => r.allHeaders()),
@@ -183,9 +183,7 @@ export const makeRequest = (request: CoreRequest): Request => {
         Option.map(makeResponse),
       ),
     failure: () => Option.fromNullishOr(request.failure()),
-    frame: tracedTry("Request", "frame", () => makeFrame(request.frame()), {
-      getTarget: () => sanitizeUrl(request.url()),
-    }),
+    frame: tracedTry("Request", "frame", () => makeFrame(request.frame())),
     headerValue: (name) =>
       traced("headerValue", (r) => r.headerValue(name)).pipe(
         Effect.map(Option.fromNullishOr),
@@ -307,23 +305,16 @@ export const Response = Context.Service<Response>(
  * @since 0.1.2
  */
 export const makeResponse = (response: CoreResponse): Response => {
-  const { traced } = makeTracedUse(
-    response,
-    "Response",
-    () => ({
-      "http.response.status_code": response.status(),
-      ...urlAttributes(response.url()),
-    }),
-    () => sanitizeUrl(response.url()),
-  );
+  const { traced } = makeTracedUse(response, "Response", () => ({
+    "http.response.status_code": response.status(),
+    ...urlAttributes(response.url()),
+  }));
 
   return Response.of({
     allHeaders: traced("allHeaders", (r) => r.allHeaders()),
     body: traced("body", (r) => r.body()),
     finished: traced("finished", (r) => r.finished()),
-    frame: tracedTry("Response", "frame", () => makeFrame(response.frame()), {
-      getTarget: () => sanitizeUrl(response.url()),
-    }),
+    frame: tracedTry("Response", "frame", () => makeFrame(response.frame())),
     fromServiceWorker: () => response.fromServiceWorker(),
     headers: () => response.headers(),
     headersArray: traced("headersArray", (r) => r.headersArray()),
@@ -379,11 +370,8 @@ export const Worker = Context.Service<Worker>(
  * @since 0.1.2
  */
 export const makeWorker = (worker: CoreWorker): Worker => {
-  const { traced } = makeTracedUse(
-    worker,
-    "Worker",
-    () => urlAttributes(worker.url()),
-    () => sanitizeUrl(worker.url()),
+  const { traced } = makeTracedUse(worker, "Worker", () =>
+    urlAttributes(worker.url()),
   );
 
   return Worker.of({
@@ -529,11 +517,8 @@ export const Download = Context.Service<Download>(
  * @since 0.1.2
  */
 export const makeDownload = (download: CoreDownload): Download => {
-  const { traced, use } = makeTracedUse(
-    download,
-    "Download",
-    () => urlAttributes(download.url()),
-    () => sanitizeUrl(download.url()),
+  const { traced, use } = makeTracedUse(download, "Download", () =>
+    urlAttributes(download.url()),
   );
 
   return Download.of({

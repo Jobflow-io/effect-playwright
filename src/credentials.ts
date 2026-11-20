@@ -102,11 +102,7 @@ export const makeCredentials = (credentials: CoreCredentials): Credentials => {
 
   return Credentials.of({
     install: traced("install", (c) => c.install()),
-    create: (rpId, options) =>
-      traced("create", (c) => c.create(rpId, options), {
-        target: rpId,
-        attributes: () => ({ "playwright.rp_id": rpId }),
-      }),
+    create: (rpId, options) => traced("create", (c) => c.create(rpId, options)),
     get: (options) => traced("get", (c) => c.get(options)),
     delete: (id) => traced("delete", (c) => c.delete(id)),
   });

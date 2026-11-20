@@ -81,22 +81,10 @@ export const makeKeyboard = (keyboard: CoreKeyboard): Keyboard => {
   const { traced } = makeTracedUse(keyboard, "Keyboard");
 
   return Keyboard.of({
-    down: (key) =>
-      traced("down", (k) => k.down(key), {
-        target: key,
-        attributes: () => ({ "playwright.key": key }),
-      }),
+    down: (key) => traced("down", (k) => k.down(key)),
     insertText: (text) => traced("insertText", (k) => k.insertText(text)),
-    press: (key, options) =>
-      traced("press", (k) => k.press(key, options), {
-        target: key,
-        attributes: () => ({ "playwright.key": key }),
-      }),
+    press: (key, options) => traced("press", (k) => k.press(key, options)),
     type: (text, options) => traced("type", (k) => k.type(text, options)),
-    up: (key) =>
-      traced("up", (k) => k.up(key), {
-        target: key,
-        attributes: () => ({ "playwright.key": key }),
-      }),
+    up: (key) => traced("up", (k) => k.up(key)),
   });
 };
