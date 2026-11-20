@@ -7,7 +7,7 @@
 import { Context, type Effect } from "effect";
 import type { Mouse as CoreMouse } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * @category models
@@ -90,14 +90,15 @@ export const Mouse = Context.Service<Mouse>("effect-playwright/mouse/Mouse");
  * @category constructors
  */
 export const makeMouse = (mouse: CoreMouse): Mouse => {
-  const use = useHelper(mouse);
+  const { traced } = makeTracedUse(mouse, "Mouse");
 
   return Mouse.of({
-    click: (x, y, options) => use((m) => m.click(x, y, options)),
-    dblclick: (x, y, options) => use((m) => m.dblclick(x, y, options)),
-    down: (options) => use((m) => m.down(options)),
-    move: (x, y, options) => use((m) => m.move(x, y, options)),
-    up: (options) => use((m) => m.up(options)),
-    wheel: (deltaX, deltaY) => use((m) => m.wheel(deltaX, deltaY)),
+    click: (x, y, options) => traced("click", (m) => m.click(x, y, options)),
+    dblclick: (x, y, options) =>
+      traced("dblclick", (m) => m.dblclick(x, y, options)),
+    down: (options) => traced("down", (m) => m.down(options)),
+    move: (x, y, options) => traced("move", (m) => m.move(x, y, options)),
+    up: (options) => traced("up", (m) => m.up(options)),
+    wheel: (deltaX, deltaY) => traced("wheel", (m) => m.wheel(deltaX, deltaY)),
   });
 };

@@ -15,6 +15,7 @@ import {
 import { type Browser, type LaunchOptions, makeBrowser } from "./browser";
 import { type BrowserContext, makeBrowserContext } from "./browser-context";
 import { type PlaywrightError, wrapError } from "./errors";
+import { urlAttributes, withPlaywrightSpan } from "./tracer";
 
 type LaunchPersistentContextOptions = Parameters<
   BrowserType["launchPersistentContext"]
@@ -261,49 +262,65 @@ export interface Playwright {
 const launch: (
   browserType: BrowserType,
   options?: LaunchOptions,
-) => Effect.Effect<Browser, PlaywrightError> = Effect.fn(function* (
-  browserType: BrowserType,
-  options?: LaunchOptions,
-) {
-  const rawBrowser = yield* Effect.tryPromise({
-    try: () => browserType.launch(options),
-    catch: wrapError,
-  });
-
-  return makeBrowser(rawBrowser);
-});
+) => Effect.Effect<Browser, PlaywrightError> = (browserType, options) =>
+  withPlaywrightSpan(
+    Effect.tryPromise({
+      try: () => browserType.launch(options),
+      catch: wrapError,
+    }).pipe(Effect.map(makeBrowser)),
+    {
+      service: "Playwright",
+      method: "launch",
+      attributes: () => ({
+        "playwright.browser.name": browserType.name(),
+      }),
+      onSuccess: (browser) => ({
+        "playwright.browser.version": browser.version(),
+      }),
+    },
+  );
 
 const connectCDP: (
   cdpUrl: string,
   options?: ConnectOverCDPOptions,
-) => Effect.Effect<Browser, PlaywrightError> = Effect.fn(function* (
-  cdpUrl: string,
-  options?: ConnectOverCDPOptions,
-) {
-  const browser = yield* Effect.tryPromise({
-    try: () => chromium.connectOverCDP(cdpUrl, options),
-    catch: wrapError,
-  });
-
-  return makeBrowser(browser);
-});
+) => Effect.Effect<Browser, PlaywrightError> = (cdpUrl, options) =>
+  withPlaywrightSpan(
+    Effect.tryPromise({
+      try: () => chromium.connectOverCDP(cdpUrl, options),
+      catch: wrapError,
+    }).pipe(Effect.map(makeBrowser)),
+    {
+      service: "Playwright",
+      method: "connectCDP",
+      attributes: () => urlAttributes(cdpUrl),
+      onSuccess: (browser) => ({
+        "playwright.browser.version": browser.version(),
+      }),
+    },
+  );
 
 const launchPersistentContext: (
   browserType: BrowserType,
   userDataDir: string,
   options?: LaunchPersistentContextOptions,
-) => Effect.Effect<BrowserContext, PlaywrightError> = Effect.fn(function* (
-  browserType: BrowserType,
-  userDataDir: string,
-  options?: LaunchPersistentContextOptions,
-) {
-  const rawContext = yield* Effect.tryPromise({
-    try: () => browserType.launchPersistentContext(userDataDir, options),
-    catch: wrapError,
-  });
-
-  return makeBrowserContext(rawContext);
-});
+) => Effect.Effect<BrowserContext, PlaywrightError> = (
+  browserType,
+  userDataDir,
+  options,
+) =>
+  withPlaywrightSpan(
+    Effect.tryPromise({
+      try: () => browserType.launchPersistentContext(userDataDir, options),
+      catch: wrapError,
+    }).pipe(Effect.map(makeBrowserContext)),
+    {
+      service: "Playwright",
+      method: "launchPersistentContext",
+      attributes: () => ({
+        "playwright.browser.name": browserType.name(),
+      }),
+    },
+  );
 
 /**
  * @category services

@@ -7,7 +7,7 @@
 import { Context, type Effect } from "effect";
 import type { Keyboard as CoreKeyboard } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * @category models
@@ -78,13 +78,13 @@ export const Keyboard = Context.Service<Keyboard>(
  * @since 0.1.0
  */
 export const makeKeyboard = (keyboard: CoreKeyboard): Keyboard => {
-  const use = useHelper(keyboard);
+  const { traced } = makeTracedUse(keyboard, "Keyboard");
 
   return Keyboard.of({
-    down: (key) => use((k) => k.down(key)),
-    insertText: (text) => use((k) => k.insertText(text)),
-    press: (key, options) => use((k) => k.press(key, options)),
-    type: (text, options) => use((k) => k.type(text, options)),
-    up: (key) => use((k) => k.up(key)),
+    down: (key) => traced("down", (k) => k.down(key)),
+    insertText: (text) => traced("insertText", (k) => k.insertText(text)),
+    press: (key, options) => traced("press", (k) => k.press(key, options)),
+    type: (text, options) => traced("type", (k) => k.type(text, options)),
+    up: (key) => traced("up", (k) => k.up(key)),
   });
 };

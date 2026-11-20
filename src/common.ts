@@ -20,7 +20,12 @@ import { type PlaywrightError, wrapError } from "./errors";
 import { type Frame, makeFrame } from "./frame";
 import { makePage, type Page } from "./page";
 import type { PageFunction } from "./playwright-types";
-import { useHelper } from "./utils";
+import {
+  makeTracedUse,
+  sanitizeHttpMethod,
+  tracedTry,
+  urlAttributes,
+} from "./tracer";
 
 /**
  * @category models
@@ -166,33 +171,32 @@ export const Request = Context.Service<Request>(
  * @since 0.1.2
  */
 export const makeRequest = (request: CoreRequest): Request => {
-  const use = useHelper(request);
+  const { traced } = makeTracedUse(request, "Request", () => ({
+    "http.request.method": sanitizeHttpMethod(request.method()),
+    ...urlAttributes(request.url()),
+  }));
 
   return Request.of({
-    allHeaders: use(() => request.allHeaders()),
+    allHeaders: traced("allHeaders", (r) => r.allHeaders()),
     existingResponse: (): Option.Option<Response> =>
       Option.fromNullishOr(request.existingResponse()).pipe(
         Option.map(makeResponse),
       ),
     failure: () => Option.fromNullishOr(request.failure()),
-    frame: Effect.try({
-      try: () => makeFrame(request.frame()),
-      catch: wrapError,
-    }),
+    frame: tracedTry("Request", "frame", () => makeFrame(request.frame())),
     headerValue: (name) =>
-      use(() => request.headerValue(name)).pipe(
+      traced("headerValue", (r) => r.headerValue(name)).pipe(
         Effect.map(Option.fromNullishOr),
       ),
     headers: () => request.headers(),
-    headersArray: use(() => request.headersArray()),
+    headersArray: traced("headersArray", (r) => r.headersArray()),
     isNavigationRequest: () => request.isNavigationRequest(),
     method: () => request.method(),
     postData: () => Option.fromNullishOr(request.postData()),
     postDataBuffer: () => Option.fromNullishOr(request.postDataBuffer()),
-    postDataJSON: Effect.try({
-      try: () => request.postDataJSON(),
-      catch: wrapError,
-    }).pipe(Effect.map(Option.fromNullishOr)),
+    postDataJSON: tracedTry("Request", "postDataJSON", () =>
+      request.postDataJSON(),
+    ).pipe(Effect.map(Option.fromNullishOr)),
     redirectedFrom: (): Option.Option<Request> =>
       Option.fromNullishOr(request.redirectedFrom()).pipe(
         Option.map(makeRequest),
@@ -202,7 +206,7 @@ export const makeRequest = (request: CoreRequest): Request => {
         Option.map(makeRequest),
       ),
     resourceType: () => request.resourceType(),
-    response: use(() => request.response()).pipe(
+    response: traced("response", (r) => r.response()).pipe(
       Effect.map(Option.fromNullishOr),
       Effect.map(Option.map(makeResponse)),
     ),
@@ -210,7 +214,7 @@ export const makeRequest = (request: CoreRequest): Request => {
       Option.fromNullishOr(request.serviceWorker()).pipe(
         Option.map(makeWorker),
       ),
-    sizes: use(() => request.sizes()),
+    sizes: traced("sizes", (r) => r.sizes()),
     timing: () => request.timing(),
     url: () => request.url(),
   });
@@ -301,37 +305,37 @@ export const Response = Context.Service<Response>(
  * @since 0.1.2
  */
 export const makeResponse = (response: CoreResponse): Response => {
-  const use = useHelper(response);
+  const { traced } = makeTracedUse(response, "Response", () => ({
+    "http.response.status_code": response.status(),
+    ...urlAttributes(response.url()),
+  }));
 
   return Response.of({
-    allHeaders: use(() => response.allHeaders()),
-    body: use(() => response.body()),
-    finished: use(() => response.finished()),
-    frame: Effect.try({
-      try: () => makeFrame(response.frame()),
-      catch: wrapError,
-    }),
+    allHeaders: traced("allHeaders", (r) => r.allHeaders()),
+    body: traced("body", (r) => r.body()),
+    finished: traced("finished", (r) => r.finished()),
+    frame: tracedTry("Response", "frame", () => makeFrame(response.frame())),
     fromServiceWorker: () => response.fromServiceWorker(),
     headers: () => response.headers(),
-    headersArray: use(() => response.headersArray()),
+    headersArray: traced("headersArray", (r) => r.headersArray()),
     headerValue: (name) =>
-      use(() => response.headerValue(name)).pipe(
+      traced("headerValue", (r) => r.headerValue(name)).pipe(
         Effect.map(Option.fromNullishOr),
       ),
-    headerValues: (name) => use(() => response.headerValues(name)),
-    httpVersion: use(() => response.httpVersion()),
-    json: use(() => response.json()),
+    headerValues: (name) => traced("headerValues", (r) => r.headerValues(name)),
+    httpVersion: traced("httpVersion", (r) => r.httpVersion()),
+    json: traced("json", (r) => r.json()),
     ok: () => response.ok(),
     request: () => makeRequest(response.request()),
-    securityDetails: use(() => response.securityDetails()).pipe(
+    securityDetails: traced("securityDetails", (r) => r.securityDetails()).pipe(
       Effect.map(Option.fromNullishOr),
     ),
-    serverAddr: use(() => response.serverAddr()).pipe(
+    serverAddr: traced("serverAddr", (r) => r.serverAddr()).pipe(
       Effect.map(Option.fromNullishOr),
     ),
     status: () => response.status(),
     statusText: () => response.statusText(),
-    text: use(() => response.text()),
+    text: traced("text", (r) => r.text()),
     url: () => response.url(),
   });
 };
@@ -366,11 +370,13 @@ export const Worker = Context.Service<Worker>(
  * @since 0.1.2
  */
 export const makeWorker = (worker: CoreWorker): Worker => {
-  const use = useHelper(worker);
+  const { traced } = makeTracedUse(worker, "Worker", () =>
+    urlAttributes(worker.url()),
+  );
 
   return Worker.of({
     evaluate: <R, Arg>(f: PageFunction<Arg, R>, arg?: Arg) =>
-      use((worker) =>
+      traced("evaluate", (worker) =>
         worker.evaluate<R, Arg>(
           // Playwright's overload cannot preserve the wrapper's generic function type.
           f as unknown as Parameters<typeof worker.evaluate<R, Arg>>[0],
@@ -412,12 +418,14 @@ export const Dialog = Context.Service<Dialog>(
  * @since 0.1.2
  */
 export const makeDialog = (dialog: CoreDialog): Dialog => {
-  const use = useHelper(dialog);
+  const { traced } = makeTracedUse(dialog, "Dialog", () => ({
+    "playwright.dialog.type": dialog.type(),
+  }));
 
   return Dialog.of({
-    accept: (promptText) => use(() => dialog.accept(promptText)),
+    accept: (promptText) => traced("accept", (d) => d.accept(promptText)),
     defaultValue: () => dialog.defaultValue(),
-    dismiss: use(() => dialog.dismiss()),
+    dismiss: traced("dismiss", (d) => d.dismiss()),
     message: () => dialog.message(),
     page: () => Option.fromNullishOr(dialog.page()).pipe(Option.map(makePage)),
     type: () => dialog.type(),
@@ -456,14 +464,14 @@ export const FileChooser = Context.Service<FileChooser>(
  * @since 0.1.2
  */
 export const makeFileChooser = (fileChooser: CoreFileChooser): FileChooser => {
-  const use = useHelper(fileChooser);
+  const { traced } = makeTracedUse(fileChooser, "FileChooser");
 
   return FileChooser.of({
     element: () => fileChooser.element(),
     isMultiple: () => fileChooser.isMultiple(),
     page: () => makePage(fileChooser.page()),
     setFiles: (files, options) =>
-      use(() => fileChooser.setFiles(files, options)),
+      traced("setFiles", (fc) => fc.setFiles(files, options)),
   });
 };
 
@@ -509,12 +517,14 @@ export const Download = Context.Service<Download>(
  * @since 0.1.2
  */
 export const makeDownload = (download: CoreDownload): Download => {
-  const use = useHelper(download);
+  const { traced, use } = makeTracedUse(download, "Download", () =>
+    urlAttributes(download.url()),
+  );
 
   return Download.of({
-    cancel: use(() => download.cancel()),
-    stream: use(() =>
-      download.createReadStream().then((s) => Readable.toWeb(s)),
+    cancel: traced("cancel", (d) => d.cancel()),
+    stream: traced("stream", (d) =>
+      d.createReadStream().then((s) => Readable.toWeb(s)),
     ).pipe(
       Effect.map((s) =>
         Stream.fromReadableStream({
@@ -524,13 +534,15 @@ export const makeDownload = (download: CoreDownload): Download => {
       ),
       Stream.unwrap,
     ),
-    delete: use(() => download.delete()),
-    failure: use(() => download.failure()).pipe(
+    delete: traced("delete", (d) => d.delete()),
+    failure: traced("failure", (d) => d.failure()).pipe(
       Effect.map(Option.fromNullishOr),
     ),
     page: () => makePage(download.page()),
-    path: use(() => download.path()).pipe(Effect.map(Option.fromNullishOr)),
-    saveAs: (path) => use(() => download.saveAs(path)),
+    path: traced("path", (d) => d.path()).pipe(
+      Effect.map(Option.fromNullishOr),
+    ),
+    saveAs: (path) => traced("saveAs", (d) => d.saveAs(path)),
     suggestedFilename: () => download.suggestedFilename(),
     url: () => download.url(),
     use,

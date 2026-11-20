@@ -178,6 +178,60 @@ All methods return effects that can fail with a `Playwright.PlaywrightError`. Th
 Note that Playwright does not support interruption, so `Effect.timeout` or similar code does not behave like you
 might expect. Playwright provides its own `timeout` option for almost every method.
 
+## Tracing
+
+All fallible Playwright operations emit Effect `Tracer` spans (`kind: "client"`) automatically, parented under any surrounding `Effect.withSpan` and compatible with Effect's native tracing controls (`Effect.withTracerEnabled`, `Tracer.DisablePropagation`, `Tracer.MinimumTraceLevel`, `Effect.withTracerTiming`, and `Effect.annotateSpans`).
+
+> [!NOTE]
+> Effect `Tracer` spans are separate from Playwright's trace viewer recordings (`context.tracing`, wrapped by `Playwright.Tracing`).
+
+By default:
+
+- Spans are named `Playwright.<method>` for launch/connection operations (for example, `Playwright.launch`) and `Playwright.<Service>.<method>` for service operations (for example, `Playwright.Page.goto`, `Playwright.Locator.click`).
+- Safe, low-cardinality metadata is attached as span attributes (such as `playwright.service`, `playwright.method`, `playwright.error.reason`, `playwright.browser.name`, `playwright.browser.version`, `url.scheme`, `server.address`, `server.port`, `http.request.method`, and `http.response.status_code`).
+- Sensitive payloads and high-cardinality identifiers are never recorded on spans: input values, keystrokes, selectors, coordinates, headers, cookies, storage keys/values, HTML content, URL paths, queries, fragments, credentials, opaque URL payloads, and raw error causes are omitted or redacted. Use `Effect.annotateSpans` or `Effect.withSpan` when you want to attach additional application context.
+
+Use `Playwright.TracerDisabledWhen`, `Playwright.TracerAttributeFilter`, and `Playwright.SpanNameGenerator` to customize Playwright tracing behavior (`Playwright.TracerAttributeFilter` filters attributes emitted by `effect-playwright` and does not filter annotations inherited from `Effect.annotateSpans`):
+
+```ts
+import { Effect, Layer } from "effect";
+import { Playwright } from "effect-playwright";
+
+const tracingLayer = Layer.mergeAll(
+  // Skip noisy input services or specific methods
+  Layer.succeed(
+    Playwright.TracerDisabledWhen,
+    (op) => op.service === "Mouse" || op.method === "title",
+  ),
+  // Drop host and port attributes from Playwright spans
+  Layer.succeed(
+    Playwright.TracerAttributeFilter,
+    (name) => name !== "server.address" && name !== "server.port",
+  ),
+  // Customize span names
+  Layer.succeed(
+    Playwright.SpanNameGenerator,
+    (op) => `${op.service}.${op.method}`,
+  ),
+);
+
+const program = Effect.gen(function* () {
+  const page = yield* Playwright.Page;
+  yield* page.goto("https://example.com/account/settings");
+  yield* page.locator("button").click();
+}).pipe(Effect.provide(tracingLayer));
+```
+
+You can also disable Playwright tracing or all Effect tracing for a single effect:
+
+```ts
+// Disable only Playwright spans
+effect.pipe(Effect.provideService(Playwright.TracerDisabledWhen, () => true));
+
+// Disable all Effect spans
+effect.pipe(Effect.withTracerEnabled(false));
+```
+
 ## CLI Wrapper
 
 `effect-playwright` includes a lightweight command-line wrapper that forwards all commands directly to the underlying `playwright-core` CLI. You can use it to install browsers, generate code, or inspect traces:

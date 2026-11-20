@@ -3,8 +3,10 @@
  *
  * Service names such as {@link Browser}, {@link BrowserContext}, and
  * {@link Page} work in both value and type positions. Constructors adapt
- * native Playwright values, and {@link Playwright} provides browser launch and
- * connection operations.
+ * native Playwright values, {@link Playwright} provides browser launch and
+ * connection operations, and {@link TracerDisabledWhen},
+ * {@link TracerAttributeFilter}, and {@link SpanNameGenerator} configure
+ * Effect `Tracer` spans emitted by wrapper operations.
  *
  * @since 0.7.0
  * @packageDocumentation
@@ -51,6 +53,13 @@ export type {
 } from "./playwright-types";
 export { makeScreencast, Screencast } from "./screencast";
 export { makeTouchscreen, Touchscreen } from "./touchscreen";
+export {
+  SpanNameGenerator,
+  type SpanOperation,
+  type SpanService,
+  TracerAttributeFilter,
+  TracerDisabledWhen,
+} from "./tracer";
 export { makeTracing, Tracing } from "./tracing";
 export { makeWebStorage, WebStorage } from "./web-storage";
 export {

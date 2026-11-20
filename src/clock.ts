@@ -7,7 +7,7 @@
 import { Context, type Effect } from "effect";
 import type { Clock as CoreClock } from "playwright-core";
 import type { PlaywrightError } from "./errors";
-import { useHelper } from "./utils";
+import { makeTracedUse } from "./tracer";
 
 /**
  * Interface for a Playwright clock.
@@ -113,16 +113,17 @@ export const Clock = Context.Service<Clock>("effect-playwright/clock/Clock");
  * @category constructors
  */
 export const makeClock = (clock: CoreClock): Clock => {
-  const use = useHelper(clock);
+  const { traced, use } = makeTracedUse(clock, "Clock");
 
   return Clock.of({
-    fastForward: (ticks) => use((c) => c.fastForward(ticks)),
-    install: (options) => use((c) => c.install(options)),
-    pauseAt: (time) => use((c) => c.pauseAt(time)),
-    resume: use((c) => c.resume()),
-    runFor: (ticks) => use((c) => c.runFor(ticks)),
-    setFixedTime: (time) => use((c) => c.setFixedTime(time)),
-    setSystemTime: (time) => use((c) => c.setSystemTime(time)),
+    fastForward: (ticks) => traced("fastForward", (c) => c.fastForward(ticks)),
+    install: (options) => traced("install", (c) => c.install(options)),
+    pauseAt: (time) => traced("pauseAt", (c) => c.pauseAt(time)),
+    resume: traced("resume", (c) => c.resume()),
+    runFor: (ticks) => traced("runFor", (c) => c.runFor(ticks)),
+    setFixedTime: (time) => traced("setFixedTime", (c) => c.setFixedTime(time)),
+    setSystemTime: (time) =>
+      traced("setSystemTime", (c) => c.setSystemTime(time)),
     use,
   });
 };
